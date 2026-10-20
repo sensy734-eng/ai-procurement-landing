@@ -6,7 +6,14 @@ import { useUserStore } from '@/stores/user'
 const Placeholder = () => import('@/views/Placeholder.vue')
 
 /** 已交付页面，其余菜单路径统一指向占位页 */
-const builtPaths = new Set(['/home', '/system/users'])
+const builtPaths = new Set([
+  '/home',
+  '/system/users',
+  '/system/roles',
+  '/system/approval',
+  '/system/params',
+  '/system/logs'
+])
 
 const placeholderRoutes: RouteRecordRaw[] = flattenMenu(menuTree)
   .filter((node) => node.path && !builtPaths.has(node.path))
@@ -40,6 +47,30 @@ const routes: RouteRecordRaw[] = [
         name: 'system-users',
         component: () => import('@/views/system/UserList.vue'),
         meta: { title: '用户管理', perm: 'm11:user:list' }
+      },
+      {
+        path: 'system/roles',
+        name: 'system-roles',
+        component: () => import('@/views/system/RoleList.vue'),
+        meta: { title: '角色权限', perm: 'm11:role:list' }
+      },
+      {
+        path: 'system/approval',
+        name: 'system-approval',
+        component: () => import('@/views/system/ApprovalConfig.vue'),
+        meta: { title: '审批配置', perm: 'm11:approval_node:list' }
+      },
+      {
+        path: 'system/params',
+        name: 'system-params',
+        component: () => import('@/views/system/ParamConfig.vue'),
+        meta: { title: '参数配置', perm: 'm11:param:list' }
+      },
+      {
+        path: 'system/logs',
+        name: 'system-logs',
+        component: () => import('@/views/system/LogAudit.vue'),
+        meta: { title: '日志审计', perm: 'm11:log:list' }
       },
       {
         path: '403',

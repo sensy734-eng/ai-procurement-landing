@@ -77,7 +77,22 @@
       </el-main>
     </el-container>
 
-    <el-dialog v-model="pwdVisible" title="修改密码" width="420px">
+    <el-dialog
+      v-model="pwdVisible"
+      :title="pwdForced ? '首次登录需修改密码' : '修改密码'"
+      width="420px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="!pwdForced"
+      :show-close="!pwdForced"
+    >
+      <el-alert
+        v-if="pwdForced"
+        class="pwd-tip"
+        type="warning"
+        :closable="false"
+        show-icon
+        title="当前密码为管理员设置的初始密码，修改后才能继续使用系统。"
+      />
       <el-form ref="pwdFormRef" :model="pwdForm" :rules="pwdRules" label-width="88px">
         <el-form-item label="原密码" prop="oldPassword">
           <el-input v-model="pwdForm.oldPassword" type="password" show-password />
@@ -90,7 +105,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="pwdVisible = false">取消</el-button>
+        <el-button v-if="!pwdForced" @click="pwdVisible = false">取消</el-button>
         <el-button type="primary" :loading="pwdLoading" @click="submitPassword">确定</el-button>
       </template>
     </el-dialog>
@@ -98,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
@@ -112,6 +127,7 @@ const store = useUserStore()
 
 const collapsed = ref(false)
 const pwdVisible = ref(false)
+const pwdForced = ref(false)
 const pwdLoading = ref(false)
 const pwdFormRef = ref<FormInstance>()
 const pwdForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
@@ -120,7 +136,7 @@ const pwdRules: FormRules = {
   oldPassword: [{ required: true, message: '请输入原密码', trigger: 'blur' }],
   newPassword: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, max: 30, message: '长度需在 6 到 30 位之间', trigger: 'blur' }
+    { min: 8, max: 30, message: '长度需在 8 到 30 位之间', trigger: 'blur' }
   ],
   confirmPassword: [
     { required: true, message: '请再次输入新密码', trigger: 'blur' },
@@ -162,6 +178,7 @@ const visibleMenus = computed(() => filterMenu(menuTree))
 
 async function handleCommand(command: string) {
   if (command === 'password') {
+    pwdForced.value = false
     pwdForm.oldPassword = ''
     pwdForm.newPassword = ''
     pwdForm.confirmPassword = ''
@@ -187,12 +204,25 @@ async function submitPassword() {
   pwdLoading.value = true
   try {
     await changePassword(pwdForm.oldPassword, pwdForm.newPassword)
+    store.pwdNeedChange = false
+    pwdForced.value = false
     pwdVisible.value = false
     ElMessage.success('密码已修改，其它会话已下线')
   } finally {
     pwdLoading.value = false
   }
 }
+
+/**
+ * M11-2-4 首登必改：管理员重置密码后，用户进入系统即强制修改，
+ * 未修改前弹窗不可关闭、不可点遮罩退出。
+ */
+onMounted(() => {
+  if (store.pwdNeedChange) {
+    pwdForced.value = true
+    pwdVisible.value = true
+  }
+})
 </script>
 
 <style scoped>
@@ -321,5 +351,9 @@ async function submitPassword() {
   padding: 20px;
   background: #f5f7fa;
   overflow-y: auto;
+}
+
+.pwd-tip {
+  margin-bottom: 14px;
 }
 </style>

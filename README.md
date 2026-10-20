@@ -44,6 +44,17 @@
 
 99_verify.sql 是校验脚本，预期 12 项全部为零违规。
 
+## 运行过的轮次
+
+| 轮次 | 范围 | 状态 |
+|---|---|---|
+| 1 | 工程骨架与认证闭环 | 已完成 |
+| 2 | M11 平台与权限管理 | 已完成 |
+| 3 起 | 见 DEV_ROADMAP.md | 待进行 |
+
+轮次 2 交付的页面：用户管理（P22）、角色权限（P23）、审批配置、参数配置、日志审计（P24）。
+后端接口覆盖 M11-1 至 M11-5 共 22 个功能点，其中 M11-5-3 至 M11-5-5 的审批引擎随轮次 4 的 M2 一并实现。
+
 ## 启动后端
 
     cd server
@@ -78,8 +89,16 @@
 ## 自测
 
     python scripts/smoke_round1.py
+    python scripts/smoke_round2.py
+    cd web && node scripts/ui_smoke.mjs
 
-覆盖登录、会话、权限拦截、数据范围与用户列表。全部通过时退出码为 0。
+- smoke_round1.py 覆盖登录、会话、权限拦截、数据范围与用户列表，20 项断言
+- smoke_round2.py 覆盖 M11 全部接口，67 项断言，包含越权与非法参数用例
+- ui_smoke.mjs 用系统 Chrome 无头登录并逐页检查渲染，截图落在 web/scripts/screenshots/
+
+冒烟脚本会留下 smoke 前缀的测试用户与角色，跑完执行一次清理：
+
+    mysql -u root < db/15_clean_smoke.sql
 
 ## 约定
 

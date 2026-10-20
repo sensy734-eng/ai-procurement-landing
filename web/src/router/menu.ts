@@ -49,6 +49,7 @@ export const menuTree: MenuNode[] = [
       { title: '用户管理', path: '/system/users', perm: 'm11:user:list' },
       { title: '角色权限', path: '/system/roles', perm: 'm11:role:list' },
       { title: '审批配置', path: '/system/approval', perm: 'm11:approval_node:list' },
+      { title: '参数配置', path: '/system/params', perm: 'm11:param:list' },
       { title: '知识库', path: '/system/kb', perm: 'm10:document:list' },
       { title: '日志审计', path: '/system/logs', perm: 'm11:log:list' },
       { title: '运营看板', path: '/system/dashboard', perm: 'm12:summary:purchase' }

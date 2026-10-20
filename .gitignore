@@ -1,12 +1,8 @@
-# 工程忽略规则
-target/
 node_modules/
 dist/
-*.local.yml
-application-local.yml
-.idea/
-*.iml
-.vscode/
-logs/
+target/
 *.log
-.DS_Store
+.idea/
+.vscode/
+server/src/main/resources/application-local.yml
+web/scripts/screenshots/

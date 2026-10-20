@@ -10,6 +10,11 @@ spring:
     name: procurement-server
   profiles:
     active: local
+  servlet:
+    multipart:
+      # 资质附件上传上限 10MB，与 SupplierService.MAX_ATTACHMENT_SIZE 一致
+      max-file-size: 10MB
+      max-request-size: 20MB
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/procurement_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
@@ -38,6 +43,9 @@ app:
   session:
     # 会话超时分钟数，M11-1-2
     timeout-minutes: 480
+  # 资质附件上传目录，M1-2-5，相对服务端工作目录，已加入 .gitignore
+  upload:
+    dir: uploads
   cors:
     allowed-origins: http://localhost:5173
 

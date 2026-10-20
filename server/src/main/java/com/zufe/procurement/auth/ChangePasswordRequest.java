@@ -6,6 +6,7 @@ import lombok.Data;
 
 /**
  * 修改密码请求，M11-1-4。
+ * 最小长度由参数 pwd_min_length 决定，在 Service 层校验，避免前端与后端两套口径。
  */
 @Data
 public class ChangePasswordRequest {
@@ -14,6 +15,6 @@ public class ChangePasswordRequest {
     private String oldPassword;
 
     @NotBlank(message = "新密码不能为空")
-    @Size(min = 6, max = 30, message = "新密码长度需在 6 到 30 位之间")
+    @Size(max = 30, message = "新密码长度不超过 30 位")
     private String newPassword;
 }

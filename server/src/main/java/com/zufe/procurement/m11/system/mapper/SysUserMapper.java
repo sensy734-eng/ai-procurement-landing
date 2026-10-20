@@ -50,4 +50,21 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
               AND p.is_deleted = 0 AND r.is_deleted = 0 AND r.status = 1
             """)
     List<String> selectPermCodes(@Param("userId") Long userId);
+
+    /**
+     * 账号查重。uk_username 不含 is_deleted，逻辑删除的账号仍占用唯一键，
+     * 因此新增时必须连已删除的一起查，否则插入会撞唯一键报数据库错误。
+     */
+    @Select("SELECT COUNT(*) FROM sys_user WHERE username = #{username}")
+    int countByUsernameIncludeDeleted(@Param("username") String username);
+
+    /**
+     * 统计某角色下处于启用状态的用户数，停用角色或删除角色前的保护性校验。
+     */
+    @Select("""
+            SELECT COUNT(*) FROM sys_user u
+            JOIN sys_user_role ur ON ur.user_id = u.id
+            WHERE ur.role_id = #{roleId} AND u.is_deleted = 0 AND u.status = 1
+            """)
+    int countActiveUsersByRole(@Param("roleId") Long roleId);
 }

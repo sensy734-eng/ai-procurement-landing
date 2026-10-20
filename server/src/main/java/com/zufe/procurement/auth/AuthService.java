@@ -11,6 +11,7 @@ import com.zufe.procurement.m11.system.entity.SysSession;
 import com.zufe.procurement.m11.system.entity.SysUser;
 import com.zufe.procurement.m11.system.mapper.SysSessionMapper;
 import com.zufe.procurement.m11.system.mapper.SysUserMapper;
+import com.zufe.procurement.m11.param.service.SysParamService;
 import com.zufe.procurement.scope.DataScopeService;
 import com.zufe.procurement.scope.ScopeCondition;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,21 +48,32 @@ public class AuthService {
     private final SysSessionMapper sessionMapper;
     private final DictItemMapper dictItemMapper;
     private final DataScopeService dataScopeService;
+    private final SysParamService paramService;
 
     /** 只用 BCrypt 校验，不引入 Spring Security 过滤器链 */
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
+    /** 参数缺失时的兜底超时，实际以 sys_param 的 session_timeout_minutes 为准 */
     @Value("${app.session.timeout-minutes:480}")
     private long timeoutMinutes;
 
     public AuthService(SysUserMapper userMapper,
                        SysSessionMapper sessionMapper,
                        DictItemMapper dictItemMapper,
-                       DataScopeService dataScopeService) {
+                       DataScopeService dataScopeService,
+                       SysParamService paramService) {
         this.userMapper = userMapper;
         this.sessionMapper = sessionMapper;
         this.dictItemMapper = dictItemMapper;
         this.dataScopeService = dataScopeService;
+        this.paramService = paramService;
+    }
+
+    /**
+     * 会话有效期以参数表为准，M11-4 参数配置改完即时生效，不必重启。
+     */
+    private long currentTimeoutMinutes() {
+        return paramService.getInt("session_timeout_minutes", (int) timeoutMinutes);
     }
 
     /**
@@ -86,7 +98,7 @@ public class AuthService {
         session.setUserAgent(trim(userAgent, 300));
         session.setLoginAt(now);
         session.setLastActiveAt(now);
-        session.setExpireAt(now.plusMinutes(timeoutMinutes));
+        session.setExpireAt(now.plusMinutes(currentTimeoutMinutes()));
         session.setStatus(SESSION_ACTIVE);
         sessionMapper.insert(session);
 
@@ -167,6 +179,11 @@ public class AuthService {
         if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
             throw new BizException(ResultCode.INVALID_PARAMETER, "新密码不能与原密码相同");
         }
+        // 最小长度以参数 pwd_min_length 为准，M11-4 改完即时生效
+        int minLength = paramService.getInt("pwd_min_length", 8);
+        if (newPassword == null || newPassword.length() < minLength) {
+            throw new BizException(ResultCode.INVALID_PARAMETER, "新密码长度不能少于 " + minLength + " 位");
+        }
 
         SysUser update = new SysUser();
         update.setId(userId);
@@ -235,13 +252,14 @@ public class AuthService {
      * 滑动续期：剩余不足一半有效期时顺延，避免每次请求都写会话表。
      */
     private void renewIfNeeded(SysSession session, LocalDateTime now) {
+        long timeout = currentTimeoutMinutes();
         boolean needRenew = session.getExpireAt() == null
-                || session.getExpireAt().isBefore(now.plusMinutes(Math.max(1, timeoutMinutes / 2)));
+                || session.getExpireAt().isBefore(now.plusMinutes(Math.max(1, timeout / 2)));
         LambdaUpdateWrapper<SysSession> update = new LambdaUpdateWrapper<SysSession>()
                 .eq(SysSession::getId, session.getId())
                 .set(SysSession::getLastActiveAt, now);
         if (needRenew) {
-            update.set(SysSession::getExpireAt, now.plusMinutes(timeoutMinutes));
+            update.set(SysSession::getExpireAt, now.plusMinutes(timeout));
         }
         sessionMapper.update(null, update);
     }

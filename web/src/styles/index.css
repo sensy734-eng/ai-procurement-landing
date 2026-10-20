@@ -1,0 +1,59 @@
+:root {
+  --brand: #1f4e79;
+  --brand-dark: #12314f;
+  --brand-light: #2e6da4;
+  --page-bg: #f5f7fa;
+  --card-bg: #ffffff;
+  --text-main: #1f2937;
+  --text-sub: #6b7280;
+  --border: #e4e7ed;
+
+  --el-color-primary: #1f4e79;
+  --el-color-primary-light-3: #4a739c;
+  --el-color-primary-light-5: #7c9ab8;
+  --el-color-primary-light-7: #aec2d5;
+  --el-color-primary-light-8: #c8d6e3;
+  --el-color-primary-light-9: #e3ebf2;
+  --el-color-primary-dark-2: #16395a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  color: var(--text-main);
+  background: var(--page-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.page-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.page-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.text-sub {
+  color: var(--text-sub);
+  font-size: 13px;
+}

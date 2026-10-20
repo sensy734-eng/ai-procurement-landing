@@ -1,0 +1,6 @@
+# 本地配置示例：复制为 application-local.yml 后填写，application-local.yml 不进版本库
+spring:
+  datasource:
+    # 当前演示环境为 XAMPP 自带 MariaDB 10.4.32，root 无密码
+    username: root
+    password: ""

@@ -1,0 +1,12 @@
+# 工程忽略规则
+target/
+node_modules/
+dist/
+*.local.yml
+application-local.yml
+.idea/
+*.iml
+.vscode/
+logs/
+*.log
+.DS_Store

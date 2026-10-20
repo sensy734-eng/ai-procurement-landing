@@ -67,4 +67,18 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
             WHERE ur.role_id = #{roleId} AND u.is_deleted = 0 AND u.status = 1
             """)
     int countActiveUsersByRole(@Param("roleId") Long roleId);
+
+    /**
+     * 某角色下处于启用状态的用户id，按用户id升序。
+     * 审批任务生成时按角色解析审批人（M11-5-4），与认证链路的角色解析口径一致：
+     * 用户启用、角色启用、关联未删除。
+     */
+    @Select("""
+            SELECT u.id FROM sys_user u
+            JOIN sys_user_role ur ON ur.user_id = u.id
+            WHERE ur.role_id = #{roleId} AND ur.is_deleted = 0
+              AND u.is_deleted = 0 AND u.status = 1
+            ORDER BY u.id
+            """)
+    List<Long> selectActiveUserIdsByRole(@Param("roleId") Long roleId);
 }

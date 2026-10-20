@@ -53,3 +53,25 @@ service.interceptors.response.use(
 )
 
 export default service
+
+/**
+ * 带会话令牌的 blob 下载。导出接口不能把令牌放 URL 上，
+ * 因此用 fetch 带 Authorization 头拿 blob 再触发浏览器下载。
+ */
+export async function downloadCsv(url: string, filename: string) {
+  const token = localStorage.getItem(TOKEN_KEY)
+  const response = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  })
+  if (!response.ok) {
+    throw new Error('导出失败，状态码 ' + response.status)
+  }
+  const blob = await response.blob()
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(link.href)
+}

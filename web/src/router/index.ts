@@ -8,6 +8,10 @@ const Placeholder = () => import('@/views/Placeholder.vue')
 /** 已交付页面，其余菜单路径统一指向占位页 */
 const builtPaths = new Set([
   '/home',
+  '/master/material',
+  '/master/supplier',
+  '/master/warehouse',
+  '/master/dict',
   '/system/users',
   '/system/roles',
   '/system/approval',
@@ -41,6 +45,30 @@ const routes: RouteRecordRaw[] = [
         name: 'home',
         component: () => import('@/views/Home.vue'),
         meta: { title: '工作台' }
+      },
+      {
+        path: 'master/material',
+        name: 'master-material',
+        component: () => import('@/views/business/master/MaterialList.vue'),
+        meta: { title: '物料档案', perm: 'm1:material:list' }
+      },
+      {
+        path: 'master/supplier',
+        name: 'master-supplier',
+        component: () => import('@/views/business/master/SupplierList.vue'),
+        meta: { title: '供应商档案', perm: 'm1:supplier:list' }
+      },
+      {
+        path: 'master/warehouse',
+        name: 'master-warehouse',
+        component: () => import('@/views/business/master/WarehouseList.vue'),
+        meta: { title: '仓库与库位', perm: 'm1:warehouse:list' }
+      },
+      {
+        path: 'master/dict',
+        name: 'master-dict',
+        component: () => import('@/views/business/master/DictList.vue'),
+        meta: { title: '业务字典', perm: 'm1:dict:list' }
       },
       {
         path: 'system/users',

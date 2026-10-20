@@ -1,4 +1,6 @@
-import request from './request'
+import request, { downloadCsv } from './request'
+
+export { downloadCsv }
 
 /**
  * M11 平台与权限管理接口封装。
@@ -297,7 +299,7 @@ export function saveApprovalFlow(billType: number, nodes: ApprovalNode[]) {
 
 /**
  * 导出走浏览器下载，需要带会话令牌，因此拼接 token 参数不适用。
- * 这里用带 Authorization 头的 blob 下载，避免把令牌暴露在 URL 上。
+ * 下载实现见 request.ts 的 downloadCsv，这里只拼查询串。
  */
 function buildDownloadUrl(path: string, params: Record<string, unknown>) {
   const query = Object.entries(params)
@@ -305,22 +307,4 @@ function buildDownloadUrl(path: string, params: Record<string, unknown>) {
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
     .join('&')
   return `/api${path}${query ? '?' + query : ''}`
-}
-
-export async function downloadCsv(url: string, filename: string) {
-  const token = localStorage.getItem('procurement_token')
-  const response = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {}
-  })
-  if (!response.ok) {
-    throw new Error('导出失败，状态码 ' + response.status)
-  }
-  const blob = await response.blob()
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(blob)
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(link.href)
 }

@@ -6,6 +6,7 @@
  * 前置：后端 8080、前端 5173 均已启动。
  * 依赖 puppeteer-core（--no-save 安装，不入库）。
  * 说明：页面按角色走查——系统管理页用 admin，基础数据页用 caigou01，
+ *       采购申请与我的待办分别用 caigou01 与 zhuguan01（审批待办归主管）。
  *       因为权限矩阵按功能模块清单的角色列配置：物料与供应商归采购员，
  *       仓库库位与字典归系统管理员（M1-3、M1-4）。
  */
@@ -30,29 +31,44 @@ const adminPages = [
 
 const buyerPages = [
   { path: '/master/material', name: '09-material', wait: '.material-page', label: '物料档案' },
-  { path: '/master/supplier', name: '10-supplier', wait: '.supplier-page', label: '供应商档案' }
+  { path: '/master/supplier', name: '10-supplier', wait: '.supplier-page', label: '供应商档案' },
+  { path: '/request', name: '11-request', wait: '.request-page', label: '采购申请' }
+]
+
+const managerPages = [
+  { path: '/request/todo', name: '12-todo', wait: '.todo-page', label: '我的待办' }
 ]
 
 const problems = []
 
 async function loginAs(page, username) {
+  // 连续切换账号：先清令牌再整页刷新（SPA 同路径 goto 是 no-op）。
+  // 填表用 evaluate 派发 input 事件—— puppeteer 的 type 在第三次切换时
+  // 会稳定丢失输入（疑似与 Vue 响应式时序有关），事件派发方式可复现。
   await page.goto(`${BASE}/login`, { waitUntil: 'networkidle2' })
   await page.evaluate(() => localStorage.clear())
-  await page.goto(`${BASE}/login`, { waitUntil: 'networkidle2' })
+  await page.reload({ waitUntil: 'networkidle2' })
   await page.waitForSelector('input', { timeout: 15000 })
-  const inputs = await page.$$('input')
-  await inputs[0].type(username)
-  await inputs[1].type('123456')
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => null),
-    page.click('button.el-button--primary')
-  ])
-  await new Promise((resolve) => setTimeout(resolve, 1200))
-  const afterLogin = page.url()
-  if (!afterLogin.includes('/home')) {
-    problems.push(`${username} 登录后未进入工作台，当前地址 ${afterLogin}`)
+  await page.evaluate((user) => {
+    const inputs = document.querySelectorAll('input')
+    const setValue = (el, value) => {
+      el.value = value
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+    setValue(inputs[0], user)
+    setValue(inputs[1], '123456')
+  }, username)
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  await page.click('button.el-button--primary')
+  // 登录成功是 SPA 跳转（无整页刷新），轮询地址即可
+  for (let i = 0; i < 20; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    if (page.url().includes('/home')) {
+      console.log(`已登录 ${username}，地址 ${page.url()}`)
+      return
+    }
   }
-  console.log(`已登录 ${username}，地址 ${afterLogin}`)
+  problems.push(`${username} 登录后未进入工作台，当前地址 ${page.url()}`)
 }
 
 async function main() {
@@ -90,6 +106,13 @@ async function main() {
   await page.screenshot({ path: path.join(SHOT_DIR, '00-login-buyer.png') })
 
   for (const item of buyerPages) {
+    await visit(page, item)
+  }
+
+  await loginAs(page, 'zhuguan01')
+  await page.screenshot({ path: path.join(SHOT_DIR, '00-login-manager.png') })
+
+  for (const item of managerPages) {
     await visit(page, item)
   }
 

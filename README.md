@@ -50,10 +50,15 @@
 |---|---|---|
 | 1 | 工程骨架与认证闭环 | 已完成 |
 | 2 | M11 平台与权限管理 | 已完成 |
-| 3 起 | 见 DEV_ROADMAP.md | 待进行 |
+| 3 | M1 基础数据管理 | 已完成 |
+| 4 起 | 见 DEV_ROADMAP.md | 待进行 |
 
 轮次 2 交付的页面：用户管理（P22）、角色权限（P23）、审批配置、参数配置、日志审计（P24）。
 后端接口覆盖 M11-1 至 M11-5 共 22 个功能点，其中 M11-5-3 至 M11-5-5 的审批引擎随轮次 4 的 M2 一并实现。
+
+轮次 3 交付的页面：物料管理（P1）、供应商管理（P2）、仓库管理（P3）、字典管理（P4）。
+后端接口覆盖 M1-1 至 M1-4 共 18 个功能点。物料导入导出为 CSV 模板（UTF-8 BOM，Excel 可直接打开）；
+分类维护按功能清单的角色列归采购员，系统管理员不持物料与供应商权限，演示基础数据页需用 caigou01 登录。
 
 ## 启动后端
 
@@ -90,15 +95,21 @@
 
     python scripts/smoke_round1.py
     python scripts/smoke_round2.py
+    python scripts/smoke_round3.py
     cd web && node scripts/ui_smoke.mjs
 
 - smoke_round1.py 覆盖登录、会话、权限拦截、数据范围与用户列表，20 项断言
 - smoke_round2.py 覆盖 M11 全部接口，67 项断言，包含越权与非法参数用例
+- smoke_round3.py 覆盖 M1 全部接口，78 项断言，含编码唯一冲突、停用不可选、导入明细、附件校验与角色权限边界
 - ui_smoke.mjs 用系统 Chrome 无头登录并逐页检查渲染，截图落在 web/scripts/screenshots/
 
-冒烟脚本会留下 smoke 前缀的测试用户与角色，跑完执行一次清理：
+冒烟脚本会留下 smoke 前缀的测试数据，跑完执行一次清理：
 
     mysql -u root < db/15_clean_smoke.sql
+    mysql -u root < db/16_clean_smoke_round3.sql
+
+- 15_clean_smoke.sql 清轮次 1、2 的测试用户与角色
+- 16_clean_smoke_round3.sql 清轮次 3 的物料、分类、供应商、仓库与字典测试项，按外键依赖顺序删除，操作日志按审计要求保留
 
 ## 约定
 

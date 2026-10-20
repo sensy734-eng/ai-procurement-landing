@@ -27,6 +27,7 @@ export const menuTree: MenuNode[] = [
     icon: 'ShoppingCart',
     children: [
       { title: '采购申请', path: '/request', perm: 'm2:request:list' },
+      { title: '我的待办', path: '/request/todo', perm: 'm2:request:todo' },
       { title: '采购订单', path: '/order', perm: 'm3:order:list' },
       { title: '到货验收', path: '/inspection', perm: 'm4:inspection:list' },
       { title: '采购入库', path: '/inbound', perm: 'm5:inbound:list' },

@@ -12,6 +12,8 @@ const builtPaths = new Set([
   '/master/supplier',
   '/master/warehouse',
   '/master/dict',
+  '/request',
+  '/request/todo',
   '/system/users',
   '/system/roles',
   '/system/approval',
@@ -69,6 +71,18 @@ const routes: RouteRecordRaw[] = [
         name: 'master-dict',
         component: () => import('@/views/business/master/DictList.vue'),
         meta: { title: '业务字典', perm: 'm1:dict:list' }
+      },
+      {
+        path: 'request',
+        name: 'request-list',
+        component: () => import('@/views/business/RequestList.vue'),
+        meta: { title: '采购申请', perm: 'm2:request:list' }
+      },
+      {
+        path: 'request/todo',
+        name: 'request-todo',
+        component: () => import('@/views/business/RequestTodo.vue'),
+        meta: { title: '我的待办', perm: 'm2:request:todo' }
       },
       {
         path: 'system/users',

@@ -5,4 +5,5 @@ target/
 .idea/
 .vscode/
 server/src/main/resources/application-local.yml
+server/uploads/
 web/scripts/screenshots/

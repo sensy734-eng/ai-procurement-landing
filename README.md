@@ -52,7 +52,8 @@
 | 2 | M11 平台与权限管理 | 已完成 |
 | 3 | M1 基础数据管理 | 已完成 |
 | 4 | M2 采购申请与审批引擎 | 已完成 |
-| 5 起 | 见 DEV_ROADMAP.md | 待进行 |
+| 5 | M3 采购订单管理 | 已完成 |
+| 6 起 | 见 DEV_ROADMAP.md | 待进行 |
 
 轮次 2 交付的页面：用户管理（P22）、角色权限（P23）、审批配置、参数配置、日志审计（P24）。
 后端接口覆盖 M11-1 至 M11-5 共 22 个功能点，其中 M11-5-3 至 M11-5-5 的审批引擎随轮次 4 的 M2 一并实现。
@@ -65,6 +66,11 @@
 后端接口覆盖 M2-1 至 M2-4 共 20 个功能点，并落地 M11-5-3 或签/会签规则、M11-5-4 任务生成与流转、
 M11-5-5 结果回写（审批引擎）。审批待办归采购主管角色（zhuguan01/zhuguan02），
 采购员用 caigou01 提交与维护申请单。转订单生成的 purchase_order 记录在轮次 5（M3）提供完整维护界面。
+
+轮次 5 交付的页面：采购订单（P7，详情抽屉即 P8）、订单待办（P9）。
+后端接口覆盖 M3-1 至 M3-5 共 25 个功能点（订单反审口径裁定为"禁止而非级联"，
+见 DEV_ROADMAP.md 轮次 5 差异记录）。订单审批为单节点会签（两名主管全过才推进），
+交付登记只写流水、已交付数量由入库单确认回写（轮次 7）。M3-6 价格偏离关注留轮次 8。
 
 ## 启动后端
 
@@ -103,12 +109,15 @@ M11-5-5 结果回写（审批引擎）。审批待办归采购主管角色（zhu
     python scripts/smoke_round2.py
     python scripts/smoke_round3.py
     python scripts/smoke_round4.py
+    python scripts/smoke_round5.py
     cd web && node scripts/ui_smoke.mjs
 
 - smoke_round1.py 覆盖登录、会话、权限拦截、数据范围与用户列表，20 项断言
 - smoke_round2.py 覆盖 M11 全部接口，67 项断言，包含越权与非法参数用例
 - smoke_round3.py 覆盖 M1 全部接口，78 项断言，含编码唯一冲突、停用不可选、导入明细、附件校验与角色权限边界
 - smoke_round4.py 覆盖 M2 全部接口与审批引擎，101 项断言，含或签会签流转、驳回撤回、按行退回拆分、转订单合并与并发提交
+- smoke_round5.py 覆盖 M3 全部接口，131 项断言，含会签双人规则、反审与作废前置（无交付/验收/入库）、
+  交付累计守恒、履约重算、超期筛选、变更前后值留痕、按行关闭、数据范围、溯源与 M2 回归
 - ui_smoke.mjs 用系统 Chrome 无头登录并逐页检查渲染，截图落在 web/scripts/screenshots/
 
 冒烟脚本会留下 smoke 前缀的测试数据，跑完执行一次清理：
@@ -116,10 +125,12 @@ M11-5-5 结果回写（审批引擎）。审批待办归采购主管角色（zhu
     mysql -u root < db/15_clean_smoke.sql
     mysql -u root < db/16_clean_smoke_round3.sql
     mysql -u root < db/17_clean_smoke_round4.sql
+    mysql -u root < db/18_clean_smoke_round5.sql
 
 - 15_clean_smoke.sql 清轮次 1、2 的测试用户与角色
 - 16_clean_smoke_round3.sql 清轮次 3 的物料、分类、供应商、仓库与字典测试项，按外键依赖顺序删除，操作日志按审计要求保留
 - 17_clean_smoke_round4.sql 清轮次 4 的申请单、明细、审批任务与转出的订单，复原演示数据规模（3 单 / 4 任务 / 2 订单）
+- 18_clean_smoke_round5.sql 清轮次 5 的订单、明细、变更历史、交付流水与审批任务，复原审批节点种子与演示数据规模（3 单 / 2 订单 / 8 物料 / 4 供应商）
 
 ## 约定
 

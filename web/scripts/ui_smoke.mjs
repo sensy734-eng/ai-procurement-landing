@@ -5,10 +5,11 @@
  *   cd web && node scripts/ui_smoke.mjs
  * 前置：后端 8080、前端 5173 均已启动。
  * 依赖 puppeteer-core（--no-save 安装，不入库）。
- * 说明：页面按角色走查——系统管理页用 admin，基础数据页用 caigou01，
- *       采购申请与我的待办分别用 caigou01 与 zhuguan01（审批待办归主管）。
+ * 说明：页面按角色走查——系统管理页用 admin，基础数据页与采购订单用 caigou01，
+ *       我的待办与订单待办分别用 zhuguan01（审批待办归主管）。
  *       因为权限矩阵按功能模块清单的角色列配置：物料与供应商归采购员，
  *       仓库库位与字典归系统管理员（M1-3、M1-4）。
+ *       轮次 5 起补 P7 采购订单与 P9 订单待办，共十四页。
  */
 import puppeteer from 'puppeteer-core'
 import fs from 'node:fs'
@@ -32,11 +33,13 @@ const adminPages = [
 const buyerPages = [
   { path: '/master/material', name: '09-material', wait: '.material-page', label: '物料档案' },
   { path: '/master/supplier', name: '10-supplier', wait: '.supplier-page', label: '供应商档案' },
-  { path: '/request', name: '11-request', wait: '.request-page', label: '采购申请' }
+  { path: '/request', name: '11-request', wait: '.request-page', label: '采购申请' },
+  { path: '/order', name: '13-order', wait: '.order-page', label: '采购订单' }
 ]
 
 const managerPages = [
-  { path: '/request/todo', name: '12-todo', wait: '.todo-page', label: '我的待办' }
+  { path: '/request/todo', name: '12-todo', wait: '.todo-page', label: '我的待办' },
+  { path: '/order/todo', name: '14-order-todo', wait: '.todo-page', label: '订单待办' }
 ]
 
 const problems = []

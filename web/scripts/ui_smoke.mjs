@@ -9,7 +9,8 @@
  *       我的待办与订单待办分别用 zhuguan01（审批待办归主管）。
  *       因为权限矩阵按功能模块清单的角色列配置：物料与供应商归采购员，
  *       仓库库位与字典归系统管理员（M1-3、M1-4）。
- *       轮次 5 起补 P7 采购订单与 P9 订单待办，共十四页。
+ *       轮次 5 起补 P7 采购订单与 P9 订单待办；轮次 6 起补 P10 到货验收列表、
+ *       P11 验收登记（仓管员 cangku01）与主管视角的验收统计，共十七页。
  */
 import puppeteer from 'puppeteer-core'
 import fs from 'node:fs'
@@ -37,9 +38,16 @@ const buyerPages = [
   { path: '/order', name: '13-order', wait: '.order-page', label: '采购订单' }
 ]
 
+// 仓管员：到货验收全流程（登记页用订单 1 的 query 打开，避免依赖下拉时序）
+const keeperPages = [
+  { path: '/arrival', name: '15-arrival', wait: '.arrival-page', label: '到货验收列表' },
+  { path: '/arrival/register?orderId=1', name: '16-arrival-register', wait: '.register-page', label: '验收登记' }
+]
+
 const managerPages = [
   { path: '/request/todo', name: '12-todo', wait: '.todo-page', label: '我的待办' },
-  { path: '/order/todo', name: '14-order-todo', wait: '.todo-page', label: '订单待办' }
+  { path: '/order/todo', name: '14-order-todo', wait: '.todo-page', label: '订单待办' },
+  { path: '/arrival', name: '17-arrival-stat', wait: '.arrival-page', label: '到货验收（主管统计）' }
 ]
 
 const problems = []
@@ -109,6 +117,13 @@ async function main() {
   await page.screenshot({ path: path.join(SHOT_DIR, '00-login-buyer.png') })
 
   for (const item of buyerPages) {
+    await visit(page, item)
+  }
+
+  await loginAs(page, 'cangku01')
+  await page.screenshot({ path: path.join(SHOT_DIR, '00-login-keeper.png') })
+
+  for (const item of keeperPages) {
     await visit(page, item)
   }
 

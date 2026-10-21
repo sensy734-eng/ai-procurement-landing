@@ -1,8 +1,14 @@
 package com.zufe.procurement.scope;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.zufe.procurement.m11.system.entity.SysDataScope;
 import com.zufe.procurement.m11.system.mapper.SysDataScopeMapper;
+import com.zufe.procurement.m1.warehouse.entity.Warehouse;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +25,13 @@ import static org.mockito.Mockito.when;
  * 重点验证两条安全性质：范围为空时失败关闭；全量范围不加任何条件。
  */
 class DataScopeServiceTest {
+
+    /** Lambda 列解析依赖 MP 的 TableInfo 缓存，单测环境需手动初始化 */
+    @BeforeAll
+    static void initLambdaCache() {
+        TableInfoHelper.initTableInfo(
+                new MapperBuilderAssistant(new MybatisConfiguration(), ""), Warehouse.class);
+    }
 
     @Test
     @DisplayName("部门范围为空时注入 1=0，不退化为全量")
@@ -69,6 +82,25 @@ class DataScopeServiceTest {
         service.applyWarehouse(wrapper, "warehouse_id", new ScopeCondition());
 
         assertThat(wrapper.getSqlSegment()).contains("1 = 0");
+    }
+
+    @Test
+    @DisplayName("Lambda 版仓库范围：非空注入 IN，为空失败关闭")
+    void applyWarehouseLambda() {
+        DataScopeService service = new DataScopeService(null);
+        ScopeCondition scope = new ScopeCondition();
+        scope.getWarehouseIds().add(1L);
+        scope.getWarehouseIds().add(2L);
+        LambdaQueryWrapper<Warehouse> wrapper = new LambdaQueryWrapper<>();
+
+        service.applyWarehouse(wrapper, Warehouse::getId, scope);
+
+        assertThat(wrapper.getSqlSegment()).contains("IN");
+        assertThat(wrapper.getParamNameValuePairs()).containsValues(1L, 2L);
+
+        LambdaQueryWrapper<Warehouse> empty = new LambdaQueryWrapper<>();
+        service.applyWarehouse(empty, Warehouse::getId, new ScopeCondition());
+        assertThat(empty.getSqlSegment()).contains("1 = 0");
     }
 
     @Test

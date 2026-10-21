@@ -10,7 +10,9 @@ import java.util.List;
 
 /**
  * 采购申请明细行 Mapper。uk_request_item_no（request_id, item_no）不含 is_deleted，
- * 行号保存时按当前最大行号 + 1 分配，已删除行不占位，故不会撞唯一键。
+ * 行号必须连同已删除行取最大分配——若只按未删行取最大，删掉最后一行后
+ * 再新增会复用该行号撞唯一键（DuplicateKeyException）。轮次 5 修正：
+ * 原实现过滤 is_deleted = 0，存在该隐患（冒烟未覆盖删最后行再加行路径）。
  */
 public interface PurchaseRequestItemMapper extends BaseMapper<PurchaseRequestItem> {
 
@@ -23,7 +25,7 @@ public interface PurchaseRequestItemMapper extends BaseMapper<PurchaseRequestIte
 
     @Select("""
             SELECT COALESCE(MAX(item_no), 0) FROM purchase_request_item
-            WHERE request_id = #{requestId} AND is_deleted = 0
+            WHERE request_id = #{requestId}
             """)
     Integer maxItemNo(@Param("requestId") Long requestId);
 

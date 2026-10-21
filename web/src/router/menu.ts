@@ -29,6 +29,7 @@ export const menuTree: MenuNode[] = [
       { title: '采购申请', path: '/request', perm: 'm2:request:list' },
       { title: '我的待办', path: '/request/todo', perm: 'm2:request:todo' },
       { title: '采购订单', path: '/order', perm: 'm3:order:list' },
+      { title: '订单待办', path: '/order/todo', perm: 'm3:order:todo' },
       { title: '到货验收', path: '/inspection', perm: 'm4:inspection:list' },
       { title: '采购入库', path: '/inbound', perm: 'm5:inbound:list' },
       { title: '库存台账', path: '/stock', perm: 'm5:stock:list' },

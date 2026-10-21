@@ -382,6 +382,16 @@ public class ApprovalEngineService {
     }
 
     /**
+     * 单据是否还有待处理任务（供提交入口做重复提交防护）。
+     * 反审后原批次任务已全部处理完成（留历史），此时无待处理任务，允许重新提交；
+     * 审批进行中（有 1 待处理任务）时重复提交会生成第二批任务，必须拦掉。
+     */
+    public boolean hasPendingTask(int billType, Long billId) {
+        return taskMapper.selectByBill(billType, billId).stream()
+                .anyMatch(t -> Objects.equals(t.getTaskStatus(), TASK_PENDING));
+    }
+
+    /**
      * 撤回前校验（M2-3-4）：本次提交生成的任务中是否已有人处理（通过或驳回）。
      * 提交时任务先插入、提交日志后写入，故本批任务 id 落在调用方给的
      * (lowerExclusive, upperInclusive] 区间内；驳回后重新提交的历史处理记录不在区间，不会误拦。

@@ -191,7 +191,10 @@ public class PurchaseRequestService {
 
     @Transactional
     public Long create(RequestSaveRequest request) {
-        validateDept(request.getDeptId());
+        // 部门缺省取当前用户部门：数据范围按部门过滤，建单人只能落在自己
+        // 可见的部门内（轮次 4 前端未传 deptId，曾报「请选择申请部门」）
+        Long deptId = request.getDeptId() != null ? request.getDeptId() : currentDeptId();
+        validateDept(deptId);
         Long id = null;
         String requestNo = null;
         for (int attempt = 1; attempt <= NO_ATTEMPTS; attempt++) {
@@ -199,7 +202,7 @@ public class PurchaseRequestService {
             requestNo = billNoGenerator.next("bill_no_rule_request", requestMapper::maxSeqByPrefix);
             bill.setRequestNo(requestNo);
             bill.setRequestDate(request.getRequestDate() != null ? request.getRequestDate() : LocalDate.now());
-            bill.setDeptId(request.getDeptId());
+            bill.setDeptId(deptId);
             bill.setApplicantId(currentUserId());
             bill.setLifecycleStatus(LIFECYCLE_DRAFT);
             bill.setAuditStatus(AUDIT_PENDING);
@@ -229,8 +232,9 @@ public class PurchaseRequestService {
     @Transactional
     public void update(Long id, RequestSaveRequest request) {
         PurchaseRequest bill = loadEditableBill(id);
-        validateDept(request.getDeptId());
-        bill.setDeptId(request.getDeptId());
+        Long deptId = request.getDeptId() != null ? request.getDeptId() : currentDeptId();
+        validateDept(deptId);
+        bill.setDeptId(deptId);
         if (request.getRequestDate() != null) {
             bill.setRequestDate(request.getRequestDate());
         }
@@ -856,6 +860,15 @@ public class PurchaseRequestService {
 
     private Long currentUserId() {
         return AuthContext.getOrThrow().getUserId();
+    }
+
+    /** 当前用户部门，建单部门缺省值；无部门时按参数不合法处理。 */
+    private Long currentDeptId() {
+        CurrentUser user = AuthContext.get();
+        if (user == null || user.getDeptId() == null) {
+            throw new BizException(ResultCode.INVALID_PARAMETER, "请选择申请部门");
+        }
+        return user.getDeptId();
     }
 
     // ================= 私有：明细行构建与校验 =================

@@ -16,6 +16,8 @@ const builtPaths = new Set([
   '/request/todo',
   '/order',
   '/order/todo',
+  '/arrival',
+  '/arrival/register',
   '/system/users',
   '/system/roles',
   '/system/approval',
@@ -97,6 +99,18 @@ const routes: RouteRecordRaw[] = [
         name: 'order-todo',
         component: () => import('@/views/business/OrderTodo.vue'),
         meta: { title: '订单待办', perm: 'm3:order:todo' }
+      },
+      {
+        path: 'arrival',
+        name: 'arrival-list',
+        component: () => import('@/views/business/ArrivalList.vue'),
+        meta: { title: '到货验收', perm: 'm4:inspection:list' }
+      },
+      {
+        path: 'arrival/register',
+        name: 'arrival-register',
+        component: () => import('@/views/business/ArrivalRegister.vue'),
+        meta: { title: '验收登记', perm: 'm4:inspection:create' }
       },
       {
         path: 'system/users',

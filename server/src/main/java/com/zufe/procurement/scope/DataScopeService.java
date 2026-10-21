@@ -128,4 +128,21 @@ public class DataScopeService {
         }
         wrapper.in(column, scope.getDeptIds());
     }
+
+    /**
+     * 仓库维度注入（Lambda 版）。范围为空时失败关闭，返回 1=0。
+     * 仓库维度单据（验收单、入库单、库存）与部门维度单据不同，
+     * 部门范围用户在仓库单据上失败关闭，不混合两种维度。
+     */
+    public <T> void applyWarehouse(LambdaQueryWrapper<T> wrapper, com.baomidou.mybatisplus.core.toolkit.support.SFunction<T, ?> column,
+                                   ScopeCondition scope) {
+        if (scope.isAll()) {
+            return;
+        }
+        if (!scope.hasWarehouse()) {
+            wrapper.apply("1 = 0");
+            return;
+        }
+        wrapper.in(column, scope.getWarehouseIds());
+    }
 }

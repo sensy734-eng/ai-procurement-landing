@@ -1467,12 +1467,58 @@ public class PurchaseOrderService {
     }
 
     /**
+     * 回写订单行已交付数量并重算履约（M5-1-3 入库确认 / M5-1-4 作废冲减调用，R2 后半）。
+     * delivered_qty 的唯一写入点：入库单确认加、作废冲减退；
+     * 行级履约随 delivered 重算（0 → 待交付；达数量 → 全部交付；之间 → 部分交付），
+     * 已全部交付/已关闭的行不动（那种行本就不该再有入库，配额闸门在外层挡着）。
+     *
+     * @param orderItemId 订单明细行id，null 或不存在时静默跳过（手工入库单无订单行）
+     * @param delta       正=确认入库，负=作废冲减
+     */
+    public void applyDeliveredQty(Long orderItemId, BigDecimal delta) {
+        if (orderItemId == null || delta == null || delta.signum() == 0) {
+            return;
+        }
+        PurchaseOrderItem item = orderItemMapper.selectById(orderItemId);
+        if (item == null) {
+            return;
+        }
+        BigDecimal delivered = item.getDeliveredQty() == null ? BigDecimal.ZERO : item.getDeliveredQty();
+        BigDecimal after = delivered.add(delta).setScale(4, RoundingMode.HALF_UP);
+        if (after.signum() < 0) {
+            throw new BizException(ResultCode.UNSUPPORTED,
+                    "冲减后已交付数量不能为负（当前 " + delivered.toPlainString() + "）");
+        }
+        PurchaseOrderItem update = new PurchaseOrderItem();
+        update.setId(item.getId());
+        update.setVersion(item.getVersion());
+        update.setDeliveredQty(after);
+        if (item.getItemFulfillStatus() != null && item.getItemFulfillStatus() != FULFILL_CLOSED) {
+            int fulfill;
+            if (after.signum() == 0) {
+                fulfill = FULFILL_PENDING;
+            } else if (after.compareTo(item.getQuantity()) >= 0) {
+                fulfill = FULFILL_FULL;
+            } else {
+                fulfill = FULFILL_PARTIAL;
+            }
+            update.setItemFulfillStatus(fulfill);
+        }
+        int rows = orderItemMapper.updateById(update);
+        if (rows == 0) {
+            throw new BizException(ResultCode.UNSUPPORTED, "订单行已被并发修改，请刷新后重试");
+        }
+        recomputeFulfillStatus(item.getOrderId());
+    }
+
+    /**
      * 履约状态重算（M3-5-2 / M3-5-3 的判定入口）：按明细行履约状态汇总——
      * 有待交付行则主单待交付；否则有部分交付行则部分交付；
      * 全部行交付完则全部交付；剩余行均被关闭（含全部关闭）则已关闭。
      * 由明细行重算，不由人工选择（DDL 口径）。
+     * 轮次 7 起对 M5 公开（入库确认/作废冲减后调用）。
      */
-    private void recomputeFulfillStatus(Long orderId) {
+    public void recomputeFulfillStatus(Long orderId) {
         List<PurchaseOrderItem> items = orderItemMapper.selectByOrderId(orderId);
         int fulfill;
         if (items.isEmpty()) {

@@ -10,7 +10,8 @@
  *       因为权限矩阵按功能模块清单的角色列配置：物料与供应商归采购员，
  *       仓库库位与字典归系统管理员（M1-3、M1-4）。
  *       轮次 5 起补 P7 采购订单与 P9 订单待办；轮次 6 起补 P10 到货验收列表、
- *       P11 验收登记（仓管员 cangku01）与主管视角的验收统计，共十七页。
+ *       P11 验收登记（仓管员 cangku01）与主管视角的验收统计；轮次 7 起补 P12 采购入库
+ *       （仓管员）、P13 库存台账与 P14 库存流水（采购员），共二十页。
  */
 import puppeteer from 'puppeteer-core'
 import fs from 'node:fs'
@@ -35,13 +36,16 @@ const buyerPages = [
   { path: '/master/material', name: '09-material', wait: '.material-page', label: '物料档案' },
   { path: '/master/supplier', name: '10-supplier', wait: '.supplier-page', label: '供应商档案' },
   { path: '/request', name: '11-request', wait: '.request-page', label: '采购申请' },
-  { path: '/order', name: '13-order', wait: '.order-page', label: '采购订单' }
+  { path: '/order', name: '13-order', wait: '.order-page', label: '采购订单' },
+  { path: '/stock', name: '18-stock', wait: '.stock-page', label: '库存台账' },
+  { path: '/stock/flow', name: '19-stock-flow', wait: '.flow-page', label: '库存流水' }
 ]
 
 // 仓管员：到货验收全流程（登记页用订单 1 的 query 打开，避免依赖下拉时序）
 const keeperPages = [
   { path: '/arrival', name: '15-arrival', wait: '.arrival-page', label: '到货验收列表' },
-  { path: '/arrival/register?orderId=1', name: '16-arrival-register', wait: '.register-page', label: '验收登记' }
+  { path: '/arrival/register?orderId=1', name: '16-arrival-register', wait: '.register-page', label: '验收登记' },
+  { path: '/inbound', name: '20-inbound', wait: '.inbound-page', label: '采购入库' }
 ]
 
 const managerPages = [

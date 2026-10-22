@@ -18,6 +18,9 @@ const builtPaths = new Set([
   '/order/todo',
   '/arrival',
   '/arrival/register',
+  '/inbound',
+  '/stock',
+  '/stock/flow',
   '/system/users',
   '/system/roles',
   '/system/approval',
@@ -111,6 +114,24 @@ const routes: RouteRecordRaw[] = [
         name: 'arrival-register',
         component: () => import('@/views/business/ArrivalRegister.vue'),
         meta: { title: '验收登记', perm: 'm4:inspection:create' }
+      },
+      {
+        path: 'inbound',
+        name: 'inbound-list',
+        component: () => import('@/views/business/InboundList.vue'),
+        meta: { title: '采购入库', perm: 'm5:inbound:list' }
+      },
+      {
+        path: 'stock',
+        name: 'stock-list',
+        component: () => import('@/views/business/StockList.vue'),
+        meta: { title: '库存台账', perm: 'm5:stock:list' }
+      },
+      {
+        path: 'stock/flow',
+        name: 'stock-flow',
+        component: () => import('@/views/business/FlowList.vue'),
+        meta: { title: '库存流水', perm: 'm5:flow:list' }
       },
       {
         path: 'system/users',

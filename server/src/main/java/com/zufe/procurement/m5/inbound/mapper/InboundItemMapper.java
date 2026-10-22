@@ -22,12 +22,41 @@ public interface InboundItemMapper extends BaseMapper<InboundItem> {
             """)
     List<InboundItem> selectByInboundId(@Param("inboundId") Long inboundId);
 
+    /** 批量按入库单取明细（列表页展开行用） */
+    @Select("""
+            <script>
+            SELECT * FROM inbound_item
+            WHERE is_deleted = 0 AND inbound_id IN
+            <foreach collection="inboundIds" item="iid" open="(" separator="," close=")">#{iid}</foreach>
+            ORDER BY inbound_id, id
+            </script>
+            """)
+    List<InboundItem> selectByInboundIds(@Param("inboundIds") Collection<Long> inboundIds);
+
+    /** 入库单明细合计数量 */
+    @Select("""
+            SELECT COALESCE(SUM(quantity), 0) FROM inbound_item
+            WHERE inbound_id = #{inboundId} AND is_deleted = 0
+            """)
+    java.math.BigDecimal sumQtyByInboundId(@Param("inboundId") Long inboundId);
+
+    /**
+     * 批次号续号（M5-2-1 规则生成）：同日前缀下最大流水，含逻辑删除行
+     * ——批次号是仓储事实标识，回收会撞历史批次。
+     */
+    @Select("""
+            SELECT MAX(CAST(SUBSTRING(batch_no, #{prefixLength} + 1) AS UNSIGNED))
+            FROM inbound_item
+            WHERE batch_no LIKE CONCAT(#{prefix}, '%')
+            """)
+    Integer maxBatchSeqByPrefix(@Param("prefix") String prefix, @Param("prefixLength") int prefixLength);
+
     @Select("""
             <script>
             SELECT i.order_item_id AS orderItemId, COALESCE(SUM(i.quantity), 0) AS generatedQty
             FROM inbound_item i
             JOIN inbound_order h ON h.id = i.inbound_id
-            WHERE h.is_deleted = 0 AND h.status IN (1, 2)
+            WHERE h.is_deleted = 0 AND h.status IN (1, 2) AND i.is_deleted = 0
               AND i.order_item_id IN
             <foreach collection="orderItemIds" item="iid" open="(" separator="," close=")">#{iid}</foreach>
             GROUP BY i.order_item_id

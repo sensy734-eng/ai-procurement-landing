@@ -84,21 +84,25 @@ def token_of(username):
 
 
 def covering_supplier(material, suppliers, token):
-    """按供货范围查找可供该物料的供应商：按物料或按分类命中。
-    供货明细走 /{id}/scopes 子资源（详情只返回 scopeCount）。找不到返回 None。"""
+    """按供货范围为物料找合规供应商：先显式范围命中（按物料/按分类），
+    都没有才退到无范围供应商（全量兜底）。避免无范围供应商排序在前时
+    两个物料选到同一家，破坏「不同供应商」类断言。"""
+    fallback = None
     for supplier in suppliers:
         status, body = call("GET", "/m1/suppliers/%d/scopes" % supplier["id"], token=token)
         if body.get("code") != "Success":
             continue
         scopes = body.get("data") or []
         if not scopes:
-            return supplier
+            if fallback is None:
+                fallback = supplier
+            continue
         for scope in scopes:
             if scope.get("scopeType") == 1 and scope.get("scopeId") == material["id"]:
                 return supplier
             if scope.get("scopeType") == 2 and scope.get("scopeId") == material.get("categoryId"):
                 return supplier
-    return None
+    return fallback
 
 
 def add_item(token, request_id, material_id, quantity, supplier_id, owner_type=1,

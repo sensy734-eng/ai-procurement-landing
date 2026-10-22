@@ -88,20 +88,24 @@ def token_of(username):
 
 
 def covering_supplier(material, suppliers, token):
-    """按供货范围查找可供该物料的供应商：按物料或按分类命中。"""
+    """按供货范围为物料找合规供应商：先显式范围命中（按物料/按分类），
+    都没有才退到无范围供应商（全量兜底）。"""
+    fallback = None
     for supplier in suppliers:
         status, body = call("GET", "/m1/suppliers/%d/scopes" % supplier["id"], token=token)
         if body.get("code") != "Success":
             continue
         scopes = body.get("data") or []
         if not scopes:
-            return supplier
+            if fallback is None:
+                fallback = supplier
+            continue
         for scope in scopes:
             if scope.get("scopeType") == 1 and scope.get("scopeId") == material["id"]:
                 return supplier
             if scope.get("scopeType") == 2 and scope.get("scopeId") == material.get("categoryId"):
                 return supplier
-    return None
+    return fallback
 
 
 def create_order(token, body):
@@ -316,8 +320,11 @@ def main():
           abs(float(detail["totalAmount"]) - 1764) < 0.01, detail["totalAmount"])
 
     # ================= M3-1-4 编辑主表 =================
+    # 供应商用 sup_all（不配供货范围=不限）：主订单含 M-1001 与 M-1002 两种物料，
+    # 演示供应商都配了范围，SUP-001 不供 M-1002，换成 sup_a 会被供货范围校验拒
+    # （本脚本曾依赖库内残留的无范围供应商偶然被 covering_supplier 选中）。
     status, body = call("PUT", "/m3/orders/%d" % main_order, token=buyer1, body={
-        "supplierId": sup_a["id"], "deliveryDate": "2026-12-15",
+        "supplierId": sup_all, "deliveryDate": "2026-12-15",
         "deliveryPlace": "台州市演示工业园 2 号库", "settlementType": 2,
         "remark": MARK + " 改后"})
     check("M3-1-4 编辑草稿主表", status == 200 and body.get("code") == "Success", body)
@@ -525,17 +532,21 @@ def main():
           status == 200 and body.get("code") == "Success", body)
     reg_request = body.get("data")
     # M2 回归：删最后行再加行不撞唯一键（maxItemNo 修正）
+    # 注意：建议供应商用 sup_all（不配供货范围=不限）——演示供应商都配了范围，
+    # SUP-001 供 M-1001 但不供 mat_b（M-1002），且供应商下拉按单号排序不区分
+    # 大小写，干净库上 covering_supplier 稳定返回 SUP-001，用 sup_a 加 mat_b
+    # 会被供货范围校验拒（本脚本曾依赖库内残留的无范围供应商偶然排在前面）。
     add_item1 = call("POST", "/m2/requests/%d/items" % reg_request, token=buyer1, body={
         "materialId": mat_a["id"], "quantity": 10, "estPrice": 5,
         "suggestSupplierId": sup_a["id"], "requireDate": "2026-12-01"})
     add_item2 = call("POST", "/m2/requests/%d/items" % reg_request, token=buyer1, body={
         "materialId": mat_b["id"], "quantity": 20, "estPrice": 6,
-        "suggestSupplierId": sup_a["id"], "requireDate": "2026-12-01"})
+        "suggestSupplierId": sup_all, "requireDate": "2026-12-01"})
     req_item2 = add_item2[1].get("data")
     call("DELETE", "/m2/requests/%d/items/%d" % (reg_request, req_item2), token=buyer1)
     status, body = call("POST", "/m2/requests/%d/items" % reg_request, token=buyer1, body={
         "materialId": mat_b["id"], "quantity": 20, "estPrice": 6,
-        "suggestSupplierId": sup_a["id"], "requireDate": "2026-12-01"})
+        "suggestSupplierId": sup_all, "requireDate": "2026-12-01"})
     check("M2 回归：删最后行再加行不撞唯一键",
           status == 200 and body.get("code") == "Success", body)
 

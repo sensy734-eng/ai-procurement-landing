@@ -11,6 +11,7 @@
       web/         前端工程，Vue 3 + TypeScript + Vite + Element Plus
       scripts/     接口自测脚本
       DEV_ROADMAP.md  开发路线与每轮验证方式
+      DEVELOPMENT_LOG.md  开发记录（系统状态快照、每轮做了什么、问题与解决），每次开发前后更新
 
 ## 环境要求
 

@@ -603,10 +603,14 @@ const supplierSelectOptions = ref<SupplierOption[]>([])
 const ownerSelectOptions = ref<OwnerOption[]>([])
 
 async function loadOptions() {
+  // 归属对象下拉挂 m2:request_item:owner（采购员口径）：主管等无该权限的角色
+  // 打开申请页时不发请求，避免 403 冒泡成 pageerror 与错误 toast（同 M3 订单页修法）
   const [materials, suppliers, owners] = await Promise.all([
     materialOptions() as Promise<MaterialRow[]>,
     supplierOptions() as Promise<SupplierRow[]>,
-    m2Api.ownerOptions()
+    store.hasPerm('m2:request_item:owner')
+      ? m2Api.ownerOptions()
+      : Promise.resolve({ options: [] as { id: number; ownerType: number; ownerTypeName: string; ownerNo: string; ownerName: string }[] })
   ])
   materialSelectOptions.value = materials.map((m) => ({
     id: m.id,

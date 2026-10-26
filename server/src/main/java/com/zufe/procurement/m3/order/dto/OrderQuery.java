@@ -40,4 +40,7 @@ public class OrderQuery {
 
     /** M3-5-4 超期未交付筛选，超期天数由服务层按当前日期计算 */
     private Boolean overdue;
+
+    /** M3-6 整单偏离等级筛选：1 关注、2 显著（不传为全部） */
+    private Integer deviationLevel;
 }

@@ -58,6 +58,7 @@ import com.zufe.procurement.m3.order.vo.OrderVO;
 import com.zufe.procurement.m4.arrival.mapper.ArrivalInspectionMapper;
 import com.zufe.procurement.m5.inbound.mapper.InboundOrderMapper;
 import com.zufe.procurement.m11.system.service.OperationLogService;
+import com.zufe.procurement.m6.price.service.PriceDeviationService;
 import com.zufe.procurement.scope.DataScopeService;
 import com.zufe.procurement.scope.ScopeCondition;
 import org.springframework.dao.DuplicateKeyException;
@@ -157,6 +158,7 @@ public class PurchaseOrderService {
     private final SysOperationLogMapper operationLogMapper;
     private final RequestTransferService transferService;
     private final PurchaseRequestService requestService;
+    private final PriceDeviationService priceDeviationService;
 
     public PurchaseOrderService(PurchaseOrderMapper orderMapper,
                                 PurchaseOrderItemMapper orderItemMapper,
@@ -176,7 +178,8 @@ public class PurchaseOrderService {
                                 OperationLogService operationLogService,
                                 SysOperationLogMapper operationLogMapper,
                                 RequestTransferService transferService,
-                                PurchaseRequestService requestService) {
+                                PurchaseRequestService requestService,
+                                PriceDeviationService priceDeviationService) {
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.changeLogMapper = changeLogMapper;
@@ -196,6 +199,7 @@ public class PurchaseOrderService {
         this.operationLogMapper = operationLogMapper;
         this.transferService = transferService;
         this.requestService = requestService;
+        this.priceDeviationService = priceDeviationService;
     }
 
     // ================= M3-1-1 列表与检索 =================
@@ -217,6 +221,7 @@ public class PurchaseOrderService {
                         query.getLifecycleStatus())
                 .eq(query.getAuditStatus() != null, PurchaseOrder::getAuditStatus, query.getAuditStatus())
                 .eq(query.getFulfillStatus() != null, PurchaseOrder::getFulfillStatus, query.getFulfillStatus())
+                .eq(query.getDeviationLevel() != null, PurchaseOrder::getDeviationFlag, query.getDeviationLevel())
                 .eq(query.getDeptId() != null, PurchaseOrder::getDeptId, query.getDeptId())
                 .eq(query.getBuyerId() != null, PurchaseOrder::getBuyerId, query.getBuyerId())
                 .ge(query.getStartDate() != null, PurchaseOrder::getOrderDate, query.getStartDate())
@@ -461,6 +466,7 @@ public class PurchaseOrderService {
         orderItemMapper.insert(item);
         recomputeTotals(orderId);
         recomputeFulfillStatus(orderId);
+        priceDeviationService.recomputeOrderFlag(orderId);
         operationLogService.record("M3", "create", "purchase_order_item", item.getId(),
                 bill.getOrderNo() + "-" + item.getItemNo(), "新增订单明细行，物料 " + request.getMaterialId());
         return item.getId();
@@ -483,13 +489,20 @@ public class PurchaseOrderService {
         // 草稿态不会有交付数量，仍按守恒保留原值，防止并发旁路写入被覆盖
         updated.setItemFulfillStatus(item.getItemFulfillStatus());
         updated.setSourceRequestItemId(item.getSourceRequestItemId());
-        updated.setDeviationRate(item.getDeviationRate());
-        updated.setDeviationLevel(item.getDeviationLevel());
+        // 偏离重算结果可能为 null（无生效参考价）：updateById 不写 null 字段，显式补写
+        if (!Objects.equals(updated.getDeviationRate(), item.getDeviationRate())
+                || !Objects.equals(updated.getDeviationLevel(), item.getDeviationLevel())) {
+            orderItemMapper.update(null, new LambdaUpdateWrapper<PurchaseOrderItem>()
+                    .eq(PurchaseOrderItem::getId, item.getId())
+                    .set(PurchaseOrderItem::getDeviationRate, updated.getDeviationRate())
+                    .set(PurchaseOrderItem::getDeviationLevel, updated.getDeviationLevel()));
+        }
         if (orderItemMapper.updateById(updated) <= 0) {
             throw new BizException(ResultCode.INVALID_PARAMETER, "明细行已被变更，请刷新后重试");
         }
         recomputeTotals(orderId);
         recomputeFulfillStatus(orderId);
+        priceDeviationService.recomputeOrderFlag(orderId);
         operationLogService.record("M3", "update", "purchase_order_item", itemId,
                 bill.getOrderNo() + "-" + item.getItemNo(), "编辑订单明细行");
     }
@@ -511,6 +524,7 @@ public class PurchaseOrderService {
         }
         recomputeTotals(orderId);
         recomputeFulfillStatus(orderId);
+        priceDeviationService.recomputeOrderFlag(orderId);
         operationLogService.record("M3", "delete", "purchase_order_item", itemId,
                 bill.getOrderNo() + "-" + item.getItemNo(), "删除订单明细行");
     }
@@ -1365,8 +1379,8 @@ public class PurchaseOrderService {
         item.setOwnerId(ownerId);
         item.setOwnerNo(ownerNo);
         item.setItemFulfillStatus(FULFILL_PENDING);
-        item.setDeviationRate(null);
-        item.setDeviationLevel(0);
+        // M3-6 偏离判定：按订单创建日选用当时生效参考价计算（无参考价不判定）
+        priceDeviationService.applyToItem(item, bill);
         item.setRemark(request.getRemark());
         return item;
     }
@@ -1684,6 +1698,7 @@ public class PurchaseOrderService {
         vo.setAuditStatusName(auditStatusName(bill.getAuditStatus()));
         vo.setFulfillStatus(bill.getFulfillStatus());
         vo.setFulfillStatusName(fulfillStatusName(bill.getFulfillStatus()));
+        vo.setDeviationFlag(bill.getDeviationFlag());
         vo.setTotalQty(bill.getTotalQty());
         vo.setTotalAmount(bill.getTotalAmount());
         vo.setNoTaxAmount(bill.getNoTaxAmount());
@@ -1745,6 +1760,10 @@ public class PurchaseOrderService {
             vo.setItemFulfillStatus(item.getItemFulfillStatus());
             vo.setItemFulfillStatusName(fulfillStatusName(item.getItemFulfillStatus()));
             vo.setSourceRequestItemId(item.getSourceRequestItemId());
+            // M3-6 偏离：行级 rate/level 随行返回（整单 flag 由 OrderVO 承载）
+            vo.setDeviationRate(item.getDeviationRate());
+            vo.setDeviationLevel(item.getDeviationLevel());
+            vo.setDeviationLevelName(deviationLevelName(item.getDeviationLevel()));
             // 行级超期：行交货期缺省取主表交货期（DDL 继承口径）
             LocalDate effectiveDate = item.getDeliveryDate() != null
                     ? item.getDeliveryDate() : bill.getDeliveryDate();
@@ -1813,6 +1832,14 @@ public class PurchaseOrderService {
             case FULFILL_CLOSED -> "已关闭";
             default -> "";
         };
+    }
+
+    /** M3-6 偏离等级名称：0 正常、1 关注、2 显著 */
+    private String deviationLevelName(Integer level) {
+        if (level == null || level == 0) {
+            return "正常";
+        }
+        return level == 2 ? "显著" : "关注";
     }
 
     private String settlementTypeName(Integer status) {

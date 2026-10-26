@@ -69,6 +69,9 @@ public class OrderVO {
     /** 整单超期天数：交货期已过且未交付完，后端计算；未超期为 0 */
     private Integer overdueDays;
 
+    /** 整单偏离标记：0 无、1 关注、2 显著，取明细行最高等级（M3-6） */
+    private Integer deviationFlag;
+
     private String closeReason;
 
     private String remark;

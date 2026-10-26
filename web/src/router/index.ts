@@ -21,6 +21,8 @@ const builtPaths = new Set([
   '/inbound',
   '/stock',
   '/stock/flow',
+  '/price',
+  '/price/deviation',
   '/system/users',
   '/system/roles',
   '/system/approval',
@@ -132,6 +134,18 @@ const routes: RouteRecordRaw[] = [
         name: 'stock-flow',
         component: () => import('@/views/business/FlowList.vue'),
         meta: { title: '库存流水', perm: 'm5:flow:list' }
+      },
+      {
+        path: 'price',
+        name: 'price',
+        component: () => import('@/views/business/PriceList.vue'),
+        meta: { title: '价格参考', perm: 'm6:price:list' }
+      },
+      {
+        path: 'price/deviation',
+        name: 'price-deviation',
+        component: () => import('@/views/business/DeviationList.vue'),
+        meta: { title: '价格偏离关注', perm: 'm6:stat:view' }
       },
       {
         path: 'system/users',

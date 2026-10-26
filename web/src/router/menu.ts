@@ -34,7 +34,8 @@ export const menuTree: MenuNode[] = [
       { title: '采购入库', path: '/inbound', perm: 'm5:inbound:list' },
       { title: '库存台账', path: '/stock', perm: 'm5:stock:list' },
       { title: '库存流水', path: '/stock/flow', perm: 'm5:flow:list' },
-      { title: '价格参考', path: '/price', perm: 'm6:price:list' }
+      { title: '价格参考', path: '/price', perm: 'm6:price:list' },
+      { title: '价格偏离关注', path: '/price/deviation', perm: 'm6:stat:view' }
     ]
   },
   {

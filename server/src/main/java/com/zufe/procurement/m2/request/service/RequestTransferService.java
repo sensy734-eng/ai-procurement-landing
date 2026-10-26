@@ -18,6 +18,7 @@ import com.zufe.procurement.m3.order.entity.PurchaseOrder;
 import com.zufe.procurement.m3.order.entity.PurchaseOrderItem;
 import com.zufe.procurement.m3.order.mapper.PurchaseOrderItemMapper;
 import com.zufe.procurement.m3.order.mapper.PurchaseOrderMapper;
+import com.zufe.procurement.m6.price.service.PriceDeviationService;
 import com.zufe.procurement.scope.ScopeCondition;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -72,6 +73,7 @@ public class RequestTransferService {
     private final SupplierMapper supplierMapper;
     private final BillNoGenerator billNoGenerator;
     private final OperationLogService operationLogService;
+    private final PriceDeviationService priceDeviationService;
 
     public RequestTransferService(PurchaseRequestMapper requestMapper,
                                   PurchaseRequestItemMapper itemMapper,
@@ -79,7 +81,8 @@ public class RequestTransferService {
                                   PurchaseOrderItemMapper orderItemMapper,
                                   SupplierMapper supplierMapper,
                                   BillNoGenerator billNoGenerator,
-                                  OperationLogService operationLogService) {
+                                  OperationLogService operationLogService,
+                                  PriceDeviationService priceDeviationService) {
         this.requestMapper = requestMapper;
         this.itemMapper = itemMapper;
         this.orderMapper = orderMapper;
@@ -87,6 +90,7 @@ public class RequestTransferService {
         this.supplierMapper = supplierMapper;
         this.billNoGenerator = billNoGenerator;
         this.operationLogService = operationLogService;
+        this.priceDeviationService = priceDeviationService;
     }
 
     /**
@@ -174,7 +178,7 @@ public class RequestTransferService {
 
             PurchaseOrder order = buildOrder(supplierId, currentUser.getUserId(), items, billById);
             Long orderId = insertOrderWithRetry(order);
-            insertOrderItems(orderId, items);
+            insertOrderItems(orderId, items, order);
 
             // M2-4-3 已转数量回写
             for (PurchaseRequestItem item : items) {
@@ -268,7 +272,7 @@ public class RequestTransferService {
         throw new BizException(ResultCode.INVALID_PARAMETER, "订单号生成失败");
     }
 
-    private void insertOrderItems(Long orderId, List<PurchaseRequestItem> items) {
+    private void insertOrderItems(Long orderId, List<PurchaseRequestItem> items, PurchaseOrder bill) {
         int itemNo = 0;
         for (PurchaseRequestItem item : items) {
             BigDecimal amount = item.getQuantity().multiply(item.getEstPrice())
@@ -292,11 +296,13 @@ public class RequestTransferService {
             orderItem.setOwnerId(item.getOwnerId());
             orderItem.setOwnerNo(item.getOwnerNo());
             orderItem.setItemFulfillStatus(1);
-            orderItem.setDeviationRate(null);
-            orderItem.setDeviationLevel(0);
+            // M3-6 偏离判定与手工建单同口径：按订单创建日选用当时生效参考价
+            priceDeviationService.applyToItem(orderItem, bill);
             orderItem.setRemark(item.getRemark());
             orderItemMapper.insert(orderItem);
         }
+        // 整单偏离标记 = 明细行最高等级
+        priceDeviationService.recomputeOrderFlag(orderId);
     }
 
     private BigDecimal remainingQty(PurchaseRequestItem item) {

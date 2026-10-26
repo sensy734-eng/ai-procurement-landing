@@ -61,6 +61,12 @@
           <el-option label="已关闭" :value="4" />
         </el-select>
       </el-form-item>
+      <el-form-item label="偏离">
+        <el-select v-model="query.deviationLevel" placeholder="全部" clearable style="width: 110px">
+          <el-option label="关注" :value="1" />
+          <el-option label="显著" :value="2" />
+        </el-select>
+      </el-form-item>
       <el-form-item label="下单日期">
         <el-date-picker
           v-model="query.dateRange"
@@ -132,8 +138,19 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="330" fixed="right">
+      <el-table-column label="偏离" width="90" align="center">
         <template #default="{ row }">
+          <el-tag v-if="row.deviationFlag > 0" :type="deviationTagType(row.deviationFlag)" size="small">
+            {{ deviationName(row.deviationFlag) }}
+          </el-tag>
+          <span v-else class="text-sub">正常</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="410" fixed="right">
+        <template #default="{ row }">
+          <el-button v-if="store.hasPerm('m6:evidence:view')" link type="primary" @click="openEvidence(row)">
+            价格证据
+          </el-button>
           <el-button v-if="store.hasPerm('m3:order:view')" link type="primary" @click="openDetail(row)">
             详情
           </el-button>
@@ -265,6 +282,12 @@
                 {{ detail.fulfillStatusName }}
               </el-tag>
             </el-descriptions-item>
+            <el-descriptions-item label="价格偏离">
+              <el-tag v-if="detail.deviationFlag > 0" :type="deviationTagType(detail.deviationFlag)" size="small">
+                {{ deviationName(detail.deviationFlag) }}
+              </el-tag>
+              <span v-else class="text-sub">正常</span>
+            </el-descriptions-item>
             <el-descriptions-item label="含税金额">¥{{ formatAmount(detail.totalAmount) }}</el-descriptions-item>
             <el-descriptions-item label="不含税金额">¥{{ formatAmount(detail.noTaxAmount) }}</el-descriptions-item>
             <el-descriptions-item label="税额">¥{{ formatAmount(detail.taxAmount) }}</el-descriptions-item>
@@ -321,6 +344,30 @@
                   <el-tag :type="itemFulfillTagType(row.itemFulfillStatus)" size="small">
                     {{ row.itemFulfillStatusName }}
                   </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="偏离率" width="100" align="right">
+                <template #default="{ row }">
+                  <span
+                    v-if="row.deviationRate !== null"
+                    :class="`dev-${row.deviationLevel === 2 ? 'significant' : row.deviationLevel === 1 ? 'focus' : 'normal'}`"
+                  >
+                    {{ (row.deviationRate * 100).toFixed(2) }}%
+                  </span>
+                  <span v-else class="text-sub">未判定</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="偏离等级" width="90" align="center">
+                <template #default="{ row }">
+                  <el-tag
+                    v-if="row.deviationLevel > 0"
+                    :type="row.deviationLevel === 2 ? 'danger' : 'warning'"
+                    size="small"
+                  >
+                    {{ row.deviationLevelName || (row.deviationLevel === 2 ? '显著' : '关注') }}
+                  </el-tag>
+                  <el-tag v-else-if="row.deviationRate !== null" type="success" size="small">正常</el-tag>
+                  <span v-else class="text-sub">—</span>
                 </template>
               </el-table-column>
             </el-table>
@@ -954,6 +1001,70 @@
       </div>
       <el-empty v-if="!summaryLoading && !summaryRows.length" description="日期范围内暂无已审核订单" :image-size="60" />
     </el-dialog>
+    <!-- 价格证据面板（M6-4-1）：审批辅助一屏展示单价/参考价/偏离/历史成交 -->
+    <el-drawer v-model="evidenceVisible" title="价格证据（审批辅助）" size="860px">
+      <template v-if="evidence">
+        <el-descriptions :column="3" border>
+          <el-descriptions-item label="订单号">{{ evidence.orderNo }}</el-descriptions-item>
+          <el-descriptions-item label="供应商">{{ evidence.supplierName }}</el-descriptions-item>
+          <el-descriptions-item label="整单偏离">
+            <el-tag v-if="evidence.deviationFlag > 0" :type="deviationTagType(evidence.deviationFlag)" size="small">
+              {{ deviationName(evidence.deviationFlag) }}
+            </el-tag>
+            <span v-else>正常</span>
+          </el-descriptions-item>
+        </el-descriptions>
+        <el-table v-loading="evidenceLoading" :data="evidence.rows" border stripe>
+          <el-table-column prop="materialNo" label="物料编码" width="110" />
+          <el-table-column prop="materialName" label="物料名称" min-width="130" show-overflow-tooltip />
+          <el-table-column label="订单单价" width="90" align="right">
+            <template #default="{ row }">{{ row.unitPrice }}</template>
+          </el-table-column>
+          <el-table-column label="下单时点参考价" width="110" align="right">
+            <template #default="{ row }">
+              <span v-if="row.refPrice !== null">{{ row.refPrice }}</span>
+              <span v-else class="text-sub">未设定</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="偏离率" width="100" align="right">
+            <template #default="{ row }">
+              <span v-if="row.deviationRate !== null" :class="`dev-${row.deviationLevel === 2 ? 'significant' : row.deviationLevel === 1 ? 'focus' : 'normal'}`">
+                {{ (row.deviationRate * 100).toFixed(2) }}%
+              </span>
+              <span v-else class="text-sub">未判定</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="等级" width="70" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.deviationLevel === 2 ? 'danger' : row.deviationLevel === 1 ? 'warning' : 'success'" size="small">
+                {{ row.deviationLevelName }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="历史均价" width="90" align="right">
+            <template #default="{ row }">
+              <span v-if="row.avgPrice !== null">{{ row.avgPrice }}</span>
+              <span v-else class="text-sub">无样本</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="最近成交价" width="100" align="right">
+            <template #default="{ row }">
+              <span v-if="row.lastPrice !== null">{{ row.lastPrice }}</span>
+              <span v-else class="text-sub">无样本</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="lastBillNo" label="来源单号" width="170" show-overflow-tooltip />
+          <el-table-column label="证据缺口" min-width="140">
+            <template #default="{ row }">
+              <span v-if="row.note" class="text-warning">{{ row.note }}</span>
+              <span v-else class="text-sub">—</span>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-alert class="scope-alert" type="info" :closable="false" show-icon
+          title="参考价为下单时点（订单创建日）选用的版本，历史版本停用后仍可还原；偏离率为最近一次保存或重算时的判定；历史成交来自统计快照（刷新后更新）。" />
+      </template>
+    </el-drawer>
   </div>
 </template>
 
@@ -968,6 +1079,8 @@ import * as m2Api from '@/api/m2'
 import type { RequestRow } from '@/api/m2'
 import { materialOptions, supplierOptions } from '@/api/m1'
 import type { MaterialRow, SupplierRow } from '@/api/m1'
+import * as m6Api from '@/api/m6'
+import type { EvidenceOrder } from '@/api/m6'
 
 interface MaterialOption {
   id: number
@@ -1011,6 +1124,7 @@ const query = reactive({
   lifecycleStatus: undefined as number | undefined,
   auditStatus: undefined as number | undefined,
   fulfillStatus: undefined as number | undefined,
+  deviationLevel: undefined as number | undefined,
   dateRange: [] as string[],
   overdue: false,
   pageNo: 1,
@@ -1024,10 +1138,14 @@ const supplierSelectOptions = ref<SupplierOption[]>([])
 const ownerSelectOptions = ref<OwnerOption[]>([])
 
 async function loadOptions() {
+  // 归属对象下拉挂 m3:order_item:owner（采购员口径）：主管等无该权限的角色
+  // 打开订单页时不发请求，避免 403 冒泡成 pageerror 与错误 toast（同 M2 修法）
   const [materials, suppliers, owners] = await Promise.all([
     materialOptions() as Promise<MaterialRow[]>,
     supplierOptions() as Promise<SupplierRow[]>,
-    m3Api.ownerOptions()
+    store.hasPerm('m3:order_item:owner')
+      ? m3Api.ownerOptions()
+      : Promise.resolve({ options: [] as { id: number; ownerType: number; ownerTypeName: string; ownerNo: string; ownerName: string }[] })
   ])
   materialSelectOptions.value = materials.map((m) => ({
     id: m.id,
@@ -1060,6 +1178,7 @@ async function load() {
       lifecycleStatus: query.lifecycleStatus,
       auditStatus: query.auditStatus,
       fulfillStatus: query.fulfillStatus,
+      deviationLevel: query.deviationLevel,
       startDate: query.dateRange?.[0],
       endDate: query.dateRange?.[1],
       overdue: query.overdue ? true : undefined
@@ -1087,6 +1206,7 @@ function resetQuery() {
   query.lifecycleStatus = undefined
   query.auditStatus = undefined
   query.fulfillStatus = undefined
+  query.deviationLevel = undefined
   query.dateRange = []
   query.overdue = false
   reload(1)
@@ -1649,8 +1769,31 @@ async function loadSummary() {
   }
 }
 
-onMounted(() => {
-  loadOptions()
+// ---------------- 价格证据（M6-4-1） ----------------
+
+const evidenceVisible = ref(false)
+const evidenceLoading = ref(false)
+const evidence = ref<EvidenceOrder | null>(null)
+
+async function openEvidence(row: OrderRow) {
+  evidenceLoading.value = true
+  evidenceVisible.value = true
+  try {
+    evidence.value = await m6Api.getOrderEvidence(row.id)
+  } finally {
+    evidenceLoading.value = false
+  }
+}
+
+function deviationName(flag: number) {
+  return flag === 2 ? '显著' : '关注'
+}
+
+function deviationTagType(flag: number) {
+  return flag === 2 ? 'danger' : 'warning'
+}
+
+onMounted(() => {  loadOptions()
   load()
 })
 </script>
@@ -1687,6 +1830,25 @@ onMounted(() => {
   margin-top: 10px;
   text-align: right;
   font-weight: 600;
+}
+
+/* M3-6 偏离等级配色（与 P16 偏离关注页一致） */
+.dev-normal {
+  color: var(--el-color-success);
+}
+
+.dev-focus {
+  color: var(--el-color-warning);
+  font-weight: 600;
+}
+
+.dev-significant {
+  color: var(--el-color-danger);
+  font-weight: 600;
+}
+
+.text-warning {
+  color: var(--el-color-warning);
 }
 
 .create-head {

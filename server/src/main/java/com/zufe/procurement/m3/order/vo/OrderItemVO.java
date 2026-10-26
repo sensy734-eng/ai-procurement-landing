@@ -64,5 +64,14 @@ public class OrderItemVO {
     /** 行级超期天数：行交货期（缺省取主表）已过且未交付完，后端计算 */
     private Integer overdueDays;
 
+    /** 偏离率（单价 − 参考价）/ 参考价，保存时按当时生效参考价计算；无参考价为 null */
+    private BigDecimal deviationRate;
+
+    /** 偏离等级：0 正常、1 关注、2 显著（阈值由 sys_param 价格分组固化） */
+    private Integer deviationLevel;
+
+    /** 偏离等级名称：正常 / 关注 / 显著 */
+    private String deviationLevelName;
+
     private String remark;
 }

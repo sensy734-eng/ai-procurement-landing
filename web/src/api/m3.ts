@@ -44,6 +44,8 @@ export interface OrderRow {
   taxAmount: number
   /** 整单超期天数，后端按当前日期计算，未超期为 0（M3-5-4） */
   overdueDays: number
+  /** 整单偏离标记：0 无、1 关注、2 显著，取明细行最高等级（M3-6） */
+  deviationFlag: number
   closeReason: string | null
   remark: string | null
   items: OrderItemRow[]
@@ -78,6 +80,12 @@ export interface OrderItemRow {
   itemFulfillStatusName: string
   sourceRequestItemId: number | null
   overdueDays: number
+  /** 行偏离率（单价 − 参考价）/ 参考价，无生效参考价为 null（M3-6） */
+  deviationRate: number | null
+  /** 行偏离等级：0 正常、1 关注、2 显著 */
+  deviationLevel: number
+  /** 行偏离等级名称：正常 / 关注 / 显著 */
+  deviationLevelName: string
   remark: string | null
 }
 

@@ -11,7 +11,8 @@
  *       仓库库位与字典归系统管理员（M1-3、M1-4）。
  *       轮次 5 起补 P7 采购订单与 P9 订单待办；轮次 6 起补 P10 到货验收列表、
  *       P11 验收登记（仓管员 cangku01）与主管视角的验收统计；轮次 7 起补 P12 采购入库
- *       （仓管员）、P13 库存台账与 P14 库存流水（采购员），共二十页。
+ *       （仓管员）、P13 库存台账与 P14 库存流水（采购员）；轮次 8 起补 P15 价格参考与
+ *       P16 偏离关注（采购员 caigou01），共二十二页。
  */
 import puppeteer from 'puppeteer-core'
 import fs from 'node:fs'
@@ -38,7 +39,9 @@ const buyerPages = [
   { path: '/request', name: '11-request', wait: '.request-page', label: '采购申请' },
   { path: '/order', name: '13-order', wait: '.order-page', label: '采购订单' },
   { path: '/stock', name: '18-stock', wait: '.stock-page', label: '库存台账' },
-  { path: '/stock/flow', name: '19-stock-flow', wait: '.flow-page', label: '库存流水' }
+  { path: '/stock/flow', name: '19-stock-flow', wait: '.flow-page', label: '库存流水' },
+  { path: '/price', name: '21-price', wait: '.price-page', label: '价格参考' },
+  { path: '/price/deviation', name: '22-deviation', wait: '.deviation-page', label: '价格偏离关注' }
 ]
 
 // 仓管员：到货验收全流程（登记页用订单 1 的 query 打开，避免依赖下拉时序）

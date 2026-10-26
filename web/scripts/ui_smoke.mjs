@@ -12,7 +12,8 @@
  *       轮次 5 起补 P7 采购订单与 P9 订单待办；轮次 6 起补 P10 到货验收列表、
  *       P11 验收登记（仓管员 cangku01）与主管视角的验收统计；轮次 7 起补 P12 采购入库
  *       （仓管员）、P13 库存台账与 P14 库存流水（采购员）；轮次 8 起补 P15 价格参考与
- *       P16 偏离关注（采购员 caigou01），共二十二页。
+ *       P16 偏离关注（采购员 caigou01）；轮次 9 起补 P18/P19/P20 知识库三页签
+ *       （合并为「知识库」一页，admin），共二十三页。
  */
 import puppeteer from 'puppeteer-core'
 import fs from 'node:fs'
@@ -30,7 +31,8 @@ const adminPages = [
   { path: '/system/params', name: '05-params', wait: '.param-page', label: '参数配置' },
   { path: '/system/logs', name: '06-logs', wait: '.log-page', label: '日志审计' },
   { path: '/master/warehouse', name: '07-warehouse', wait: '.warehouse-page', label: '仓库与库位' },
-  { path: '/master/dict', name: '08-dict', wait: '.dict-page', label: '业务字典' }
+  { path: '/master/dict', name: '08-dict', wait: '.dict-page', label: '业务字典' },
+  { path: '/system/kb', name: '23-kb', wait: '.kb-page', label: '知识库（M10）' }
 ]
 
 const buyerPages = [

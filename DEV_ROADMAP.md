@@ -61,6 +61,7 @@
 | 6 M4 到货验收管理 | 已完成 | smoke_round6.py 72 项断言全过（三轮复跑稳定），界面走查 17 页无错误，mvn test 7/7 通过 |
 | 7 M5 采购入库与库存 | 已完成 | smoke_round7.py 99 项断言全过，轮次 4/5/6/7 回归 403 断言全绿，界面走查 20 页无错误，mvn test 7/7 通过 |
 | 8 M6 价格参考与审批辅助 + M3-6 价格偏离关注 | 已完成 | smoke_round8.py 46 项断言全过，轮次 4/5/6/7 回归 403 断言全绿，界面走查 22 页无错误，mvn test 通过 |
+| 9 M10 知识库管理 | 已完成 | smoke_round9.py 47 项断言全过，轮次 4/5/6/7/8 回归全绿（101+131+72+99+46），界面走查 23 页无错误，mvn test 7/7 通过 |
 
 轮次 2 实际交付与计划的差异：
 
@@ -130,3 +131,14 @@
 6. 偏离随订单行落库但不自动重算：建行/改行时按当时生效参考价计算并写 purchase_order_item.deviation_rate/deviation_level；参考价事后变更只提供重算入口（挂 m6:price:update），重算基准日取今天。理由与超期天数一致——落库值是历史快照，现算值反映当前口径，两者用途不同。
 7. 修掉两个轮次 5 遗留的潜在缺陷（本轮证据按钮把主管变成订单页预期用户后暴露）：订单页与申请页的归属对象下拉未按权限门控，主管（无 m3:order_item:owner / m2:request_item:owner）打开页面会 403 并冒泡成 pageerror 与错误 toast；按 M2 既有修法加 hasPerm 门控，无权限时不发请求、下拉降级为空。
 8. MyBatis 坑记录（开发中实际踩到）：@Select 注解不能包 UPDATE/INSERT（绑定异常 500，须用 @Update/@Insert）；MP 的 updateById 对 null 字段不生成 SET（清空 deviation_rate 必须走 LambdaUpdateWrapper 显式 .set(col, null)）；实体 VO 补字段时同步补前端 api 类型，否则 tsc 报属性不存在。
+
+轮次 9 实际交付与计划的差异：
+
+1. 轮次表写的"M10 知识库管理（11 点）"按权限点口径计（11 个权限点全授系统管理员）；逐条核对功能清单后交付 17 个功能点中的 17 项可落地项，M10-5-3 引用有效性校验（答案引用的切块是否仍存在且启用）依赖 M8 答案链路，留轮次 10 随智能助手一并实现；M10-2-3 只做相邻切块合并，任意拆分（把一块拆成多块）清单未给拆分规则（按字数还是按条款），不擅自发明口径，未做。
+2. 解析路线零依赖（沿用轮次 3 CSV 不引 POI 的先例）：md 原生解析（标题层级 + 连续行合并段落）；docx 用 JDK zip + DOM 读 word/document.xml 的 w:p/w:t（disallow-doctype-decl 防 XXE）；pdf 不做自动解析——中文 PDF 的 CID/ToUnicode 逆向成本高且易错，按清单 M10-1-3「正文补录」走粘贴入口，上传 pdf 时 parse_status=4（待补录）并在备注里指明补录路径。若后续要支持 pdf 解析，需先确认再加 PDFBox 依赖。
+3. 检索双路按规划书 3.4 对照实验口径实现：稀疏路 = 中文字符二元组分词 + Okapi BM25（k1=1.5、b=0.75，idf=ln(1+(N-df+0.5)/(df+0.5))）；向量路 = 本地确定性向量器（二元组哈希 → 512 维 L2 归一 float32，MODEL=hash-bigram-v1），全量候选余弦、不做稀疏预滤，保证两路"同资料、同问题、同评价条件"。检索测试台（M10-5-1/5-2）一次问句并行两路 Top-K，命中判定期望切块优先、期望文档兜底，统计综合/分路命中率与平均命中排名。
+4. 切块口径：目标块长取 sys_param kb_chunk_size（默认 500，界 300~600）；条款边界保护（第X条 / 3.2.1 / 1、 / 一、 / （一）开头不跨块切断）；条款完整时块间不重叠——重叠文本会跨条款制造重复片段，与边界保护冲突；单条款超 1.5 倍块长才按句界硬切且相邻片段重叠 kb_chunk_overlap（50）字，此时才需要重叠衔接。
+5. 索引增量单位是文档（M10-3-3 单文档重建、M10-3-4 全量重建），倒排索引与向量都是派生数据、可随时全量重建；文档删除按规划书 5.1 例外走物理删除（kb_document/kb_chunk/kb_sparse_index 三级同步清），不用逻辑删除。
+6. 踩到并修复一个全局级坑：application.yml 配了 mybatis-plus.global-config.db-config.logic-delete-field: isDeleted，导致所有含 is_deleted 字段实体的 BaseMapper.delete 静默降级为 UPDATE is_deleted=1；而 kb_sparse_index 唯一键（uk_sparse_chunk_token）不含 is_deleted，重建索引 INSERT 撞键报 DuplicateKeyException。修复：kb 三个 Mapper 增加原生 @Delete 物理删除方法，服务层全部改调。教训：全局 logic-delete-field 下，凡唯一键不含 is_deleted 的表，物理删除必须走原生 SQL，不能依赖 MP 的 delete。
+7. 冒烟脚本两轮修正（非服务缺陷）：LONG_CLAUSE 两次注释写字数、实际不足（357/910 字 < 750 硬切阈值），加"构造前置断言"防再犯；查询参数含中文时 urllib 按 ASCII 编码 URL 崩 UnicodeEncodeError，call() 统一做 percent 编码；停用/删除后的召回断言从"两路无结果"改为"该文档不出现在结果中"（语料里还有其他文档，向量路召回它们是正确行为）。
+8. 前端三页签合并为「知识库」一页（P18 文档管理 / P19 切块查看 / P20 检索测试），菜单占位 /system/kb 替换为真实路由；切块页签支持勾选相邻块合并（前端预校验序号相邻，后端再校验同文档+相邻）。

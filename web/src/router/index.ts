@@ -27,6 +27,7 @@ const builtPaths = new Set([
   '/system/roles',
   '/system/approval',
   '/system/params',
+  '/system/kb',
   '/system/logs'
 ])
 
@@ -170,6 +171,12 @@ const routes: RouteRecordRaw[] = [
         name: 'system-params',
         component: () => import('@/views/system/ParamConfig.vue'),
         meta: { title: '参数配置', perm: 'm11:param:list' }
+      },
+      {
+        path: 'system/kb',
+        name: 'system-kb',
+        component: () => import('@/views/system/KbManage.vue'),
+        meta: { title: '知识库', perm: 'm10:document:list' }
       },
       {
         path: 'system/logs',

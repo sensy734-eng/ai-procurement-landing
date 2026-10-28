@@ -2,63 +2,90 @@
   <div class="home">
     <section class="welcome">
       <div>
-        <h2>{{ greeting }}，{{ store.user?.realName || store.user?.username }}</h2>
-        <p class="text-sub">
-          {{ store.roleNames.join('、') }} · {{ store.user?.deptName || '未分配部门' }} ·
-          数据范围 {{ store.scopeText }}
+        <h2>{{ greeting }}，{{ overview?.realName || store.user?.realName || store.user?.username }}</h2>
+        <p class="welcome-sub">
+          {{ (overview?.roleNames || store.roleNames).join('、') }} ·
+          {{ store.user?.deptName || '未分配部门' }} · 数据范围 {{ overview?.scopeHint || store.scopeText }}
         </p>
       </div>
-      <el-button v-if="store.hasPerm('m11:user:list')" type="primary" @click="router.push('/system/users')">
-        用户管理
+      <el-button v-if="store.hasPerm('m12:summary:purchase')" type="primary" plain
+                 @click="router.push('/system/dashboard')">
+        打开运营仪表盘
       </el-button>
     </section>
 
-    <section class="stat-grid">
-      <div v-for="card in stats" :key="card.label" class="stat-card page-card">
-        <span class="stat-label">{{ card.label }}</span>
-        <span class="stat-value">{{ card.value }}</span>
-        <span class="stat-hint">{{ card.hint }}</span>
+    <!-- 指标卡（M12-1-1）：只显示当前角色有权拿的指标，缺权限的指标项由后端不返回 -->
+    <section class="metric-grid">
+      <div v-for="metric in overview?.metrics || []" :key="metric.key" class="metric-card page-card">
+        <span class="metric-label">{{ metric.label }}</span>
+        <span class="metric-value">
+          {{ metric.value }}<span class="metric-unit">{{ metric.unit }}</span>
+        </span>
+        <span class="metric-hint">{{ metric.hint }}</span>
+      </div>
+      <div v-if="!overview?.metrics?.length" class="metric-card page-card muted">暂无指标</div>
+    </section>
+
+    <!-- 维护入口聚合（M12-1-2）：五类入口按权限点过滤，无权限的整组不出现 -->
+    <section class="entry-groups">
+      <div v-for="group in overview?.groups || []" :key="group.key" class="group-card page-card">
+        <header class="group-head">
+          <el-icon class="group-icon"><component :is="iconOf(group.icon)" /></el-icon>
+          <h3>{{ group.title }}</h3>
+          <span class="group-count">{{ group.entries.length }} 个入口</span>
+        </header>
+        <ul class="entry-list">
+          <li v-for="entry in group.entries" :key="entry.path" class="entry-item"
+              @click="router.push(entry.path)">
+            <div class="entry-main">
+              <span class="entry-title">{{ entry.title }}</span>
+              <span v-if="entry.count !== null" class="entry-count">
+                {{ entry.count }} {{ entry.countLabel }}
+              </span>
+            </div>
+            <p class="entry-desc">{{ entry.description }}</p>
+            <el-icon class="entry-arrow"><ArrowRight /></el-icon>
+          </li>
+        </ul>
       </div>
     </section>
 
-    <section class="panel-grid">
-      <div class="page-card panel">
-        <h3>本轮已交付</h3>
-        <ul class="check-list">
-          <li><el-icon><CircleCheck /></el-icon>登录、会话建立与超时续期（M11-1-1、M11-1-2）</li>
-          <li><el-icon><CircleCheck /></el-icon>退出与修改密码（M11-1-3、M11-1-4）</li>
-          <li><el-icon><CircleCheck /></el-icon>动作级权限拦截，无权限返回 403 与 NoPermission</li>
-          <li><el-icon><CircleCheck /></el-icon>数据范围解析与查询条件注入（M11-3-3）</li>
-          <li><el-icon><CircleCheck /></el-icon>菜单按权限点渲染，用户列表带部门范围过滤（M11-2-1）</li>
-        </ul>
-      </div>
-
-      <div class="page-card panel">
-        <h3>下一步</h3>
-        <p class="text-sub">
-          轮次 2 交付 M11 平台与权限管理：用户新增与停用、重置密码、角色授权、
-          权限点树、数据范围配置、会话管理、操作日志、审批流程配置。
-        </p>
-        <el-divider />
-        <h3>本机环境</h3>
-        <el-descriptions :column="1" size="small" border>
-          <el-descriptions-item label="后端">Spring Boot 3.5.16 / JDK 17</el-descriptions-item>
-          <el-descriptions-item label="数据库">procurement_db，49 张表</el-descriptions-item>
-          <el-descriptions-item label="会话方式">落库会话，默认 8 小时，滑动续期</el-descriptions-item>
-        </el-descriptions>
+    <section class="footer-card page-card">
+      <h3>关于入口</h3>
+      <p class="text-sub">
+        入口按当前账号的权限点动态显示（M12-1-1）：没有权限的入口既不在菜单里，也不在首页出现。
+        例如物料、供应商、分类归采购员维护，系统管理员不持有这三类权限，
+        所以管理员的「基础数据」只保留仓库与库位——这是权限矩阵的设计结果，不是页面缺项。
+      </p>
+      <el-divider />
+      <div class="env-row">
+        <span>后端 Spring Boot 3.5.16 / JDK 17</span>
+        <span>数据库 procurement_db，49 张表</span>
+        <span>会话落库，默认 8 小时滑动续期</span>
       </div>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { CircleCheck } from '@element-plus/icons-vue'
+import {
+  ArrowRight,
+  Collection,
+  Document,
+  Files,
+  Reading,
+  User
+} from '@element-plus/icons-vue'
+import { getOverview } from '@/api/m12'
+import type { Overview } from '@/api/m12'
 import { useUserStore } from '@/stores/user'
 
 const store = useUserStore()
 const router = useRouter()
+
+const overview = ref<Overview | null>(null)
 
 const greeting = computed(() => {
   const hour = new Date().getHours()
@@ -69,19 +96,32 @@ const greeting = computed(() => {
   return '晚上好'
 })
 
-const stats = computed(() => [
-  { label: '当前角色', value: store.roleNames.join('、') || '-', hint: `${store.roles.length} 个角色` },
-  { label: '权限点', value: `${store.permissions.length}`, hint: '动作级授权，按接口校验' },
-  { label: '数据范围', value: store.scopeText, hint: '后端解析，前端仅展示' },
-  { label: '所在部门', value: store.user?.deptName || '-', hint: `用户编号 ${store.user?.id ?? '-'}` }
-])
+const ICONS: Record<string, unknown> = {
+  Files,
+  Collection,
+  User,
+  Reading,
+  Document
+}
+
+function iconOf(name: string) {
+  return ICONS[name] || Files
+}
+
+onMounted(async () => {
+  try {
+    overview.value = await getOverview()
+  } catch {
+    overview.value = null
+  }
+})
 </script>
 
 <style scoped>
 .home {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .welcome {
@@ -100,85 +140,182 @@ const stats = computed(() => [
   font-weight: 600;
 }
 
-.welcome .text-sub {
-  color: rgba(255, 255, 255, 0.78);
+.welcome-sub {
+  color: rgba(255, 255, 255, 0.8);
   margin: 0;
+  font-size: 13px;
 }
 
-.stat-grid {
+.metric-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
 }
 
-.stat-card {
+.metric-card {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 18px 20px;
+  padding: 16px 18px;
 }
 
-.stat-label {
+.metric-card.muted {
+  color: #9ca3af;
   font-size: 13px;
-  color: #6b7280;
 }
 
-.stat-value {
-  font-size: 20px;
+.metric-label {
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.metric-value {
+  font-size: 23px;
   font-weight: 600;
   color: #1f4e79;
-  word-break: break-all;
+  font-variant-numeric: tabular-nums;
 }
 
-.stat-hint {
+.metric-unit {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-sub);
+  margin-left: 3px;
+}
+
+.metric-hint {
   font-size: 12px;
   color: #9ca3af;
 }
 
-.panel-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 16px;
+/* 入口组用瀑布流排列：每组入口数不同，等高网格会让只有一条入口的组留出大片空白 */
+.entry-groups {
+  column-count: 3;
+  column-gap: 14px;
 }
 
-.panel {
-  padding: 20px 24px;
+.group-card {
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  break-inside: avoid;
 }
 
-.panel h3 {
-  margin: 0 0 14px;
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.group-head h3 {
+  margin: 0;
   font-size: 15px;
   font-weight: 600;
 }
 
-.check-list {
+.group-icon {
+  color: #2e6da4;
+  font-size: 17px;
+}
+
+.group-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.entry-list {
   margin: 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  font-size: 13px;
-  color: #374151;
+  gap: 6px;
 }
 
-.check-list li {
+.entry-item {
+  position: relative;
+  padding: 9px 26px 9px 11px;
+  border: 1px solid #eef1f6;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.entry-item:hover {
+  border-color: #c8d6e3;
+  background: #f7fafc;
+}
+
+.entry-main {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
 }
 
-.check-list .el-icon {
-  color: #2e7d5b;
-  font-size: 16px;
+.entry-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
 }
 
-@media (max-width: 1200px) {
-  .stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.entry-count {
+  font-size: 12px;
+  color: #2e6da4;
+}
+
+.entry-desc {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.entry-arrow {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #c0c6d0;
+  font-size: 13px;
+}
+
+.footer-card {
+  padding: 16px 20px;
+}
+
+.footer-card h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.footer-card .text-sub {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.env-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+@media (max-width: 1280px) {
+  .entry-groups {
+    column-count: 2;
   }
-  .panel-grid {
-    grid-template-columns: 1fr;
+}
+
+@media (max-width: 900px) {
+  .welcome {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .entry-groups {
+    column-count: 1;
   }
 }
 </style>

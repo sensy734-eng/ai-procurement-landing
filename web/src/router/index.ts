@@ -29,6 +29,7 @@ const builtPaths = new Set([
   '/system/params',
   '/system/kb',
   '/system/logs',
+  '/system/dashboard',
   '/assistant',
   '/assistant/audit'
 ])
@@ -185,6 +186,12 @@ const routes: RouteRecordRaw[] = [
         name: 'system-logs',
         component: () => import('@/views/system/LogAudit.vue'),
         meta: { title: '日志审计', perm: 'm11:log:list' }
+      },
+      {
+        path: 'system/dashboard',
+        name: 'system-dashboard',
+        component: () => import('@/views/business/dashboard/Dashboard.vue'),
+        meta: { title: '运营看板', perm: 'm12:summary:purchase' }
       },
       {
         path: 'assistant',

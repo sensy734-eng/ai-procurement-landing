@@ -13,8 +13,9 @@
  *       P11 验收登记（仓管员 cangku01）与主管视角的验收统计；轮次 7 起补 P12 采购入库
  *       （仓管员）、P13 库存台账与 P14 库存流水（采购员）；轮次 8 起补 P15 价格参考与
  *       P16 偏离关注（采购员 caigou01）；轮次 9 起补 P18/P19/P20 知识库三页签
- *       （合并为「知识库」一页，admin）；轮次 10 起补 P16 助手对话（admin 与采购员各看一遍）
- *       与 P17 查询审计（admin），共二十五页。
+ *        （合并为「知识库」一页，admin）；轮次 10 起补 P16 助手对话（admin 与采购员各看一遍）
+ *       与 P17 查询审计（admin）；轮次 11 起把 01-home 换成 P25 后台首页（指标卡 + 入口组）、
+ *       新增 P26 运营仪表盘（四图 + 汇总），共二十七页。
  */
 import puppeteer from 'puppeteer-core'
 import fs from 'node:fs'
@@ -25,7 +26,8 @@ const BASE = 'http://localhost:5173'
 const SHOT_DIR = path.resolve('scripts/screenshots')
 
 const adminPages = [
-  { path: '/home', name: '01-home', wait: '.page-card, .home-page', label: '工作台' },
+  { path: '/home', name: '01-home', wait: '.home', label: '后台首页（P25）' },
+  { path: '/system/dashboard', name: '26-dashboard', wait: '.dashboard-page', label: '运营仪表盘（P26）' },
   { path: '/system/users', name: '02-users', wait: '.user-page', label: '用户管理' },
   { path: '/system/roles', name: '03-roles', wait: '.role-page', label: '角色权限' },
   { path: '/system/approval', name: '04-approval', wait: '.approval-page', label: '审批配置' },

@@ -44,6 +44,8 @@
 前置：后端已在 http://localhost:8080 启动，数据库已导入 db 目录脚本，
       且已执行 db/22_clean_smoke_round9.sql 与 db/23_clean_smoke_round10.sql
       （会话、消息、审计三表清零，演示基线复原）。
+      脚本开头会调 /m10/index/rebuild 重建倒排索引与向量——22_clean 把
+      派生索引清空了，不重建的话 M8-1/M8-3 的召回断言会连锁失败。
 退出码 0 表示全部通过。
 """
 import json
@@ -128,6 +130,18 @@ def main():
     buyer = token_of("caigou01")
     manager = token_of("zhuguan01")
     keeper = token_of("cangku01")
+
+    # 前置自愈：知识库倒排索引与向量是派生数据，22_clean_smoke_round9.sql
+    # 会把它们连同切块一起清空（演示基线不带索引）。后端只在**启动时**发现
+    # 索引为空才重建（KbIndexBootstrap），若清空发生在启动之后，索引就一直空着，
+    # 双路检索会召回 0 条、refs 为空，后面 M8-1/M8-3 一组断言会连锁失败。
+    # 所以这里显式触发一次全量重建，让脚本自己保证前置条件，而不是依赖残留状态。
+    status, body = call("POST", "/m10/index/rebuild", token=admin)
+    build = body.get("data") or {}
+    check("前置：知识库索引全量重建（22_clean 清空派生索引后自愈）",
+          status == 200 and body.get("code") == "Success"
+          and (build.get("chunkCount") or 0) > 0 and (build.get("tokenCount") or 0) > 0,
+          build)
 
     # 只读基线：问答不改业务数据，前后对比订单数与库存量
     _, orders_before = call("GET", "/m3/orders?pageNo=1&pageSize=1", token=admin)

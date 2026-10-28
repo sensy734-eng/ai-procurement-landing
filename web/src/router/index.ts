@@ -28,7 +28,9 @@ const builtPaths = new Set([
   '/system/approval',
   '/system/params',
   '/system/kb',
-  '/system/logs'
+  '/system/logs',
+  '/assistant',
+  '/assistant/audit'
 ])
 
 const placeholderRoutes: RouteRecordRaw[] = flattenMenu(menuTree)
@@ -183,6 +185,18 @@ const routes: RouteRecordRaw[] = [
         name: 'system-logs',
         component: () => import('@/views/system/LogAudit.vue'),
         meta: { title: '日志审计', perm: 'm11:log:list' }
+      },
+      {
+        path: 'assistant',
+        name: 'assistant',
+        component: () => import('@/views/business/ai/AssistantChat.vue'),
+        meta: { title: '助手对话', perm: 'm7:chat:query' }
+      },
+      {
+        path: 'assistant/audit',
+        name: 'assistant-audit',
+        component: () => import('@/views/business/ai/AssistantAudit.vue'),
+        meta: { title: '查询审计', perm: 'm9:audit:list' }
       },
       {
         path: '403',

@@ -616,8 +616,11 @@ public class StockService {
         Map<Long, String> specs = lookupNames(materialIds2,
                 materialMapper::selectBatchIds, Material::getId, Material::getSpec);
         Map<Long, Long> categoryIds = new HashMap<>();
-        for (Material material : materialMapper.selectBatchIds(materialIds2)) {
-            categoryIds.put(material.getId(), material.getCategoryId());
+        // 空集合不能直接进 selectBatchIds：MP 会拼出 IN () 触发 SQL 语法错误（命中零行时必现）
+        if (!materialIds2.isEmpty()) {
+            for (Material material : materialMapper.selectBatchIds(materialIds2)) {
+                categoryIds.put(material.getId(), material.getCategoryId());
+            }
         }
         Map<Long, String> categoryNames = new HashMap<>();
         for (MaterialCategory category : categoryMapper.selectAllForTree()) {

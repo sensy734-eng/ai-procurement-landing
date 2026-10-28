@@ -28,6 +28,11 @@ service.interceptors.request.use((config) => {
 service.interceptors.response.use(
   (response) => {
     const body = response.data
+    // skipCodeCheck：智能助手的七类结果码都是业务语义（NoData/Ambiguous/Unsupported…），
+    // 页面要拿 payload 渲染澄清选项与拒答话术，不能一律当错误弹掉
+    if ((response.config as { skipCodeCheck?: boolean }).skipCodeCheck) {
+      return body
+    }
     if (body && body.code && body.code !== 'Success') {
       ElMessage.error(body.message || codeText[body.code] || '请求失败')
       return Promise.reject(new Error(body.message || body.code))

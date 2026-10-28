@@ -226,6 +226,8 @@ public class PurchaseOrderService {
                 .eq(query.getBuyerId() != null, PurchaseOrder::getBuyerId, query.getBuyerId())
                 .ge(query.getStartDate() != null, PurchaseOrder::getOrderDate, query.getStartDate())
                 .le(query.getEndDate() != null, PurchaseOrder::getOrderDate, query.getEndDate())
+                .ge(query.getAmountGte() != null, PurchaseOrder::getTotalAmount, query.getAmountGte())
+                .le(query.getAmountLte() != null, PurchaseOrder::getTotalAmount, query.getAmountLte())
                 .orderByDesc(PurchaseOrder::getOrderDate)
                 .orderByDesc(PurchaseOrder::getId);
         if (Boolean.TRUE.equals(query.getOverdue())) {

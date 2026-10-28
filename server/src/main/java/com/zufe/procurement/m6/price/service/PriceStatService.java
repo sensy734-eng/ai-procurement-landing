@@ -2,11 +2,15 @@ package com.zufe.procurement.m6.price.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zufe.procurement.auth.AuthContext;
+import com.zufe.procurement.common.BizException;
+import com.zufe.procurement.common.ResultCode;
 import com.zufe.procurement.m11.param.entity.SysParam;
 import com.zufe.procurement.m11.param.mapper.SysParamMapper;
 import com.zufe.procurement.m11.system.service.OperationLogService;
 import com.zufe.procurement.m1.material.entity.Material;
 import com.zufe.procurement.m1.material.mapper.MaterialMapper;
+import com.zufe.procurement.m1.supplier.entity.Supplier;
+import com.zufe.procurement.m1.supplier.mapper.SupplierMapper;
 import com.zufe.procurement.m3.order.entity.PurchaseOrder;
 import com.zufe.procurement.m3.order.entity.PurchaseOrderItem;
 import com.zufe.procurement.m3.order.mapper.PurchaseOrderItemMapper;
@@ -16,6 +20,7 @@ import com.zufe.procurement.m6.price.entity.PriceReference;
 import com.zufe.procurement.m6.price.entity.PriceStatSnapshot;
 import com.zufe.procurement.m6.price.mapper.PriceReferenceMapper;
 import com.zufe.procurement.m6.price.mapper.PriceStatSnapshotMapper;
+import com.zufe.procurement.m6.price.vo.PriceHistoryVO;
 import com.zufe.procurement.m6.price.vo.PriceStatVO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,6 +64,7 @@ public class PriceStatService {
     private final PriceReferenceMapper priceReferenceMapper;
     private final SysParamMapper sysParamMapper;
     private final MaterialMapper materialMapper;
+    private final SupplierMapper supplierMapper;
     private final OperationLogService operationLogService;
 
     public PriceStatService(PurchaseOrderMapper orderMapper,
@@ -67,6 +73,7 @@ public class PriceStatService {
                             PriceReferenceMapper priceReferenceMapper,
                             SysParamMapper sysParamMapper,
                             MaterialMapper materialMapper,
+                            SupplierMapper supplierMapper,
                             OperationLogService operationLogService) {
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
@@ -74,6 +81,7 @@ public class PriceStatService {
         this.priceReferenceMapper = priceReferenceMapper;
         this.sysParamMapper = sysParamMapper;
         this.materialMapper = materialMapper;
+        this.supplierMapper = supplierMapper;
         this.operationLogService = operationLogService;
     }
 
@@ -133,6 +141,104 @@ public class PriceStatService {
                 vo.setAvgDeviationRate(vo.getAvgPrice().subtract(ref.getRefPrice())
                         .divide(ref.getRefPrice(), 4, RoundingMode.HALF_UP));
             }
+        }
+        return vo;
+    }
+
+    /**
+     * 区间成交汇总（M9-4-5）：按用户指定的起止日期实时汇总，供智能查询回答
+     * 「近半年这个物料多少钱」这类问句。
+     *
+     * 成交定义与快照完全一致（lifecycle 3/4 且 audit_status=2 的订单行），
+     * 差别只在统计范围由调用方给定；均价金额加权；无样本返回空值不伪造。
+     */
+    public PriceHistoryVO rangeStat(Long materialId, Long supplierId, LocalDate from, LocalDate to) {
+        if (materialId == null) {
+            throw new BizException(ResultCode.INVALID_PARAMETER, "请指定物料后再查询成交价");
+        }
+        PriceHistoryVO vo = new PriceHistoryVO();
+        vo.setMaterialId(materialId);
+        vo.setSupplierId(supplierId);
+        vo.setDateFrom(from == null ? null : from.toString());
+        vo.setDateTo(to == null ? null : to.toString());
+        Material material = materialMapper.selectById(materialId);
+        if (material != null) {
+            vo.setMaterialNo(material.getMaterialNo());
+            vo.setMaterialName(material.getMaterialName());
+        }
+        if (supplierId != null) {
+            Supplier supplier = supplierMapper.selectById(supplierId);
+            vo.setSupplierName(supplier == null ? null : supplier.getSupplierName());
+        }
+
+        List<PurchaseOrder> orders = orderMapper.selectList(new LambdaQueryWrapper<PurchaseOrder>()
+                .in(PurchaseOrder::getLifecycleStatus, List.of(3, 4))
+                .eq(PurchaseOrder::getAuditStatus, 2)
+                .eq(supplierId != null, PurchaseOrder::getSupplierId, supplierId)
+                .ge(from != null, PurchaseOrder::getOrderDate, from)
+                .le(to != null, PurchaseOrder::getOrderDate, to)
+                .orderByDesc(PurchaseOrder::getOrderDate)
+                .orderByDesc(PurchaseOrder::getId));
+        if (orders.isEmpty()) {
+            vo.setSampleCount(0);
+            return vo;
+        }
+        Map<Long, PurchaseOrder> orderById = new LinkedHashMap<>();
+        for (PurchaseOrder order : orders) {
+            orderById.put(order.getId(), order);
+        }
+        Map<Long, String> supplierNames = new HashMap<>();
+        if (supplierId == null) {
+            for (PurchaseOrder order : orders) {
+                supplierNames.computeIfAbsent(order.getSupplierId(), id -> {
+                    Supplier supplier = supplierMapper.selectById(id);
+                    return supplier == null ? "供应商 " + id : supplier.getSupplierName();
+                });
+            }
+        }
+        List<PurchaseOrderItem> items = orderItemMapper.selectList(new LambdaQueryWrapper<PurchaseOrderItem>()
+                .in(PurchaseOrderItem::getOrderId, orderById.keySet())
+                .eq(PurchaseOrderItem::getMaterialId, materialId));
+
+        BigDecimal sumAmount = BigDecimal.ZERO;
+        BigDecimal sumQty = BigDecimal.ZERO;
+        BigDecimal minPrice = null;
+        BigDecimal maxPrice = null;
+        int dealCount = 0;
+        for (PurchaseOrderItem item : items) {
+            PurchaseOrder order = orderById.get(item.getOrderId());
+            if (order == null) {
+                continue;
+            }
+            BigDecimal amount = item.getAmount() == null ? BigDecimal.ZERO : item.getAmount();
+            BigDecimal qty = item.getQuantity() == null ? BigDecimal.ZERO : item.getQuantity();
+            sumAmount = sumAmount.add(amount);
+            sumQty = sumQty.add(qty);
+            if (item.getUnitPrice() != null) {
+                minPrice = minPrice == null ? item.getUnitPrice() : minPrice.min(item.getUnitPrice());
+                maxPrice = maxPrice == null ? item.getUnitPrice() : maxPrice.max(item.getUnitPrice());
+            }
+            if (dealCount < 10) {
+                PriceHistoryVO.DealRow row = new PriceHistoryVO.DealRow();
+                row.setOrderNo(order.getOrderNo());
+                row.setOrderDate(order.getOrderDate() == null ? null : order.getOrderDate().toString());
+                row.setSupplierName(supplierId != null
+                        ? vo.getSupplierName()
+                        : supplierNames.getOrDefault(order.getSupplierId(), "供应商 " + order.getSupplierId()));
+                row.setUnitPrice(item.getUnitPrice());
+                row.setQuantity(item.getQuantity());
+                row.setAmount(item.getAmount());
+                vo.getDeals().add(row);
+                dealCount++;
+            }
+        }
+        vo.setSampleCount(items.size());
+        vo.setTotalAmount(sumAmount.setScale(2, RoundingMode.HALF_UP));
+        vo.setTotalQty(sumQty);
+        vo.setMinUnitPrice(minPrice);
+        vo.setMaxUnitPrice(maxPrice);
+        if (sumQty.signum() != 0) {
+            vo.setAvgPrice(sumAmount.divide(sumQty, 4, RoundingMode.HALF_UP));
         }
         return vo;
     }

@@ -43,4 +43,9 @@ public class OrderQuery {
 
     /** M3-6 整单偏离等级筛选：1 关注、2 显著（不传为全部） */
     private Integer deviationLevel;
+
+    /** 金额条件（M9-2-3 数值条件提取的落地点，按含税金额过滤） */
+    private java.math.BigDecimal amountGte;
+
+    private java.math.BigDecimal amountLte;
 }

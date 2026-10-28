@@ -66,12 +66,16 @@ INSERT INTO ai_intent_param (id, intent_id, param_code, param_name, data_type, o
   (105, 1, 'lifecycle_status', '生命周期状态','int',    'eq,in',          0, '1,2,3,4,5',    5, '草稿 1、已提交 2、已审核 3、已关闭 4、已作废 5'),
   (106, 1, 'audit_status',     '审批结果状态','int',    'eq,in',          0, '1,2,3',        6, '未审核 1、通过 2、驳回 3'),
   (107, 1, 'fulfill_status',   '履约状态',   'int',     'eq,in',          0, '1,2,3,4',      7, '待交付 1、部分交付 2、全部交付 3、已关闭 4'),
+  (108, 1, 'amount_gte',       '金额下限',   'decimal', 'gte',            0, NULL,           8, 'M9-2-3 按含税金额过滤，如「金额大于 5 万」'),
+  (109, 1, 'amount_lte',       '金额上限',   'decimal', 'lte',            0, NULL,           9, 'M9-2-3 按含税金额过滤'),
   -- 2 交付进度查询
   (201, 2, 'order_no',         '订单号',     'string',  'eq,like',        0, NULL,           1, NULL),
   (202, 2, 'supplier_id',      '供应商',     'long',    'eq',             0, NULL,           2, NULL),
   (203, 2, 'date_from',        '开始日期',   'date',    'gte,between',    0, NULL,           3, NULL),
   (204, 2, 'date_to',          '结束日期',   'date',    'lte,between',    0, NULL,           4, NULL),
   (205, 2, 'overdue_only',     '仅看超期',   'boolean', 'eq',             0, 'true,false',   5, '为真时只返回当前日期已过交货期且未交付完的订单'),
+  (206, 2, 'amount_gte',       '金额下限',   'decimal', 'gte',            0, NULL,           6, 'M9-2-3 按含税金额过滤'),
+  (207, 2, 'amount_lte',       '金额上限',   'decimal', 'lte',            0, NULL,           7, 'M9-2-3 按含税金额过滤'),
   -- 3 历史采购价格查询
   (301, 3, 'material_id',      '物料',       'long',    'eq',             1, NULL,           1, '必填，缺失时返回澄清'),
   (302, 3, 'supplier_id',      '供应商',     'long',    'eq',             0, NULL,           2, NULL),

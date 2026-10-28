@@ -34,4 +34,19 @@ public interface DeliveryProgressMapper extends BaseMapper<DeliveryProgress> {
             WHERE order_id = #{orderId} AND is_deleted = 0
             """)
     long countByOrderId(@Param("orderId") Long orderId);
+
+    /**
+     * 批量取每个订单的最后一次交付日期，供供应商交付统计判断是否按期（M9-4-4）。
+     * 一次查全，避免在循环里逐单查询。
+     */
+    @Select("""
+            <script>
+            SELECT order_id AS orderId, MAX(delivery_date) AS lastDate
+            FROM delivery_progress
+            WHERE is_deleted = 0 AND order_id IN
+            <foreach collection="orderIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            GROUP BY order_id
+            </script>
+            """)
+    List<java.util.Map<String, Object>> lastDeliveryDates(@Param("orderIds") java.util.Collection<Long> orderIds);
 }

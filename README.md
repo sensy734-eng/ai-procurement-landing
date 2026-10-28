@@ -58,7 +58,8 @@
 | 7 | M5 采购入库与库存 | 已完成 |
 | 8 | M6 价格参考与审批辅助 + M3-6 价格偏离关注 | 已完成 |
 | 9 | M10 知识库管理 | 已完成 |
-| 10 起 | 见 DEV_ROADMAP.md | 待进行 |
+| 10 | M7 / M8 / M9 智能助手（统一对话、制度教程问答、受控查询、审计） | 已完成 |
+| 11 起 | 见 DEV_ROADMAP.md | 待进行 |
 
 轮次 2 交付的页面：用户管理（P22）、角色权限（P23）、审批配置、参数配置、日志审计（P24）。
 后端接口覆盖 M11-1 至 M11-5 共 22 个功能点，其中 M11-5-3 至 M11-5-5 的审批引擎随轮次 4 的 M2 一并实现。
@@ -152,6 +153,7 @@ pdf 走正文补录）、正文补录、元数据维护与版本链（同文档�
     python scripts/smoke_round7.py
     python scripts/smoke_round8.py
     python scripts/smoke_round9.py
+    python scripts/smoke_round10.py
     cd web && node scripts/ui_smoke.mjs
 
 - smoke_round1.py 覆盖登录、会话、权限拦截、数据范围与用户列表，20 项断言
@@ -174,7 +176,13 @@ pdf 走正文补录）、正文补录、元数据维护与版本链（同文档�
   条款边界保护与块长约束、超长条款句界硬切与相邻重叠、相邻/不相邻切块合并、单文档与全量索引重建、
   按名称/分类/状态过滤、版本链与同文档名并存、停用后不召回、删除清索引、双路命中与命中率统计、
   文件下载、权限边界（四角色 + 无 token 401）
-- ui_smoke.mjs 用系统 Chrome 无头登录并逐页检查渲染（当前 23 页），截图落在 web/scripts/screenshots/
+- smoke_round10.py 覆盖 M7/M8/M9 全部接口，98 项断言，含三类路由（制度/教程/数据）、
+  五类意图与置信度、七种结果码全覆盖（Success/NoData/NotFound/Ambiguous/NoPermission/
+  Unsupported/InvalidParameter）、参数白名单拦截（被拒参数逐条给原因）、实体归一与多候选消歧、
+  多轮指代继承、参数修正重跑与结果对比、双路召回对照、条款原文直引、步骤化教程与功能入口、
+  引用有效性校验（切块存在/属所引文档）与覆盖率统计、拒答判定与拒答话术、数据范围注入、
+  只读约束（问答前后订单与库存不变）、四角色权限边界与无 token 401
+- ui_smoke.mjs 用系统 Chrome 无头登录并逐页检查渲染（当前 25 页），截图落在 web/scripts/screenshots/
 
 冒烟脚本会留下 smoke 前缀的测试数据，跑完执行一次清理：
 
@@ -186,6 +194,7 @@ pdf 走正文补录）、正文补录、元数据维护与版本链（同文档�
     mysql -u root < db/20_clean_smoke_round7.sql
     mysql -u root < db/21_clean_smoke_round8.sql
     mysql -u root < db/22_clean_smoke_round9.sql
+    mysql -u root < db/23_clean_smoke_round10.sql
 
 - 15_clean_smoke.sql 清轮次 1、2 的测试用户与角色
 - 16_clean_smoke_round3.sql 清轮次 3 的物料、分类、供应商、仓库与字典测试项，按外键依赖顺序删除，操作日志按审计要求保留
@@ -201,6 +210,9 @@ pdf 走正文补录）、正文补录、元数据维护与版本链（同文档�
   统计快照 4 行与订单行偏离种子值，回到演示规模（3 申请单 / 2 订单 / 4 参考价 / 4 快照）
 - 22_clean_smoke_round9.sql 物理删轮次 9 的冒烟文档、切块与倒排索引（含 is_deleted=1 兜底行），
   清空派生索引与向量、检索测试记录，复原演示知识库（2 文档 / 10 切块，索引为空）
+- 23_clean_smoke_round10.sql 清轮次 10 的会话、消息与查询审计（三张表都是过程数据，
+  演示前应为空），重置自增并复原意图白名单启用状态；审计是「受控」的可验证凭据，
+  清空是为了不把调试记录当结论
 
 ## 约定
 

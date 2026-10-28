@@ -342,13 +342,16 @@ def main():
           (demo_item, body["data"]["deviationFlag"]))
     status, body = call("GET", "/m6/deviations?pageNo=1&pageSize=10", token=buyer)
     records = body["data"]["records"]
+    # 清单口径：只列有偏离行的订单，显著排最前；冒烟单重算后 level=1 也进清单，
+    # 期望集合按「演示订单 1/2 + 本次冒烟单」拼，不写死演示之外的订单号（历史遗留单会污染断言）
+    smoke_order_no = header["orderNo"]
     check("M3-6 重算后清单 3 单，显著单排最前（订单 1 > 冒烟单/订单 2）",
           body["data"]["total"] == 3
           and records[0]["orderNo"] == "CG-DD-20261011-0001"
           and records[0]["deviationFlag"] == 2
           and {r["orderNo"] for r in records} == {"CG-DD-20261011-0001",
                                                   "CG-DD-20261016-0001",
-                                                  "CG-DD-20261026-0001"},
+                                                  smoke_order_no},
           [(r["orderNo"], r["deviationFlag"]) for r in records])
     # 采购员无重算权（挂 price:update）
     check("M3-6 采购员无重算权 NoPermission",

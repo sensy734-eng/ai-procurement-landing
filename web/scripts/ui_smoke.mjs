@@ -13,7 +13,8 @@
  *       P11 验收登记（仓管员 cangku01）与主管视角的验收统计；轮次 7 起补 P12 采购入库
  *       （仓管员）、P13 库存台账与 P14 库存流水（采购员）；轮次 8 起补 P15 价格参考与
  *       P16 偏离关注（采购员 caigou01）；轮次 9 起补 P18/P19/P20 知识库三页签
- *       （合并为「知识库」一页，admin），共二十三页。
+ *       （合并为「知识库」一页，admin）；轮次 10 起补 P16 助手对话（admin 与采购员各看一遍）
+ *       与 P17 查询审计（admin），共二十五页。
  */
 import puppeteer from 'puppeteer-core'
 import fs from 'node:fs'
@@ -32,7 +33,9 @@ const adminPages = [
   { path: '/system/logs', name: '06-logs', wait: '.log-page', label: '日志审计' },
   { path: '/master/warehouse', name: '07-warehouse', wait: '.warehouse-page', label: '仓库与库位' },
   { path: '/master/dict', name: '08-dict', wait: '.dict-page', label: '业务字典' },
-  { path: '/system/kb', name: '23-kb', wait: '.kb-page', label: '知识库（M10）' }
+  { path: '/system/kb', name: '23-kb', wait: '.kb-page', label: '知识库（M10）' },
+  { path: '/assistant', name: '24-assistant', wait: '.assistant-page', label: '助手对话（M7/M8/M9）' },
+  { path: '/assistant/audit', name: '25-assistant-audit', wait: '.audit-page', label: '查询审计（M9-5-5）' }
 ]
 
 const buyerPages = [
@@ -43,7 +46,9 @@ const buyerPages = [
   { path: '/stock', name: '18-stock', wait: '.stock-page', label: '库存台账' },
   { path: '/stock/flow', name: '19-stock-flow', wait: '.flow-page', label: '库存流水' },
   { path: '/price', name: '21-price', wait: '.price-page', label: '价格参考' },
-  { path: '/price/deviation', name: '22-deviation', wait: '.deviation-page', label: '价格偏离关注' }
+  { path: '/price/deviation', name: '22-deviation', wait: '.deviation-page', label: '价格偏离关注' },
+  // 采购员视角的助手页：数据范围提示应显示采购部，能力开关与示例问句照常
+  { path: '/assistant', name: '24-assistant-buyer', wait: '.assistant-page', label: '助手对话（采购员视角）' }
 ]
 
 // 仓管员：到货验收全流程（登记页用订单 1 的 query 打开，避免依赖下拉时序）

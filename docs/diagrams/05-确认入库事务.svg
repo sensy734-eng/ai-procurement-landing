@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="540" viewBox="0 0 1200 540" font-family="Microsoft YaHei, PingFang SC, Hiragino Sans GB, sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#41556b"/></marker><marker id="ahL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#8fa3b8"/></marker><marker id="ahR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#c0562b"/></marker></defs>
+<rect width="1200" height="540" fill="#ffffff"/>
+<text x="24.0" y="30.0" font-size="13" fill="#9aa9b8" text-anchor="start" font-weight="normal">图 5　「确认入库」是库存的唯一写入点（单一事务）</text>
+<rect x="30.0" y="62.0" width="660.0" height="394.0" rx="10" fill="#fbfcfd" stroke="#8fa3b8" stroke-width="1.4" stroke-dasharray="7,5"/>
+<text x="48.0" y="88.0" font-size="12" fill="#41556b" text-anchor="start" font-weight="600">确认入库 —— 单一数据库事务</text>
+<rect x="48.0" y="104.0" width="624.0" height="54.0" rx="7" fill="#ffffff" stroke="#dbe4ee" stroke-width="1.1"/>
+<rect x="48.0" y="104.0" width="4.0" height="54.0" rx="2" fill="#2e5f8a" stroke="none" stroke-width="0"/>
+<text x="66.0" y="126.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="600">① 前置校验</text>
+<text x="66.0" y="144.0" font-size="9.8" fill="#5a6b7b" text-anchor="start" font-weight="normal">单据为草稿 / 每行库位已补登 / 入库量未超配额</text>
+<line x1="360.0" y1="159.0" x2="360.0" y2="162.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<rect x="48.0" y="170.0" width="624.0" height="54.0" rx="7" fill="#ffffff" stroke="#dbe4ee" stroke-width="1.1"/>
+<rect x="48.0" y="170.0" width="4.0" height="54.0" rx="2" fill="#2e7d5b" stroke="none" stroke-width="0"/>
+<text x="66.0" y="192.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="600">② 写库存余额 stock_balance</text>
+<text x="66.0" y="210.0" font-size="9.8" fill="#5a6b7b" text-anchor="start" font-weight="normal">按「物料 + 仓库 + 批次 + 归属」定位；乐观锁 version 重试，首次插入 DuplicateKey 兜底</text>
+<line x1="360.0" y1="225.0" x2="360.0" y2="228.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<rect x="48.0" y="236.0" width="624.0" height="54.0" rx="7" fill="#ffffff" stroke="#dbe4ee" stroke-width="1.1"/>
+<rect x="48.0" y="236.0" width="4.0" height="54.0" rx="2" fill="#2e7d5b" stroke="none" stroke-width="0"/>
+<text x="66.0" y="258.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="600">③ 写库存流水 stock_flow</text>
+<text x="66.0" y="276.0" font-size="9.8" fill="#5a6b7b" text-anchor="start" font-weight="normal">before_qty 取本事务读到的余额版本，after_qty = before + 入库量</text>
+<line x1="360.0" y1="291.0" x2="360.0" y2="294.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<rect x="48.0" y="302.0" width="624.0" height="54.0" rx="7" fill="#ffffff" stroke="#dbe4ee" stroke-width="1.1"/>
+<rect x="48.0" y="302.0" width="4.0" height="54.0" rx="2" fill="#5b4b8a" stroke="none" stroke-width="0"/>
+<text x="66.0" y="324.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="600">④ 回写订单行 delivered_qty</text>
+<text x="66.0" y="342.0" font-size="9.8" fill="#5a6b7b" text-anchor="start" font-weight="normal">只加合格量（不合格与未让步的不合格量不计入）</text>
+<line x1="360.0" y1="357.0" x2="360.0" y2="360.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<rect x="48.0" y="368.0" width="624.0" height="54.0" rx="7" fill="#ffffff" stroke="#dbe4ee" stroke-width="1.1"/>
+<rect x="48.0" y="368.0" width="4.0" height="54.0" rx="2" fill="#5b4b8a" stroke="none" stroke-width="0"/>
+<text x="66.0" y="390.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="600">⑤ 重算整单履约状态</text>
+<text x="66.0" y="408.0" font-size="9.8" fill="#5a6b7b" text-anchor="start" font-weight="normal">由明细行重算，不由人工选择：全部交付 / 部分交付</text>
+<line x1="42.0" y1="438.0" x2="42.0" y2="105.0" stroke="#c0562b" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#ahR)"/>
+<line x1="42.0" y1="98.0" x2="50.0" y2="98.0" stroke="#c0562b" stroke-width="1.5" stroke-dasharray="5,4"/>
+<text x="58.0" y="444.0" font-size="9.8" fill="#c0562b" text-anchor="start" font-weight="600">任一步失败：整体回滚，不留半条数据</text>
+<rect x="720.0" y="62.0" width="450.0" height="394.0" rx="10" fill="#fdfaf8" stroke="#e3cdc1" stroke-width="1.4"/>
+<text x="740.0" y="88.0" font-size="12" fill="#a2512c" text-anchor="start" font-weight="600">作废入库单：反向冲减 + 回退（status → 3）</text>
+<circle cx="748.0" cy="122.0" r="11.0" fill="#f6e3d9" stroke="#d9a58d" stroke-width="1.2"/>
+<text x="748.0" y="126.0" font-size="10" fill="#a2512c" text-anchor="middle" font-weight="600">1</text>
+<text x="768.0" y="123.0" font-size="11" fill="#8d4a29" text-anchor="start" font-weight="600">写反向冲减流水</text>
+<text x="768.0" y="141.0" font-size="9.6" fill="#5a6b7b" text-anchor="start" font-weight="normal">change_type = 2，数量取负，同样记 before → after</text>
+<circle cx="748.0" cy="198.0" r="11.0" fill="#f6e3d9" stroke="#d9a58d" stroke-width="1.2"/>
+<text x="748.0" y="202.0" font-size="10" fill="#a2512c" text-anchor="middle" font-weight="600">2</text>
+<text x="768.0" y="199.0" font-size="11" fill="#8d4a29" text-anchor="start" font-weight="600">回退已交付量</text>
+<text x="768.0" y="217.0" font-size="9.6" fill="#5a6b7b" text-anchor="start" font-weight="normal">delivered_qty 减去该批次数量，重算整单履约</text>
+<circle cx="748.0" cy="274.0" r="11.0" fill="#f6e3d9" stroke="#d9a58d" stroke-width="1.2"/>
+<text x="748.0" y="278.0" font-size="10" fill="#a2512c" text-anchor="middle" font-weight="600">3</text>
+<text x="768.0" y="275.0" font-size="11" fill="#8d4a29" text-anchor="start" font-weight="600">释放入库配额</text>
+<text x="768.0" y="293.0" font-size="9.6" fill="#5a6b7b" text-anchor="start" font-weight="normal">该单不再占用「订单量 − 累计已生成入库量」</text>
+<circle cx="748.0" cy="350.0" r="11.0" fill="#f6e3d9" stroke="#d9a58d" stroke-width="1.2"/>
+<text x="748.0" y="354.0" font-size="10" fill="#a2512c" text-anchor="middle" font-weight="600">4</text>
+<text x="768.0" y="351.0" font-size="11" fill="#8d4a29" text-anchor="start" font-weight="600">余额为负则拒绝</text>
+<text x="768.0" y="369.0" font-size="9.6" fill="#5a6b7b" text-anchor="start" font-weight="normal">说明这批货已被后续业务占用，不允许把账做平</text>
+<rect x="8.0" y="472.0" width="1184.0" height="52.0" rx="6" fill="#fbfcfd" stroke="#e3e9f1" stroke-width="1"/>
+<text x="24.0" y="493.0" font-size="11.2" fill="#41556b" text-anchor="start" font-weight="600">为什么必须是唯一写入点：</text>
+<text x="161.4" y="493.0" font-size="11.2" fill="#5a6b7b" text-anchor="start" font-weight="normal">若验收或订单也各自写一次库存，同一批货会被记两遍，账实从此对不上；写入点收敛到一处，对账才有一条确定的基准。</text>
+<text x="24.0" y="512.0" font-size="10.6" fill="#41556b" text-anchor="start" font-weight="600">对账口径：</text>
+<text x="80.0" y="512.0" font-size="10.6" fill="#7c8fa3" text-anchor="start" font-weight="normal">逐「物料 + 仓库 + 批次 + 归属」键比对「流水累计」与「当前余额」，差异非零即为异常（归 admin，m5:flow:reconcile）。</text>
+</svg>

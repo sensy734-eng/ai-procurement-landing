@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="566" viewBox="0 0 1200 566" font-family="Microsoft YaHei, PingFang SC, Hiragino Sans GB, sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#41556b"/></marker><marker id="ahL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#8fa3b8"/></marker><marker id="ahR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#c0562b"/></marker></defs>
+<rect width="1200" height="566" fill="#ffffff"/>
+<text x="24.0" y="30.0" font-size="13" fill="#9aa9b8" text-anchor="start" font-weight="normal">图 8　M9 受控自然语言查询：模型不接触数据库，四道闸把关</text>
+<rect x="60.0" y="92.0" width="180.0" height="76.0" rx="8" fill="#ffffff" stroke="#2e5f8a" stroke-width="1.3"/>
+<text x="150.0" y="118.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">用户问句</text>
+<text x="150.0" y="136.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">「上月 A 类物料花了多少」</text>
+<rect x="300.0" y="92.0" width="180.0" height="76.0" rx="8" fill="#ffffff" stroke="#2e5f8a" stroke-width="1.3"/>
+<text x="390.0" y="118.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">意图识别</text>
+<text x="390.0" y="136.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">五类意图白名单</text>
+<text x="390.0" y="149.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">词表权重 + 示例相似度</text>
+<rect x="540.0" y="92.0" width="180.0" height="76.0" rx="8" fill="#ffffff" stroke="#2e5f8a" stroke-width="1.3"/>
+<text x="630.0" y="118.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">实体归一</text>
+<text x="630.0" y="136.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">别名表 → 真实 id</text>
+<text x="630.0" y="149.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">多候选返回 Ambiguous</text>
+<rect x="780.0" y="92.0" width="180.0" height="76.0" rx="8" fill="#ffffff" stroke="#2e5f8a" stroke-width="1.3"/>
+<text x="870.0" y="118.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">参数提取</text>
+<text x="870.0" y="136.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">时间 / 实体 / 数值</text>
+<text x="870.0" y="149.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">字段与操作符候补</text>
+<line x1="240.0" y1="130.0" x2="289.0" y2="130.0" stroke="#41556b" stroke-width="1.7" marker-end="url(#ah)"/>
+<line x1="480.0" y1="130.0" x2="529.0" y2="130.0" stroke="#41556b" stroke-width="1.7" marker-end="url(#ah)"/>
+<line x1="720.0" y1="130.0" x2="769.0" y2="130.0" stroke="#41556b" stroke-width="1.7" marker-end="url(#ah)"/>
+<path d="M 870.0 168.0 L 870.0 192.0 Q 870.0 200.0 862.0 200.0 L 348.0 200.0 Q 340.0 200.0 340.0 208.0 L 340.0 225.0" fill="none" stroke="#41556b" stroke-width="1.7" marker-end="url(#ah)"/>
+<rect x="60.0" y="236.0" width="560.0" height="214.0" rx="10" fill="#fbfcfd" stroke="#8fa3b8" stroke-width="1.4" stroke-dasharray="6,4"/>
+<text x="78.0" y="260.0" font-size="11.2" fill="#41556b" text-anchor="start" font-weight="600">四道闸：任一不通过即拒绝，不降级猜测</text>
+<rect x="78.0" y="276.0" width="524.0" height="34.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<text x="92.0" y="291.0" font-size="10.6" fill="#2e5f8a" text-anchor="start" font-weight="600">闸 1　意图白名单</text>
+<text x="92.0" y="305.0" font-size="9.2" fill="#5a6b7b" text-anchor="start" font-weight="normal">ai_intent 里 enabled = 1 的五类意图之外，一律 Unsupported</text>
+<rect x="78.0" y="318.0" width="524.0" height="34.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<text x="92.0" y="333.0" font-size="10.6" fill="#2e5f8a" text-anchor="start" font-weight="600">闸 2　实体已归一</text>
+<text x="92.0" y="347.0" font-size="9.2" fill="#5a6b7b" text-anchor="start" font-weight="normal">物料 / 供应商 / 仓库必须映射到真实 id，候选多个则回问澄清</text>
+<rect x="78.0" y="360.0" width="524.0" height="34.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<text x="92.0" y="375.0" font-size="10.6" fill="#2e5f8a" text-anchor="start" font-weight="600">闸 3　参数名在规格表</text>
+<text x="92.0" y="389.0" font-size="9.2" fill="#5a6b7b" text-anchor="start" font-weight="normal">ai_intent_param 未声明的参数直接丢弃，记入 rejected_params</text>
+<rect x="78.0" y="402.0" width="524.0" height="34.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<text x="92.0" y="417.0" font-size="10.6" fill="#2e5f8a" text-anchor="start" font-weight="600">闸 4　操作符与枚举合法</text>
+<text x="92.0" y="431.0" font-size="9.2" fill="#5a6b7b" text-anchor="start" font-weight="normal">operator_set 与 enum_values 双白名单校验，越界即拒</text>
+<rect x="660.0" y="400.0" width="250.0" height="50.0" rx="8" fill="#fbf0ea" stroke="#c0562b" stroke-width="1.3"/>
+<text x="785.0" y="426.0" font-size="10.6" fill="#c0562b" text-anchor="middle" font-weight="600">被拒参数写审计</text>
+<text x="785.0" y="444.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">rejected_params_json</text>
+<path d="M 400.0 450.0 L 400.0 464.0 Q 400.0 472.0 408.0 472.0 L 777.0 472.0 Q 785.0 472.0 785.0 464.0 L 785.0 459.0" fill="none" stroke="#c0562b" stroke-width="1.5" marker-end="url(#ahR)"/>
+<text x="420.0" y="486.0" font-size="9.6" fill="#c0562b" text-anchor="start" font-weight="600">闸不通过：不猜、不兜底，把被拒的原始参数原样留档</text>
+<rect x="660.0" y="262.0" width="250.0" height="76.0" rx="8" fill="#ffffff" stroke="#2e5f8a" stroke-width="1.3"/>
+<text x="785.0" y="288.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">构造受控查询</text>
+<text x="785.0" y="306.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">字段 / 操作符 / 时间窗全部来自白名单</text>
+<text x="785.0" y="319.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">强制注入数据范围（按角色）</text>
+<line x1="620.0" y1="300.0" x2="649.0" y2="300.0" stroke="#41556b" stroke-width="1.7" marker-end="url(#ah)"/>
+<rect x="950.0" y="262.0" width="200.0" height="76.0" rx="8" fill="#ffffff" stroke="#2e5f8a" stroke-width="1.3"/>
+<text x="1050.0" y="288.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">执行查询</text>
+<text x="1050.0" y="306.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">只读 SQL，受数据范围约束</text>
+<text x="1050.0" y="319.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">不返回越权行</text>
+<line x1="910.0" y1="300.0" x2="939.0" y2="300.0" stroke="#41556b" stroke-width="1.7" marker-end="url(#ah)"/>
+<rect x="950.0" y="358.0" width="200.0" height="76.0" rx="8" fill="#ffffff" stroke="#2e5f8a" stroke-width="1.3"/>
+<text x="1050.0" y="384.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">模板转述</text>
+<text x="1050.0" y="402.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">只把结果填进模板</text>
+<text x="1050.0" y="415.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">不改任何一个数字</text>
+<line x1="1050.0" y1="338.0" x2="1050.0" y2="347.0" stroke="#41556b" stroke-width="1.7" marker-end="url(#ah)"/>
+<rect x="8.0" y="500.0" width="1184.0" height="52.0" rx="6" fill="#fbfcfd" stroke="#e3e9f1" stroke-width="1"/>
+<text x="24.0" y="521.0" font-size="10.8" fill="#41556b" text-anchor="start" font-weight="600">为什么不接大模型：</text>
+<text x="125.2" y="521.0" font-size="10.8" fill="#5a6b7b" text-anchor="start" font-weight="normal">一版用规则式（词表权重 + 实体先验 + 示例相似度），意图判定与参数提取全部可复现、可离线断言；大模型是替换件，不是前提。</text>
+<text x="24.0" y="541.0" font-size="10.4" fill="#41556b" text-anchor="start" font-weight="600">审计表就是对照实验的底座：</text>
+<text x="163.2" y="541.0" font-size="10.4" fill="#7c8fa3" text-anchor="start" font-weight="normal">intent / params / rejected_params / result_code 已结构化落库，接模型后可同表比对意图准确率与拒答率。</text>
+</svg>

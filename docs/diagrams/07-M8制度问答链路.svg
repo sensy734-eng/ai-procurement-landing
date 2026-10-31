@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="496" viewBox="0 0 1200 496" font-family="Microsoft YaHei, PingFang SC, Hiragino Sans GB, sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#41556b"/></marker><marker id="ahL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#8fa3b8"/></marker><marker id="ahR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#c0562b"/></marker></defs>
+<rect width="1200" height="496" fill="#ffffff"/>
+<text x="24.0" y="30.0" font-size="13" fill="#9aa9b8" text-anchor="start" font-weight="normal">图 7　M8 制度与教程问答的实现链路（零依赖、可离线断言）</text>
+<rect x="40.0" y="100.0" width="150.0" height="76.0" rx="8" fill="#ffffff" stroke="#2e5f8a" stroke-width="1.3"/>
+<text x="115.0" y="126.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">用户问句</text>
+<text x="115.0" y="144.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">制度 / 教程 / 数据类</text>
+<rect x="230.0" y="100.0" width="170.0" height="76.0" rx="8" fill="#ffffff" stroke="#2e5f8a" stroke-width="1.3"/>
+<text x="315.0" y="126.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">二元组分词</text>
+<text x="315.0" y="144.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">去停用词</text>
+<text x="315.0" y="157.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">中文按二字切分</text>
+<rect x="440.0" y="72.0" width="300.0" height="132.0" rx="10" fill="#fbfcfd" stroke="#8fa3b8" stroke-width="1.3" stroke-dasharray="6,4"/>
+<text x="590.0" y="92.0" font-size="10.2" fill="#41556b" text-anchor="middle" font-weight="600">双路召回（各取 Top-5，互不预滤）</text>
+<rect x="456.0" y="104.0" width="128.0" height="88.0" rx="7" fill="#ffffff" stroke="#dbe4ee" stroke-width="1.1"/>
+<text x="520.0" y="128.0" font-size="11" fill="#1f2937" text-anchor="middle" font-weight="600">BM25</text>
+<text x="520.0" y="148.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">k1 = 1.5</text>
+<text x="520.0" y="163.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">b = 0.75</text>
+<text x="520.0" y="178.0" font-size="9.2" fill="#9aa9b8" text-anchor="middle" font-weight="normal">词元命中加权</text>
+<rect x="596.0" y="104.0" width="128.0" height="88.0" rx="7" fill="#ffffff" stroke="#dbe4ee" stroke-width="1.1"/>
+<text x="660.0" y="128.0" font-size="11" fill="#1f2937" text-anchor="middle" font-weight="600">向量检索</text>
+<text x="660.0" y="148.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">512 维哈希</text>
+<text x="660.0" y="163.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">L2 归一 · 余弦</text>
+<text x="660.0" y="178.0" font-size="9.2" fill="#9aa9b8" text-anchor="middle" font-weight="normal">全量候选</text>
+<rect x="790.0" y="100.0" width="150.0" height="76.0" rx="8" fill="#ffffff" stroke="#2e5f8a" stroke-width="1.3"/>
+<text x="865.0" y="126.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">RRF 融合</text>
+<text x="865.0" y="144.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">K = 60</text>
+<text x="865.0" y="157.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">只融名次不融分数</text>
+<rect x="970.0" y="100.0" width="190.0" height="76.0" rx="8" fill="#ffffff" stroke="#2e5f8a" stroke-width="1.3"/>
+<text x="1065.0" y="126.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">阈值判定</text>
+<text x="1065.0" y="144.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">最高分 ≥ 0.35</text>
+<text x="1065.0" y="157.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">或 词元命中 ≥ 2</text>
+<line x1="190.0" y1="138.0" x2="219.0" y2="138.0" stroke="#41556b" stroke-width="1.7" marker-end="url(#ah)"/>
+<line x1="400.0" y1="138.0" x2="429.0" y2="138.0" stroke="#41556b" stroke-width="1.7" marker-end="url(#ah)"/>
+<line x1="740.0" y1="138.0" x2="779.0" y2="138.0" stroke="#41556b" stroke-width="1.7" marker-end="url(#ah)"/>
+<line x1="940.0" y1="138.0" x2="959.0" y2="138.0" stroke="#41556b" stroke-width="1.7" marker-end="url(#ah)"/>
+<rect x="970.0" y="232.0" width="190.0" height="62.0" rx="8" fill="#fbf0ea" stroke="#c0562b" stroke-width="1.3"/>
+<text x="1065.0" y="258.0" font-size="11.4" fill="#c0562b" text-anchor="middle" font-weight="600">拒答</text>
+<text x="1065.0" y="276.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">不臆造答案</text>
+<text x="1065.0" y="289.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">写 kb_reject_log</text>
+<line x1="1090.0" y1="178.0" x2="1090.0" y2="221.0" stroke="#c0562b" stroke-width="1.5" marker-end="url(#ahR)"/>
+<text x="1098.0" y="208.0" font-size="9.2" fill="#c0562b" text-anchor="start" font-weight="600">低于阈值</text>
+<rect x="700.0" y="232.0" width="240.0" height="62.0" rx="8" fill="#ffffff" stroke="#2e5f8a" stroke-width="1.3"/>
+<text x="820.0" y="258.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">按问句形态分派</text>
+<text x="820.0" y="276.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">引用校验：切块必须存在且有效</text>
+<path d="M 1010.0 178.0 L 1010.0 192.0 Q 1010.0 200.0 1002.0 200.0 L 828.0 200.0 Q 820.0 200.0 820.0 208.0 L 820.0 221.0" fill="none" stroke="#41556b" stroke-width="1.6" marker-end="url(#ah)"/>
+<text x="830.0" y="214.0" font-size="9.2" fill="#41556b" text-anchor="start" font-weight="600">通过</text>
+<rect x="440.0" y="336.0" width="220.0" height="66.0" rx="8" fill="#ffffff" stroke="#2e5f8a" stroke-width="1.3"/>
+<text x="550.0" y="362.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">条款型问句</text>
+<text x="550.0" y="380.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">第 X 条 / 3.2.1 开头</text>
+<text x="550.0" y="393.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">原文直引，不改写</text>
+<rect x="700.0" y="336.0" width="240.0" height="66.0" rx="8" fill="#ffffff" stroke="#2e5f8a" stroke-width="1.3"/>
+<text x="820.0" y="362.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">教程型问句</text>
+<text x="820.0" y="380.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">怎么做 / 流程</text>
+<text x="820.0" y="393.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">规则拆步骤并去章节号</text>
+<rect x="970.0" y="336.0" width="190.0" height="66.0" rx="8" fill="#ffffff" stroke="#5b4b8a" stroke-width="1.3"/>
+<text x="1065.0" y="362.0" font-size="11.4" fill="#1f2937" text-anchor="middle" font-weight="600">数据类问句</text>
+<text x="1065.0" y="380.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">转 M9 受控查询</text>
+<text x="1065.0" y="393.0" font-size="9.4" fill="#5a6b7b" text-anchor="middle" font-weight="normal">不经本链路</text>
+<line x1="820.0" y1="294.0" x2="820.0" y2="325.0" stroke="#41556b" stroke-width="1.6" marker-end="url(#ah)"/>
+<path d="M 700.0 262.0 L 558.0 262.0 Q 550.0 262.0 550.0 270.0 L 550.0 325.0" fill="none" stroke="#41556b" stroke-width="1.5" marker-end="url(#ah)"/>
+<path d="M 930.0 294.0 L 930.0 304.0 Q 930.0 312.0 938.0 312.0 L 1057.0 312.0 Q 1065.0 312.0 1065.0 320.0 L 1065.0 325.0" fill="none" stroke="#41556b" stroke-width="1.5" marker-end="url(#ah)"/>
+<rect x="8.0" y="428.0" width="1184.0" height="60.0" rx="6" fill="#fbfcfd" stroke="#e3e9f1" stroke-width="1"/>
+<text x="24.0" y="450.0" font-size="10.8" fill="#41556b" text-anchor="start" font-weight="600">零依赖：</text>
+<text x="71.2" y="450.0" font-size="10.8" fill="#5a6b7b" text-anchor="start" font-weight="normal">分词、BM25、向量与余弦全部自己实现，不引 Elasticsearch、不调外部 embedding 服务——离线可跑、结果可复现，才谈得上「可断言」。</text>
+<text x="24.0" y="470.0" font-size="10.8" fill="#41556b" text-anchor="start" font-weight="600">切块的前提：</text>
+<text x="92.8" y="470.0" font-size="10.8" fill="#5a6b7b" text-anchor="start" font-weight="normal">切块尊重条款边界（第 X 条 / 3.2.1 / 一、/（一）不跨切），条款型问句才可能原文直引；切断了，引用就只是关键词拼贴。</text>
+</svg>

@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="452" viewBox="0 0 1200 452" font-family="Microsoft YaHei, PingFang SC, Hiragino Sans GB, sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#41556b"/></marker><marker id="ahL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#8fa3b8"/></marker><marker id="ahR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#c0562b"/></marker></defs>
+<rect width="1200" height="452" fill="#ffffff"/>
+<text x="24.0" y="30.0" font-size="13" fill="#9aa9b8" text-anchor="start" font-weight="normal">图 1　采购管理系统业务主流程（五环节）</text>
+<rect x="8.0" y="58.0" width="192.0" height="42.0" rx="7" fill="#2e5f8a" stroke="none" stroke-width="1"/>
+<text x="22.0" y="84.0" font-size="14.5" fill="#ffffff" text-anchor="start" font-weight="600">① 采购申请</text>
+<text x="188.0" y="84.0" font-size="10.5" fill="#ffffff" text-anchor="end" font-weight="None" opacity="0.85">M2</text>
+<rect x="8.0" y="100.0" width="192.0" height="250.0" rx="0" fill="#f5f7fa" stroke="#e3e9f1" stroke-width="1"/>
+<rect x="18.0" y="114.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="18.0" y="114.0" width="3.5" height="46.0" rx="2" fill="#2e5f8a" stroke="none" stroke-width="0"/>
+<text x="106.0" y="135.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">建单与明细</text>
+<text x="106.0" y="149.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">物料·数量·预算</text>
+<rect x="18.0" y="172.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="18.0" y="172.0" width="3.5" height="46.0" rx="2" fill="#2e5f8a" stroke="none" stroke-width="0"/>
+<text x="106.0" y="193.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">提交审批</text>
+<text x="106.0" y="207.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">或签</text>
+<rect x="18.0" y="230.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="18.0" y="230.0" width="3.5" height="46.0" rx="2" fill="#2e5f8a" stroke="none" stroke-width="0"/>
+<text x="106.0" y="251.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">审批通过</text>
+<text x="106.0" y="265.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">审核结果落库</text>
+<rect x="18.0" y="288.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="18.0" y="288.0" width="3.5" height="46.0" rx="2" fill="#2e5f8a" stroke="none" stroke-width="0"/>
+<text x="106.0" y="309.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">转采购订单</text>
+<text x="106.0" y="323.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">同供应商合并</text>
+<line x1="104.0" y1="161.0" x2="104.0" y2="164.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<line x1="104.0" y1="219.0" x2="104.0" y2="222.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<line x1="104.0" y1="277.0" x2="104.0" y2="280.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<line x1="206.0" y1="225.0" x2="243.0" y2="225.0" stroke="#41556b" stroke-width="1.8" marker-end="url(#ah)"/>
+<text x="228.0" y="216.0" font-size="10.5" fill="#41556b" text-anchor="middle" font-weight="normal">转单</text>
+<rect x="256.0" y="58.0" width="192.0" height="42.0" rx="7" fill="#2e5f8a" stroke="none" stroke-width="1"/>
+<text x="270.0" y="84.0" font-size="14.5" fill="#ffffff" text-anchor="start" font-weight="600">② 采购订单</text>
+<text x="436.0" y="84.0" font-size="10.5" fill="#ffffff" text-anchor="end" font-weight="None" opacity="0.85">M3</text>
+<rect x="256.0" y="100.0" width="192.0" height="250.0" rx="0" fill="#f5f7fa" stroke="#e3e9f1" stroke-width="1"/>
+<rect x="266.0" y="114.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="266.0" y="114.0" width="3.5" height="46.0" rx="2" fill="#2e5f8a" stroke="none" stroke-width="0"/>
+<text x="354.0" y="135.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">建单</text>
+<text x="354.0" y="149.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">含价格偏离判定</text>
+<rect x="266.0" y="172.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="266.0" y="172.0" width="3.5" height="46.0" rx="2" fill="#2e5f8a" stroke="none" stroke-width="0"/>
+<text x="354.0" y="193.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">提交会签</text>
+<text x="354.0" y="207.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">双人会签</text>
+<rect x="266.0" y="230.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="266.0" y="230.0" width="3.5" height="46.0" rx="2" fill="#2e5f8a" stroke="none" stroke-width="0"/>
+<text x="354.0" y="251.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">交付登记</text>
+<text x="354.0" y="265.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">分批到货的前置</text>
+<rect x="266.0" y="288.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="266.0" y="288.0" width="3.5" height="46.0" rx="2" fill="#2e5f8a" stroke="none" stroke-width="0"/>
+<text x="354.0" y="309.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">反审 / 作废</text>
+<text x="354.0" y="323.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">只禁止不级联</text>
+<line x1="352.0" y1="161.0" x2="352.0" y2="164.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<line x1="352.0" y1="219.0" x2="352.0" y2="222.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<line x1="352.0" y1="277.0" x2="352.0" y2="280.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<line x1="454.0" y1="225.0" x2="491.0" y2="225.0" stroke="#41556b" stroke-width="1.8" marker-end="url(#ah)"/>
+<text x="476.0" y="216.0" font-size="10.5" fill="#41556b" text-anchor="middle" font-weight="normal">到货</text>
+<rect x="504.0" y="58.0" width="192.0" height="42.0" rx="7" fill="#5b4b8a" stroke="none" stroke-width="1"/>
+<text x="518.0" y="84.0" font-size="14.5" fill="#ffffff" text-anchor="start" font-weight="600">③ 到货验收</text>
+<text x="684.0" y="84.0" font-size="10.5" fill="#ffffff" text-anchor="end" font-weight="None" opacity="0.85">M4</text>
+<rect x="504.0" y="100.0" width="192.0" height="250.0" rx="0" fill="#f5f7fa" stroke="#e3e9f1" stroke-width="1"/>
+<rect x="514.0" y="114.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="514.0" y="114.0" width="3.5" height="46.0" rx="2" fill="#5b4b8a" stroke="none" stroke-width="0"/>
+<text x="602.0" y="135.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">到货登记</text>
+<text x="602.0" y="149.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">受配额①约束</text>
+<rect x="514.0" y="172.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="514.0" y="172.0" width="3.5" height="46.0" rx="2" fill="#5b4b8a" stroke="none" stroke-width="0"/>
+<text x="602.0" y="193.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">合格/不合格判定</text>
+<text x="602.0" y="207.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">守恒：合格+不合格</text>
+<rect x="514.0" y="230.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="514.0" y="230.0" width="3.5" height="46.0" rx="2" fill="#5b4b8a" stroke="none" stroke-width="0"/>
+<text x="602.0" y="251.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">验收提交</text>
+<text x="602.0" y="265.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">受配额②约束</text>
+<rect x="514.0" y="288.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="514.0" y="288.0" width="3.5" height="46.0" rx="2" fill="#5b4b8a" stroke="none" stroke-width="0"/>
+<text x="602.0" y="309.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">让步接收</text>
+<text x="602.0" y="323.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">唯一放行例外</text>
+<line x1="600.0" y1="161.0" x2="600.0" y2="164.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<line x1="600.0" y1="219.0" x2="600.0" y2="222.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<line x1="600.0" y1="277.0" x2="600.0" y2="280.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<line x1="702.0" y1="225.0" x2="739.0" y2="225.0" stroke="#41556b" stroke-width="1.8" marker-end="url(#ah)"/>
+<text x="724.0" y="216.0" font-size="10.5" fill="#41556b" text-anchor="middle" font-weight="normal">合格量</text>
+<rect x="752.0" y="58.0" width="192.0" height="42.0" rx="7" fill="#2e7d5b" stroke="none" stroke-width="1"/>
+<text x="766.0" y="84.0" font-size="14.5" fill="#ffffff" text-anchor="start" font-weight="600">④ 采购入库</text>
+<text x="932.0" y="84.0" font-size="10.5" fill="#ffffff" text-anchor="end" font-weight="None" opacity="0.85">M5</text>
+<rect x="752.0" y="100.0" width="192.0" height="250.0" rx="0" fill="#f5f7fa" stroke="#e3e9f1" stroke-width="1"/>
+<rect x="762.0" y="114.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="762.0" y="114.0" width="3.5" height="46.0" rx="2" fill="#2e7d5b" stroke="none" stroke-width="0"/>
+<text x="850.0" y="135.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">生成入库单</text>
+<text x="850.0" y="149.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">只带合格量</text>
+<rect x="762.0" y="172.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="762.0" y="172.0" width="3.5" height="46.0" rx="2" fill="#2e7d5b" stroke="none" stroke-width="0"/>
+<text x="850.0" y="193.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">补登库位</text>
+<text x="850.0" y="207.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">逐行必填</text>
+<rect x="762.0" y="230.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="762.0" y="230.0" width="3.5" height="46.0" rx="2" fill="#2e7d5b" stroke="none" stroke-width="0"/>
+<text x="850.0" y="251.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">★ 确认入库</text>
+<text x="850.0" y="265.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">库存唯一写入点</text>
+<rect x="762.0" y="288.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="762.0" y="288.0" width="3.5" height="46.0" rx="2" fill="#2e7d5b" stroke="none" stroke-width="0"/>
+<text x="850.0" y="309.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">作废冲减</text>
+<text x="850.0" y="323.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">写反向流水</text>
+<line x1="848.0" y1="161.0" x2="848.0" y2="164.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<line x1="848.0" y1="219.0" x2="848.0" y2="222.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<line x1="848.0" y1="277.0" x2="848.0" y2="280.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<line x1="950.0" y1="225.0" x2="987.0" y2="225.0" stroke="#41556b" stroke-width="1.8" marker-end="url(#ah)"/>
+<text x="972.0" y="216.0" font-size="10.5" fill="#41556b" text-anchor="middle" font-weight="normal">余额+流水</text>
+<rect x="1000.0" y="58.0" width="192.0" height="42.0" rx="7" fill="#c0562b" stroke="none" stroke-width="1"/>
+<text x="1014.0" y="84.0" font-size="14.5" fill="#ffffff" text-anchor="start" font-weight="600">⑤ 库存查询</text>
+<text x="1180.0" y="84.0" font-size="10.5" fill="#ffffff" text-anchor="end" font-weight="None" opacity="0.85">M5</text>
+<rect x="1000.0" y="100.0" width="192.0" height="250.0" rx="0" fill="#f5f7fa" stroke="#e3e9f1" stroke-width="1"/>
+<rect x="1010.0" y="114.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="1010.0" y="114.0" width="3.5" height="46.0" rx="2" fill="#c0562b" stroke="none" stroke-width="0"/>
+<text x="1098.0" y="135.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">库存台账</text>
+<text x="1098.0" y="149.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">物料+仓库+批次</text>
+<rect x="1010.0" y="172.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="1010.0" y="172.0" width="3.5" height="46.0" rx="2" fill="#c0562b" stroke="none" stroke-width="0"/>
+<text x="1098.0" y="193.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">变动流水</text>
+<text x="1098.0" y="207.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">before→after</text>
+<rect x="1010.0" y="230.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="1010.0" y="230.0" width="3.5" height="46.0" rx="2" fill="#c0562b" stroke="none" stroke-width="0"/>
+<text x="1098.0" y="251.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">可用量现算</text>
+<text x="1098.0" y="265.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">数量−冻结−预留</text>
+<rect x="1010.0" y="288.0" width="172.0" height="46.0" rx="6" fill="#ffffff" stroke="#dbe4ee" stroke-width="1"/>
+<rect x="1010.0" y="288.0" width="3.5" height="46.0" rx="2" fill="#c0562b" stroke="none" stroke-width="0"/>
+<text x="1098.0" y="309.0" font-size="12.5" fill="#1f2937" text-anchor="middle" font-weight="600">预警与对账</text>
+<text x="1098.0" y="323.0" font-size="10" fill="#5a6b7b" text-anchor="middle" font-weight="normal">缺口现算</text>
+<line x1="1096.0" y1="161.0" x2="1096.0" y2="164.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<line x1="1096.0" y1="219.0" x2="1096.0" y2="222.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<line x1="1096.0" y1="277.0" x2="1096.0" y2="280.0" stroke="#b9c7d6" stroke-width="1.2" marker-end="url(#ahR)"/>
+<rect x="8.0" y="372.0" width="1184.0" height="62.0" rx="6" fill="#fbfcfd" stroke="#e3e9f1" stroke-width="1"/>
+<text x="24.0" y="396.0" font-size="11.5" fill="#41556b" text-anchor="start" font-weight="600">审批不是独立环节：</text>
+<text x="130.5" y="396.0" font-size="11.5" fill="#5a6b7b" text-anchor="start" font-weight="normal">它是申请单（或签）与订单（会签）内部的步骤，两类单据共用一套审批配置（M11-5）。</text>
+<text x="24.0" y="418.0" font-size="11.5" fill="#41556b" text-anchor="start" font-weight="600">读与写分离：</text>
+<text x="96.0" y="418.0" font-size="11.5" fill="#5a6b7b" text-anchor="start" font-weight="normal">环节④是库存的唯一写入点（确认入库），环节⑤全程只读——查余额与订单，不写任何业务表。</text>
+</svg>

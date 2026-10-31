@@ -9,9 +9,15 @@
       db/          数据库脚本，49 张表 DDL 与初始化数据，按域拆分
       server/      后端工程，Spring Boot 3.5.16 + MyBatis-Plus 3.5.17 + JDK 17
       web/         前端工程，Vue 3 + TypeScript + Vite + Element Plus
-      scripts/     接口自测脚本
+      scripts/     接口自测脚本，以及文档生成脚本（接口清单 / 数据字典 / 流程图）
+      docs/        生成物：数据字典 CSV、流程图 SVG 与 PNG
       DEV_ROADMAP.md  开发路线与每轮验证方式
       DEVELOPMENT_LOG.md  开发记录（系统状态快照、每轮做了什么、问题与解决），每次开发前后更新
+      DESIGN_OVERVIEW.md  设计与实现总览（论文素材）
+      DATA_DICTIONARY.md  数据字典（49 表 / 718 字段，脚本生成）
+      DIAGRAMS.md         流程图集说明（八张图 + 图注 + 追问点）
+      API_LIST.md         接口清单（183 个接口，脚本生成）
+      TEST_RECORD.md      测试记录（断言数、实测结果、数据来源、复跑顺序）
 
 ## 环境要求
 
@@ -162,6 +168,17 @@ pdf 走正文补录）、正文补录、元数据维护与版本链（同文档�
    49 张表与 8 个域、核心表字段、状态机、数据流转、运行机制、两个 AI 能力的实现链路、测试与数据来源。
    所有数字取自代码与库内实测。
 
+后续补齐两份论文素材（不属于轮次交付，随时可重新生成）：
+
+6. **数据字典** `DATA_DICTIONARY.md`：49 张表 / 718 个字段逐个列出（字段名、类型、可空、默认值、
+   键、说明），按八个域组织，每表附业务用途与索引清单；末尾是全局约定与状态码总表。
+   由 `scripts/gen_data_dict.py` 从 `information_schema` 生成，附 CSV 版
+   （`docs/data_dictionary.csv`，Excel 可直接打开筛选）。改表后重跑即可，`--check` 做覆盖性校验。
+7. **流程图集** `DIAGRAMS.md` + `docs/diagrams/`：八张矢量流程图（业务主流程、单据链追溯、
+   三状态正交、审批或签会签、确认入库事务、验收三道校验、M8 问答链路、M9 四道闸），
+   每张配图注、要点与「可能被追问的点」；SVG 与同尺寸 PNG 各一份，可直接插 Word / PPT。
+   由 `scripts/gen_diagrams.py` 生成（绘图工具 `scripts/svgkit.py` 自写，不引绘图库）。
+
 ## 启动后端
 
     cd server
@@ -244,6 +261,9 @@ pdf 走正文补录）、正文补录、元数据维护与版本链（同文档�
 - smoke_round12.py 是全流程演示脚本（48 断言），一条链从采购申请走到看板与助手；
   详见 `TEST_RECORD.md` 与脚本头部注释，跑完用 db/27_clean_smoke_round12.sql 清理
 - gen_api_list.py --check 校验 `API_LIST.md` 与 Controller 源码一致（183 个接口）
+- gen_data_dict.py --check 校验数据字典元数据是否覆盖全部表（改表后先跑它再生成）
+- gen_data_dict.py 生成 `DATA_DICTIONARY.md` 与 `docs/data_dictionary.csv`；
+  gen_diagrams.py 生成 `docs/diagrams/*.svg`，再用 web/scripts/render_svg.mjs 渲染 PNG
 - ui_smoke.mjs 用系统 Chrome 无头登录并逐页检查渲染（当前 27 页），截图落在 web/scripts/screenshots/
 
 冒烟脚本会留下 smoke 前缀的测试数据，跑完执行一次清理：

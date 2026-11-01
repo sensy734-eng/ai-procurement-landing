@@ -1,0 +1,140 @@
+<svg width="680" height="600" viewBox="0 0 680 600" xmlns="http://www.w3.org/2000/svg" font-family="'Microsoft YaHei', 'Segoe UI', sans-serif">
+<title>五个业务环节的操作流程与要点</title>
+<desc>采购申请、采购订单、到货验收、采购入库、库存查询五个环节，每环节列出操作节点与关键规则要点，审批作为单据内部动作不单独成环节。</desc>
+<defs>
+<marker id="ar" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#378ADD"/></marker>
+<marker id="ar2" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#185FA5"/></marker>
+<marker id="ar3" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#888780"/></marker>
+</defs>
+
+<text x="16" y="26" font-size="15" font-weight="500" fill="#2C2C2A">五个业务环节：环节内操作与要点</text>
+<text x="16" y="48" font-size="11.5" fill="#5F5E5A">采购申请 → 采购订单 → 到货验收 → 采购入库 → 库存查询　｜　审批是单据内部动作，不单列为环节</text>
+
+<rect x="16" y="88" width="88" height="44" rx="6" fill="#185FA5"/>
+<text x="60" y="106" font-size="12" font-weight="500" fill="#FFFFFF" text-anchor="middle">① 采购申请</text>
+<text x="60" y="122" font-size="9.5" fill="#C9DCF2" text-anchor="middle">M2 · 主管或签</text>
+
+<rect x="124" y="88" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="170" y="114" font-size="11.5" fill="#0C447C" text-anchor="middle">新建申请</text>
+<line x1="216" y1="110" x2="226" y2="110" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="230" y="88" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="276" y="114" font-size="11.5" fill="#0C447C" text-anchor="middle">填明细行</text>
+<line x1="322" y1="110" x2="332" y2="110" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="336" y="88" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="382" y="114" font-size="11.5" fill="#0C447C" text-anchor="middle">提交审批</text>
+<line x1="428" y1="110" x2="438" y2="110" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="442" y="88" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="488" y="114" font-size="11.5" fill="#0C447C" text-anchor="middle">主管或签</text>
+<line x1="534" y1="110" x2="544" y2="110" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="548" y="88" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="594" y="114" font-size="11.5" fill="#0C447C" text-anchor="middle">通过转单</text>
+
+<path d="M124,-4 L128,0 L124,4 L120,0 z" transform="translate(0,152)" fill="#888780"/>
+<text x="136" y="156" font-size="10.5" fill="#5F5E5A">三状态各自独立流转，驳回只把 lifecycle 回落草稿，状态由 audit 表达</text>
+<path d="M124,-4 L128,0 L124,4 L120,0 z" transform="translate(0,172)" fill="#888780"/>
+<text x="136" y="176" font-size="10.5" fill="#5F5E5A">转单量 ≤ 申请量并回写 transferred_qty；按行退回全选=整单驳回、部分=拆单</text>
+
+<line x1="60" y1="132" x2="60" y2="182" stroke="#185FA5" stroke-width="1.6" marker-end="url(#ar2)"/>
+
+<rect x="16" y="188" width="88" height="44" rx="6" fill="#185FA5"/>
+<text x="60" y="206" font-size="12" font-weight="500" fill="#FFFFFF" text-anchor="middle">② 采购订单</text>
+<text x="60" y="222" font-size="9.5" fill="#C9DCF2" text-anchor="middle">M3 · 双人会签</text>
+
+<rect x="124" y="188" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="170" y="214" font-size="11.5" fill="#0C447C" text-anchor="middle">申请转单</text>
+<line x1="216" y1="210" x2="226" y2="210" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="230" y="188" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="276" y="214" font-size="11.5" fill="#0C447C" text-anchor="middle">选供应商</text>
+<line x1="322" y1="210" x2="332" y2="210" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="336" y="188" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="382" y="214" font-size="11.5" fill="#0C447C" text-anchor="middle">定价算偏离</text>
+<line x1="428" y1="210" x2="438" y2="210" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="442" y="188" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="488" y="214" font-size="11.5" fill="#0C447C" text-anchor="middle">会签审批</text>
+<line x1="534" y1="210" x2="544" y2="210" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="548" y="188" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="594" y="214" font-size="11.5" fill="#0C447C" text-anchor="middle">交付登记</text>
+
+<path d="M124,-4 L128,0 L124,4 L120,0 z" transform="translate(0,252)" fill="#888780"/>
+<text x="136" y="256" font-size="10.5" fill="#5F5E5A">供货范围是下单硬校验（这家能不能供这个物料），不是提示；单价高于参考价按阈值分级</text>
+<path d="M124,-4 L128,0 L124,4 L120,0 z" transform="translate(0,272)" fill="#888780"/>
+<text x="136" y="276" font-size="10.5" fill="#5F5E5A">会签两节点：主管或签 → 财务会签；反审与作废需无交付、无验收、无入库</text>
+
+<line x1="60" y1="232" x2="60" y2="282" stroke="#185FA5" stroke-width="1.6" marker-end="url(#ar2)"/>
+
+<rect x="16" y="288" width="88" height="44" rx="6" fill="#185FA5"/>
+<text x="60" y="306" font-size="12" font-weight="500" fill="#FFFFFF" text-anchor="middle">③ 到货验收</text>
+<text x="60" y="322" font-size="9.5" fill="#C9DCF2" text-anchor="middle">M4 · 质量判定</text>
+
+<rect x="124" y="288" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="170" y="314" font-size="11.5" fill="#0C447C" text-anchor="middle">选单登记</text>
+<line x1="216" y1="310" x2="226" y2="310" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="230" y="288" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="276" y="314" font-size="11.5" fill="#0C447C" text-anchor="middle">合格判定</text>
+<line x1="322" y1="310" x2="332" y2="310" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="336" y="288" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="382" y="314" font-size="11.5" fill="#0C447C" text-anchor="middle">让步接收</text>
+<line x1="428" y1="310" x2="438" y2="310" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="442" y="288" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="488" y="314" font-size="11.5" fill="#0C447C" text-anchor="middle">提交验收</text>
+<line x1="534" y1="310" x2="544" y2="310" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="548" y="288" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="594" y="314" font-size="11.5" fill="#0C447C" text-anchor="middle">生成入库</text>
+
+<path d="M124,-4 L128,0 L124,4 L120,0 z" transform="translate(0,352)" fill="#888780"/>
+<text x="136" y="356" font-size="10.5" fill="#5F5E5A">到货量 ≤ 订单量 − 累计到货；合格 + 不合格 = 到货（数量守恒，提交时再校验一次）</text>
+<path d="M124,-4 L128,0 L124,4 L120,0 z" transform="translate(0,372)" fill="#888780"/>
+<text x="136" y="376" font-size="10.5" fill="#5F5E5A">不合格不入库，让步接收是唯一例外；一张验收单可多次到货，生成的是入库草稿</text>
+
+<line x1="60" y1="332" x2="60" y2="382" stroke="#185FA5" stroke-width="1.6" marker-end="url(#ar2)"/>
+
+<rect x="16" y="388" width="88" height="44" rx="6" fill="#185FA5"/>
+<text x="60" y="406" font-size="12" font-weight="500" fill="#FFFFFF" text-anchor="middle">④ 采购入库</text>
+<text x="60" y="422" font-size="9.5" fill="#C9DCF2" text-anchor="middle">M5 · 库存记账</text>
+
+<rect x="124" y="388" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="170" y="414" font-size="11.5" fill="#0C447C" text-anchor="middle">生成草稿</text>
+<line x1="216" y1="410" x2="226" y2="410" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="230" y="388" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="276" y="414" font-size="11.5" fill="#0C447C" text-anchor="middle">补批次库位</text>
+<line x1="322" y1="410" x2="332" y2="410" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="336" y="388" width="92" height="44" rx="5" fill="#E1F5EE" stroke="#5DCAA5" stroke-width="1.4"/>
+<text x="382" y="414" font-size="11.5" font-weight="500" fill="#0F6E56" text-anchor="middle">确认入库</text>
+<line x1="428" y1="410" x2="438" y2="410" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="442" y="388" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="488" y="414" font-size="11.5" fill="#0C447C" text-anchor="middle">回写交付量</text>
+<line x1="534" y1="410" x2="544" y2="410" stroke="#378ADD" stroke-width="1.4" marker-end="url(#ar)"/>
+<rect x="548" y="388" width="92" height="44" rx="5" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+<text x="594" y="414" font-size="11.5" fill="#0C447C" text-anchor="middle">重算履约</text>
+
+<path d="M124,-4 L128,0 L124,4 L120,0 z" transform="translate(0,452)" fill="#888780"/>
+<text x="136" y="456" font-size="10.5" fill="#5F5E5A">确认入库是库存唯一写入点：写余额 + 写流水 + 回写交付量 + 重算履约，同一事务内完成</text>
+<path d="M124,-4 L128,0 L124,4 L120,0 z" transform="translate(0,472)" fill="#888780"/>
+<text x="136" y="476" font-size="10.5" fill="#5F5E5A">入库量 = 合格 + 不合格；作废走反向冲减流水并释放配额，冲减后余额会为负即拒绝</text>
+
+<line x1="60" y1="432" x2="60" y2="482" stroke="#185FA5" stroke-width="1.6" marker-end="url(#ar2)"/>
+
+<rect x="16" y="488" width="88" height="44" rx="6" fill="#185FA5"/>
+<text x="60" y="506" font-size="12" font-weight="500" fill="#FFFFFF" text-anchor="middle">⑤ 库存查询</text>
+<text x="60" y="522" font-size="9.5" fill="#C9DCF2" text-anchor="middle">M5 · 全程只读</text>
+
+<rect x="124" y="488" width="92" height="44" rx="5" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="170" y="514" font-size="11.5" fill="#444441" text-anchor="middle">台账查询</text>
+<line x1="216" y1="510" x2="226" y2="510" stroke="#888780" stroke-width="1.4" marker-end="url(#ar3)"/>
+<rect x="230" y="488" width="92" height="44" rx="5" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="276" y="514" font-size="11.5" fill="#444441" text-anchor="middle">可用量</text>
+<line x1="322" y1="510" x2="332" y2="510" stroke="#888780" stroke-width="1.4" marker-end="url(#ar3)"/>
+<rect x="336" y="488" width="92" height="44" rx="5" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="382" y="514" font-size="11.5" fill="#444441" text-anchor="middle">缺料预警</text>
+<line x1="428" y1="510" x2="438" y2="510" stroke="#888780" stroke-width="1.4" marker-end="url(#ar3)"/>
+<rect x="442" y="488" width="92" height="44" rx="5" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="488" y="514" font-size="11.5" fill="#444441" text-anchor="middle">流水追溯</text>
+<line x1="534" y1="510" x2="544" y2="510" stroke="#888780" stroke-width="1.4" marker-end="url(#ar3)"/>
+<rect x="548" y="488" width="92" height="44" rx="5" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="594" y="514" font-size="11.5" fill="#444441" text-anchor="middle">对账核对</text>
+
+<path d="M124,-4 L128,0 L124,4 L120,0 z" transform="translate(0,552)" fill="#888780"/>
+<text x="136" y="556" font-size="10.5" fill="#5F5E5A">全部只读，不改库存；可用量 = 数量 − 冻结 − 预留，可用量与缺口都现算不落库</text>
+<path d="M124,-4 L128,0 L124,4 L120,0 z" transform="translate(0,572)" fill="#888780"/>
+<text x="136" y="576" font-size="10.5" fill="#5F5E5A">对账按 物料 + 仓库 + 批次 + 归属 四维键，比对流水累计与当前余额，差异逐键列出</text>
+</svg>

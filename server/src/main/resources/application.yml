@@ -55,10 +55,13 @@ app:
     enabled: ${LLM_ENABLED:false}
     base-url: ${LLM_BASE_URL:https://api.deepseek.com/v1}
     api-key: ${LLM_API_KEY:}
-    model: ${LLM_MODEL:deepseek-chat}
+    model: ${LLM_MODEL:deepseek-flash}
     temperature: 0.1
     timeout-ms: ${LLM_TIMEOUT_MS:30000}
     max-tokens: 900
+    # 思维链开关，透传 thinking.type。留空不发该字段（多数厂商不认）；
+    # DeepSeek-V4 系列需配 disabled，否则短任务正文为空
+    thinking-type: ${LLM_THINKING_TYPE:}
     # 三处可分别开关，便于做「只换意图」「只换答案」的消融对比
     route-enabled: true
     intent-enabled: true

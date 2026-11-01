@@ -40,6 +40,20 @@ public class EntityNormalizer {
             "可以", "是否", "请问", "帮我", "查查", "查询", "看看", "告诉", "目前",
             "最近", "上个月", "这个月", "本月的", "的是", "了吗", "没有");
 
+    /**
+     * 通用业务名词：不能当实体名用。
+     *
+     * 模糊匹配是从问句里切 2~4 字片段去撞档案名的，「材料」这种词几乎必然撞上
+     * 「宁波盛达金属材料有限公司」里的「金属材料」——于是「供应商准入需要提供哪些
+     * 资质材料」被归一成「宁波盛达」，再经实体先验把意图顶成供应商交付，最后拿这家
+     * 公司的交付统计去回答一个问资质的问题。这类误命中在结构上比阈值更难发现，
+     * 所以在这里显式挡住，而不是继续调相似度。
+     */
+    private static final Set<String> GENERIC_NOUNS = Set.of(
+            "材料", "公司", "有限", "供应", "客户", "库存", "订单", "物料", "合同", "资质",
+            "准入", "需要", "提供", "情况", "数据", "统计", "交付", "价格", "金额", "数量",
+            "单据", "审批", "制度", "流程", "报告", "报表", "明细", "列表", "明细表");
+
     private static final int TYPE_MATERIAL = 1;
     private static final int TYPE_SUPPLIER = 2;
     private static final int TYPE_WAREHOUSE = 3;
@@ -95,7 +109,7 @@ public class EntityNormalizer {
         for (int len = Math.min(4, question.length()); len >= 2; len--) {
             for (int i = 0; i + len <= question.length(); i++) {
                 String fragment = question.substring(i, i + len);
-                if (STOP_FRAGMENTS.contains(fragment)) {
+                if (STOP_FRAGMENTS.contains(fragment) || GENERIC_NOUNS.contains(fragment)) {
                     continue;
                 }
                 List<Archive> matched = new ArrayList<>();

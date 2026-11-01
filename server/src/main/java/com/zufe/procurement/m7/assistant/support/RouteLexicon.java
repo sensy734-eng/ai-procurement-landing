@@ -56,6 +56,14 @@ public final class RouteLexicon {
         KNOWLEDGE.put("原则", 2);
         KNOWLEDGE.put("要求", 1);
         KNOWLEDGE.put("流程", 1);
+        // 「供应商准入需要提供哪些资质材料」这类问规则的句子，主体名词落在数据域的
+        // 「供应商」上，但问的是制度要求。不加这几个词，整句会被判成数据查询，
+        // 进而拿某家供应商的交付统计去回答一个问资质的问题（实测就这么错过）。
+        KNOWLEDGE.put("准入", 2);
+        KNOWLEDGE.put("资质", 2);
+        KNOWLEDGE.put("条件", 2);
+        KNOWLEDGE.put("具备", 1);
+        KNOWLEDGE.put("需要", 1);
 
         DATA.put("订单", 2);
         DATA.put("库存", 2);

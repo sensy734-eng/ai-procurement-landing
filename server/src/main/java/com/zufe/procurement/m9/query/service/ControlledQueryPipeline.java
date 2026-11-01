@@ -70,13 +70,13 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
             LlmIntentAdvisor.Suggestion suggestion = intentAdvisor.enabled()
                     ? intentAdvisor.suggest(question, catalog.enabledIntents(), context) : null;
             if (suggestion != null && suggestion.isNone()) {
-                answer.setResultCode(ResultCode.UNSUPPORTED.getCode());
-                answer.setSummary("这个问题不属于当前支持的订单、交付、价格、库存、供应商交付五类查询。"
-                        + "可以换个说法，或到对应业务页面查看。");
-                answer.getNotices().add("意图判定：大模型判定不属于任何一类受控查询（"
-                        + trimReason(suggestion.reason()) + "）");
-                answer.setGenerator("llm");
-                return answer;
+                // 模型说「不属于任何一类」只作参考，不作决定。
+                // 直接据此判 Unsupported 会把规则本来答得上的问题砍掉
+                // （实测「台州的供应商」「订单金额大于 999999999999 的有哪些」都被这么砍过），
+                // 所以这里回退词表复核，词表也认不出才判不支持。
+                answer.getNotices().add("大模型判定不属于任何一类受控查询，已回退词表复核："
+                        + trimReason(suggestion.reason()));
+                suggestion = null;
             }
             AiIntent fromModel = suggestion == null ? null : catalog.byCode(suggestion.intentCode());
             if (fromModel != null && suggestion.confidence() >= threshold) {
@@ -99,6 +99,15 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
                     return answer;
                 }
                 if (match.getConfidence().doubleValue() < threshold) {
+                    // 没有可澄清的实体时，反问「您想查哪一类」是空转：
+                    // 用户说了半句，系统连他指哪个对象都不知道，给不出选项只会让人更困惑。
+                    // 典型例子是知识型问句（「采购合同的违约金比例是多少」）被弱匹配到库存意图。
+                    if (groups == null || groups.isEmpty()) {
+                        answer.setResultCode(ResultCode.UNSUPPORTED.getCode());
+                        answer.setSummary("这个问题不属于当前支持的订单、交付、价格、库存、供应商交付五类查询。"
+                                + "可以换个说法，或到对应业务页面查看。");
+                        return answer;
+                    }
                     return ambiguousIntent(answer, match, threshold);
                 }
                 intent = match.getIntent();
@@ -235,6 +244,15 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
     }
 
     private DataAnswer ambiguousIntent(DataAnswer answer, IntentClassifier.IntentMatch match, double threshold) {
+        // 列不出候选就等于空转：反问「您想查哪一类」却一个选项都给不出来，对用户毫无信息量。
+        // 这种情况说明词表也只是弱匹配（如「采购合同的违约金比例是多少」匹配到 53%），
+        // 直接判不支持比硬凑一个反问更诚实。
+        if (match.getCandidates() == null || match.getCandidates().isEmpty()) {
+            answer.setResultCode(ResultCode.UNSUPPORTED.getCode());
+            answer.setSummary("这个问题不属于当前支持的订单、交付、价格、库存、供应商交付五类查询。"
+                    + "可以换个说法，或到对应业务页面查看。");
+            return answer;
+        }
         answer.setResultCode(ResultCode.AMBIGUOUS.getCode());
         answer.setIntentCode(match.getIntent() == null ? null : match.getIntent().getIntentCode());
         answer.setIntentName(match.getIntent() == null ? null : match.getIntent().getIntentName());

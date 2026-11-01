@@ -114,6 +114,11 @@ public class OpenAiCompatibleGateway implements LlmGateway {
         body.put("temperature", properties.getTemperature());
         body.put("max_tokens", maxTokens > 0 ? maxTokens : properties.getMaxTokens());
         body.put("stream", false);
+        // 思维链开关：只有配置了才发这个字段——多数厂商不认它，乱发会直接 400。
+        // DeepSeek-V4 系列默认开思维链，短分类任务会把 max_tokens 全烧在推理上、正文为空。
+        if (properties.getThinkingType() != null && !properties.getThinkingType().isBlank()) {
+            body.put("thinking", Map.of("type", properties.getThinkingType().trim()));
+        }
         return body;
     }
 

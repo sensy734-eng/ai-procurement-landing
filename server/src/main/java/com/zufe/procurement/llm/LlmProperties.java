@@ -21,16 +21,23 @@ public class LlmProperties {
 
     /** 总开关，对应 LLM_ENABLED */
     private boolean enabled = false;
-    /** OpenAI 兼容的 /chat/completions 前缀，如 https://api.deepseek.com/v1 */
+    /** OpenAI 兼容的 /chat/completions 前缀，只填到 /v1 或 /v4 这一层，末段由网关补 */
     private String baseUrl = "https://api.deepseek.com/v1";
     /** 密钥，对应 LLM_API_KEY */
     private String apiKey = "";
     /** 模型名，对应 LLM_MODEL */
-    private String model = "deepseek-chat";
+    private String model = "deepseek-flash";
     /** 采样温度：判定与转述都要求稳定，默认取低值 */
     private double temperature = 0.1;
     private int timeoutMs = 30000;
     private int maxTokens = 900;
+    /**
+     * 思维链开关，透传为请求体的 {@code thinking.type}。
+     * 留空（默认）则不发这个字段——多数厂商不认它，乱发会 400。
+     * DeepSeek-V4 系列默认开思维链，短分类任务会把 max_tokens 烧在推理上、正文为空，
+     * 接入该系列时配 disabled；需要推理链的场景配 enabled。
+     */
+    private String thinkingType = "";
 
     /** 意图识别是否交给模型（关掉则退回词表 + Dice 相似度） */
     private boolean intentEnabled = true;

@@ -5,18 +5,37 @@ spring:
     username: root
     password: ""
 
-# 大模型接入：不填 api-key 就等于没接入，全部走规则式链路（行为与接入前一致）
-# 只要厂商兼容 OpenAI 的 /chat/completions 协议，改 base-url 与 model 即可切换：
-#   DeepSeek   base-url: https://api.deepseek.com/v1                       model: deepseek-chat
-#   通义百炼    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1  model: qwen-plus
-#   月之暗面    base-url: https://api.moonshot.cn/v1                        model: moonshot-v1-8k
-#   本地 vLLM   base-url: http://127.0.0.1:8000/v1                          model: 你部署的模型名
+# ── 大模型接入 ────────────────────────────────────────────────────────────────
+# 不填 api-key 就等于没接入，全部走规则式链路（行为与接入前完全一致）。
+# 只要厂商兼容 OpenAI 的 /chat/completions 协议，改 base-url 与 model 即可切换。
+# base-url 只填到 /v1 或 /v4 这一层，末段 /chat/completions 由网关自动补齐。
+#
+# 渠道对照（2026-11 核对，免费额度以平台当期公告为准）：
+#
+#  厂商          取 key 地址                              base-url
+#  智谱 GLM      open.bigmodel.cn/usercenter/apikeys      https://open.bigmodel.cn/api/paas/v4
+#                 model: glm-4-flash（长期免费，无需信用卡，免费档并发 1）
+#
+#  阿里百炼      bailian.console.aliyun.com               https://dashscope.aliyuncs.com/compatible-mode/v1
+#                 model: qwen-plus（新用户有免费 token 额度，需实名）
+#
+#  DeepSeek     platform.deepseek.com → API keys         https://api.deepseek.com/v1
+#                 model: deepseek-flash（deepseek-chat 已于 2026-07-24 弃用）
+#
+#  月之暗面      platform.moonshot.cn                     https://api.moonshot.cn/v1
+#                 model: moonshot-v1-8k
+#
+#  魔搭 ModelScope modelscope.cn/my/myaccesstoken         https://api-inference.modelscope.cn/v1
+#                 model: Qwen/Qwen3.5-35B-A3B（2000 次/天，需绑定阿里云并实名）
+#
+#  本地 Ollama   —                                        http://127.0.0.1:11434/v1
+#                 model: qwen2.5:7b（断网可用，零成本）
 app:
   llm:
     enabled: true
     api-key: "sk-在这里填你的密钥"
-    base-url: https://api.deepseek.com/v1
-    model: deepseek-chat
+    base-url: https://open.bigmodel.cn/api/paas/v4
+    model: glm-4-flash
     # 三处可分别开关，便于做「只换意图」「只换答案」的消融对比
     route-enabled: true
     intent-enabled: true

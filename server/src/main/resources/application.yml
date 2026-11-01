@@ -48,6 +48,23 @@ app:
     dir: uploads
   cors:
     allowed-origins: http://localhost:5173
+  # 大模型接入（M7/M8/M9 的模型侧实现）
+  # 默认关闭：不填 key 时全部走规则式链路，行为与接入前一致。
+  # 密钥请写进 application-local.yml 或环境变量 LLM_API_KEY，不要提交到仓库。
+  llm:
+    enabled: ${LLM_ENABLED:false}
+    base-url: ${LLM_BASE_URL:https://api.deepseek.com/v1}
+    api-key: ${LLM_API_KEY:}
+    model: ${LLM_MODEL:deepseek-chat}
+    temperature: 0.1
+    timeout-ms: ${LLM_TIMEOUT_MS:30000}
+    max-tokens: 900
+    # 三处可分别开关，便于做「只换意图」「只换答案」的消融对比
+    route-enabled: true
+    intent-enabled: true
+    answer-enabled: true
+    # 生成后数字一致性校验：编造数字则回退模板
+    number-guard: true
 
 logging:
   level:

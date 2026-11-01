@@ -33,16 +33,19 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
     private final ParamValidator validator;
     private final EntityNormalizer normalizer;
     private final DataQueryExecutor executor;
+    private final LlmIntentAdvisor intentAdvisor;
 
     public ControlledQueryPipeline(AiIntentCatalog catalog, IntentClassifier classifier,
                                    ParamExtractor extractor, ParamValidator validator,
-                                   EntityNormalizer normalizer, DataQueryExecutor executor) {
+                                   EntityNormalizer normalizer, DataQueryExecutor executor,
+                                   LlmIntentAdvisor intentAdvisor) {
         this.catalog = catalog;
         this.classifier = classifier;
         this.extractor = extractor;
         this.validator = validator;
         this.normalizer = normalizer;
         this.executor = executor;
+        this.intentAdvisor = intentAdvisor;
     }
 
     @Override
@@ -62,19 +65,46 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
             }
             answer.setConfidence(BigDecimal.ONE);
         } else {
-            IntentClassifier.IntentMatch match = classifier.classify(question, groups);
-            if (match.getIntent() == null) {
+            double threshold = catalog.confidenceThreshold();
+            // 优先问模型：它只给建议，编码合法性、权限、参数仍由后续四道闸决定
+            LlmIntentAdvisor.Suggestion suggestion = intentAdvisor.enabled()
+                    ? intentAdvisor.suggest(question, catalog.enabledIntents(), context) : null;
+            if (suggestion != null && suggestion.isNone()) {
                 answer.setResultCode(ResultCode.UNSUPPORTED.getCode());
                 answer.setSummary("这个问题不属于当前支持的订单、交付、价格、库存、供应商交付五类查询。"
                         + "可以换个说法，或到对应业务页面查看。");
+                answer.getNotices().add("意图判定：大模型判定不属于任何一类受控查询（"
+                        + trimReason(suggestion.reason()) + "）");
+                answer.setGenerator("llm");
                 return answer;
             }
-            double threshold = catalog.confidenceThreshold();
-            if (match.getConfidence().doubleValue() < threshold) {
-                return ambiguousIntent(answer, match, threshold);
+            AiIntent fromModel = suggestion == null ? null : catalog.byCode(suggestion.intentCode());
+            if (fromModel != null && suggestion.confidence() >= threshold) {
+                intent = fromModel;
+                answer.setConfidence(BigDecimal.valueOf(suggestion.confidence())
+                        .setScale(4, java.math.RoundingMode.HALF_UP));
+                answer.getNotices().add("意图由大模型判定（" + intent.getIntentName()
+                        + "，自评置信度 " + percent(answer.getConfidence()) + "%），已按白名单校验");
+                answer.setGenerator("llm");
+            } else {
+                if (suggestion != null) {
+                    answer.getNotices().add("大模型意图置信度低于阈值或编码不可用，已回退词表分类："
+                            + (suggestion.reason().isBlank() ? "未给出理由" : trimReason(suggestion.reason())));
+                }
+                IntentClassifier.IntentMatch match = classifier.classify(question, groups);
+                if (match.getIntent() == null) {
+                    answer.setResultCode(ResultCode.UNSUPPORTED.getCode());
+                    answer.setSummary("这个问题不属于当前支持的订单、交付、价格、库存、供应商交付五类查询。"
+                            + "可以换个说法，或到对应业务页面查看。");
+                    return answer;
+                }
+                if (match.getConfidence().doubleValue() < threshold) {
+                    return ambiguousIntent(answer, match, threshold);
+                }
+                intent = match.getIntent();
+                answer.setConfidence(match.getConfidence());
+                answer.setGenerator("rule");
             }
-            intent = match.getIntent();
-            answer.setConfidence(match.getConfidence());
         }
         answer.setIntentCode(intent.getIntentCode());
         answer.setIntentName(intent.getIntentName());
@@ -365,7 +395,18 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
 
     /** 置信度百分比保留一位小数：取整会出现「59.57% 显示 60% 却低于 60% 阈值」的自相矛盾 */
     private String percent(BigDecimal ratio) {
+        if (ratio == null) {
+            return "0.0";
+        }
         return ratio.multiply(BigDecimal.valueOf(100))
                 .setScale(1, java.math.RoundingMode.HALF_UP).toPlainString();
+    }
+
+    private String trimReason(String reason) {
+        if (reason == null || reason.isBlank()) {
+            return "未给出理由";
+        }
+        String flat = reason.replace('\n', ' ').trim();
+        return flat.length() <= 30 ? flat : flat.substring(0, 30) + "…";
     }
 }

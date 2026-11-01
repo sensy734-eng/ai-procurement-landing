@@ -55,6 +55,13 @@ public class ChatVO {
     private Integer elapsedMs;
     private RerunCompare compare;
     private List<String> notices;
+    /**
+     * 本条回答的产出方：llm / rule / template / template-guard / refuse。
+     * 评测脚本据它统计「模型接管率」——分数高但全走模板，说明模型根本没生效。
+     */
+    private String generator;
+    /** 调用模型时使用的模型名，便于在报告里注明版本 */
+    private String llmModel;
 
     // ---------------- 意图与参数核对卡片 M7-3-1 ----------------
 

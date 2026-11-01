@@ -72,7 +72,9 @@ public class AiChatService {
         }
 
         AiSession session = sessionService.resolve(user.getUserId(), request.getSessionId(), question);
-        RouteService.Decision decision = routeService.decide(question);
+        // 上下文只读一次：路由、意图、指代都用同一份，避免三处各自读库读到不同快照
+        AiContext historyContext = sessionService.readContext(session);
+        RouteService.Decision decision = routeService.decide(question, historyContext);
         Integer route = request.getOverrideRoute() != null ? request.getOverrideRoute() : decision.getRoute();
 
         int msgType = route == null ? 6 : route == 3 ? 3 : route == 2 ? 2 : 1;
@@ -85,6 +87,12 @@ public class AiChatService {
         vo.setRouteName(routeService.routeName(route));
         vo.setConfidence(decision.getConfidence());
         vo.setNotices(new ArrayList<>());
+        // 默认由规则链路产出，M8/M9 拿到模型结果后会覆盖成 llm
+        vo.setGenerator("rule");
+        if (decision.isModelAssisted()) {
+            vo.getNotices().add("问题类型由大模型补判（置信度 "
+                    + percentOf(decision.getConfidence()) + "%），只读边界与数据范围仍由后端把关");
+        }
 
         String code;
         String intentCode = null;
@@ -129,9 +137,8 @@ public class AiChatService {
                     vo.setAnswer("您的角色没有受控数据查询权限（" + PERM_DATA_QUERY + "），请联系管理员授权。");
                     vo.setResultCodeHint(ResultCode.NO_PERMISSION.getCode() + "：缺少数据查询权限");
                 } else {
-                    AiContext context = sessionService.readContext(session);
                     DataAnswer answer = dataQueryPort.query(question, request.getOverrideIntentCode(),
-                            request.getOverrideParams(), request.getConfirmedEntityId(), context);
+                            request.getOverrideParams(), request.getConfirmedEntityId(), historyContext);
                     intentCode = answer.getIntentCode();
                     code = answer.getResultCode() == null ? ResultCode.SUCCESS.getCode() : answer.getResultCode();
                     applyData(vo, answer, user.hasPermission(PERM_RETRY));
@@ -219,6 +226,9 @@ public class AiChatService {
         vo.setConfidence(answer.getConfidence());
         vo.setAnswer(answer.getSummary());
         vo.setTable(answer.getTable());
+        if (answer.getGenerator() != null) {
+            vo.setGenerator(answer.getGenerator());
+        }
         if (answer.getNotices() != null) {
             vo.getNotices().addAll(answer.getNotices());
         }
@@ -252,6 +262,9 @@ public class AiChatService {
         vo.setRefusalReason(answer.getRefusalReason());
         vo.setVersionConflict(answer.getVersionConflict());
         vo.setConfidence(answer.getTopScore());
+        if (answer.getGenerator() != null) {
+            vo.setGenerator(answer.getGenerator());
+        }
         if (answer.getNotices() != null) {
             vo.getNotices().addAll(answer.getNotices());
         }
@@ -319,6 +332,15 @@ public class AiChatService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /** 置信度百分比保留一位小数，供提示文案使用 */
+    private String percentOf(java.math.BigDecimal ratio) {
+        if (ratio == null) {
+            return "0.0";
+        }
+        return ratio.multiply(java.math.BigDecimal.valueOf(100))
+                .setScale(1, java.math.RoundingMode.HALF_UP).toPlainString();
     }
 
     private String truncate(String text, int max) {

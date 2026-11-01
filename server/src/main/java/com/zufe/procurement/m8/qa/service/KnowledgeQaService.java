@@ -12,6 +12,8 @@ import com.zufe.procurement.m11.param.mapper.SysParamMapper;
 import com.zufe.procurement.m7.assistant.port.AiKnowledgePort;
 import com.zufe.procurement.m7.assistant.vo.ChatVO;
 import com.zufe.procurement.m7.assistant.vo.KnowledgeAnswer;
+import com.zufe.procurement.llm.LlmProperties;
+import com.zufe.procurement.m8.qa.support.AnswerFidelityGuard;
 import com.zufe.procurement.m8.qa.support.MenuHintResolver;
 import com.zufe.procurement.m8.qa.support.StepExtractor;
 import lombok.Data;
@@ -57,11 +59,14 @@ public class KnowledgeQaService implements AiKnowledgePort {
     private final CitationValidator citationValidator;
     private final StepExtractor stepExtractor;
     private final MenuHintResolver menuHintResolver;
+    private final LlmAnswerComposer composer;
+    private final LlmProperties llmProperties;
 
     public KnowledgeQaService(KbRetrievalService retrievalService, KbChunkMapper chunkMapper,
                               KbDocumentMapper documentMapper, SysParamMapper sysParamMapper,
                               CitationValidator citationValidator, StepExtractor stepExtractor,
-                              MenuHintResolver menuHintResolver) {
+                              MenuHintResolver menuHintResolver, LlmAnswerComposer composer,
+                              LlmProperties llmProperties) {
         this.retrievalService = retrievalService;
         this.chunkMapper = chunkMapper;
         this.documentMapper = documentMapper;
@@ -69,6 +74,8 @@ public class KnowledgeQaService implements AiKnowledgePort {
         this.citationValidator = citationValidator;
         this.stepExtractor = stepExtractor;
         this.menuHintResolver = menuHintResolver;
+        this.composer = composer;
+        this.llmProperties = llmProperties;
     }
 
     @Override
@@ -132,6 +139,8 @@ public class KnowledgeQaService implements AiKnowledgePort {
 
         // ---------- 引用 M8-3-1 / M8-3-3 ----------
         List<ChatVO.Citation> refs = new ArrayList<>();
+        List<LlmAnswerComposer.Passage> passages = new ArrayList<>();
+        StringBuilder context = new StringBuilder();
         for (Candidate candidate : candidates) {
             if (refs.size() >= 3) {
                 break;
@@ -156,6 +165,11 @@ public class KnowledgeQaService implements AiKnowledgePort {
             citation.setPath(candidate.pathLabel());
             citation.setValid(Boolean.TRUE);
             refs.add(citation);
+            String passageText = limit(bestTextOf(candidate), 400);
+            passages.add(new LlmAnswerComposer.Passage(refs.size(),
+                    citation.getDocName() == null ? "知识库文档" : citation.getDocName(),
+                    citation.getSectionNo(), citation.getSectionTitle(), passageText));
+            context.append(passageText).append('\n');
         }
         if (refs.isEmpty()) {
             return refuse(answer, "检索到的片段均未通过引用有效性校验。", "请检查文档是否已被删除或停用。");
@@ -163,17 +177,70 @@ public class KnowledgeQaService implements AiKnowledgePort {
         answer.setRefs(refs);
 
         // ---------- 答案组织 M8-1-4 / M8-1-5 / M8-2-2 / M8-2-3 ----------
+        List<String> steps = route == 2 ? stepExtractor.extract(bestText) : List.of();
         if (route == 2) {
-            List<String> steps = stepExtractor.extract(bestText);
             answer.setStepCount(steps.size());
-            answer.setAnswer(composeTutorial(best, steps));
-        } else {
-            answer.setAnswer(composeKnowledge(question, best, bestText));
+        }
+        answer.setGenerator("template");
+        LlmAnswerComposer.Draft draft = composer.enabled()
+                ? composer.compose(question, route, passages) : null;
+
+        if (draft != null && !draft.answerable()) {
+            // 模型有依据却判定「答不了」：只允许把结论往保守方向调，不允许反过来
+            String reason = draft.reason() == null || draft.reason().isBlank()
+                    ? "检索片段不足以支撑该问题" : draft.reason();
+            KnowledgeAnswer refused = refuse(answer, "大模型判定检索片段不足以支撑回答：" + reason,
+                    "建议先补充相关制度条款或操作说明。");
+            refused.setGenerator("refuse-llm");
+            return refused;
+        }
+        if (draft != null && draft.answer() != null && !draft.answer().isBlank()) {
+            List<String> violations = llmProperties.isNumberGuard()
+                    ? AnswerFidelityGuard.check(draft.answer(), context.toString()) : List.of();
+            if (violations.isEmpty() && !draft.citations().isEmpty()) {
+                answer.setAnswer(draft.answer());
+                answer.setGenerator("llm");
+                answer.getNotices().add("答案由大模型基于 " + draft.citations().size()
+                        + " 条片段组织（" + draft.model() + "，" + draft.latencyMs() + " ms）");
+                reorderRefs(refs, draft.citations());
+            } else {
+                answer.setGenerator("template-guard");
+                answer.getNotices().add(violations.isEmpty()
+                        ? "大模型未标注引用编号，已回退模板摘录"
+                        : "大模型答案被生成后校验拦下（" + String.join("；", violations) + "），已回退模板摘录");
+            }
+        }
+        if ("template".equals(answer.getGenerator()) || "template-guard".equals(answer.getGenerator())) {
+            if (route == 2) {
+                answer.setAnswer(composeTutorial(best, steps));
+            } else {
+                answer.setAnswer(composeKnowledge(question, best, bestText));
+            }
         }
         answer.getNotices().add("稀疏路首位与向量路首位"
                 + (sameTop(retrieval) ? "一致" : "不一致") + "，两路结果见对照区");
         answer.setResultCode("Success");
         return answer;
+    }
+
+    /** 把模型实际引用的片段排到前面：引用区第一条就是答案的依据，不用用户自己找 */
+    private void reorderRefs(List<ChatVO.Citation> refs, List<Integer> citations) {
+        List<ChatVO.Citation> ordered = new ArrayList<>();
+        for (Integer index : citations) {
+            if (index != null && index >= 1 && index <= refs.size()) {
+                ChatVO.Citation citation = refs.get(index - 1);
+                if (!ordered.contains(citation)) {
+                    ordered.add(citation);
+                }
+            }
+        }
+        for (ChatVO.Citation citation : refs) {
+            if (!ordered.contains(citation)) {
+                ordered.add(citation);
+            }
+        }
+        refs.clear();
+        refs.addAll(ordered);
     }
 
     private String composeKnowledge(String question, Candidate best, String text) {

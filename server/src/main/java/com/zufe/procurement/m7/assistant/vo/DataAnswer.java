@@ -40,4 +40,9 @@ public class DataAnswer {
     private List<String> notices = new ArrayList<>();
     /** 本次注入的数据范围条件，写进审计（M9-4-2 可验证凭据） */
     private Map<String, Object> scopeSnapshot;
+    /**
+     * 结果由谁产出：llm 大模型判定、rule 词表规则。
+     * 评测时据它核对「模型是否真的接管」，避免全部静默回退却看不出来。
+     */
+    private String generator;
 }

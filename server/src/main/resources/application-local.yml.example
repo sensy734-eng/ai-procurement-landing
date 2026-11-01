@@ -4,3 +4,21 @@ spring:
     # 当前演示环境为 XAMPP 自带 MariaDB 10.4.32，root 无密码
     username: root
     password: ""
+
+# 大模型接入：不填 api-key 就等于没接入，全部走规则式链路（行为与接入前一致）
+# 只要厂商兼容 OpenAI 的 /chat/completions 协议，改 base-url 与 model 即可切换：
+#   DeepSeek   base-url: https://api.deepseek.com/v1                       model: deepseek-chat
+#   通义百炼    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1  model: qwen-plus
+#   月之暗面    base-url: https://api.moonshot.cn/v1                        model: moonshot-v1-8k
+#   本地 vLLM   base-url: http://127.0.0.1:8000/v1                          model: 你部署的模型名
+app:
+  llm:
+    enabled: true
+    api-key: "sk-在这里填你的密钥"
+    base-url: https://api.deepseek.com/v1
+    model: deepseek-chat
+    # 三处可分别开关，便于做「只换意图」「只换答案」的消融对比
+    route-enabled: true
+    intent-enabled: true
+    answer-enabled: true
+    number-guard: true

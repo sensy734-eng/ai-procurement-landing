@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zufe.procurement.m11.param.entity.SysParam;
 import com.zufe.procurement.m11.param.mapper.SysParamMapper;
 import com.zufe.procurement.m7.assistant.support.RouteLexicon;
+import com.zufe.procurement.m7.assistant.vo.AiContext;
 import com.zufe.procurement.m7.assistant.vo.ChatVO;
 import lombok.Data;
 import org.springframework.stereotype.Service;
@@ -31,12 +32,18 @@ public class RouteService {
     private static final List<String> STRONG_TUTORIAL = List.of("怎么", "如何", "怎样", "步骤", "在哪", "入口", "怎么弄");
 
     private final SysParamMapper sysParamMapper;
+    private final LlmRouteAdvisor routeAdvisor;
 
-    public RouteService(SysParamMapper sysParamMapper) {
+    public RouteService(SysParamMapper sysParamMapper, LlmRouteAdvisor routeAdvisor) {
         this.sysParamMapper = sysParamMapper;
+        this.routeAdvisor = routeAdvisor;
     }
 
     public Decision decide(String question) {
+        return decide(question, null);
+    }
+
+    public Decision decide(String question, AiContext context) {
         Decision decision = new Decision();
         String text = question == null ? "" : question.trim();
         if (text.isEmpty()) {
@@ -49,7 +56,8 @@ public class RouteService {
         int data = RouteLexicon.score(text, RouteLexicon.DATA);
         boolean strongTutorial = STRONG_TUTORIAL.stream().anyMatch(text::contains);
 
-        // 只读边界：明确的写指令且没有「怎么做」的信号
+        // 只读边界：明确的写指令且没有「怎么做」的信号。
+        // 这一条在模型之前判定，模型说什么都不改变「助手只读」这条铁律。
         if (!strongTutorial && RouteLexicon.score(text, RouteLexicon.WRITE_INTENT) > 0) {
             decision.setStatus(Status.READONLY_REFUSED);
             decision.setMessage("智能助手只提供查询与问答，不执行新增、修改、审批、删除等业务操作。"
@@ -57,6 +65,10 @@ public class RouteService {
             return decision;
         }
         if (tutorial == 0 && knowledge == 0 && data == 0) {
+            Decision byModel = askModel(text, context);
+            if (byModel != null) {
+                return byModel;
+            }
             decision.setStatus(Status.UNSUPPORTED);
             decision.setMessage("这个问题不属于制度问答、操作教程、业务数据查询中的任何一类，我不能臆造答案。"
                     + "可以换成「审批时限是几天」「怎么提交采购申请」「CG-DD-20261011-0001 现在什么状态」。");
@@ -82,6 +94,10 @@ public class RouteService {
 
         double threshold = threshold();
         if (share.doubleValue() < threshold) {
+            Decision byModel = askModel(text, context);
+            if (byModel != null) {
+                return byModel;
+            }
             decision.setStatus(Status.CLARIFY);
             decision.setMessage("这个问题的类型不够明确（置信度 "
                     + share.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP)
@@ -90,6 +106,31 @@ public class RouteService {
             decision.setOptions(options());
             return decision;
         }
+        decision.setStatus(Status.ROUTED);
+        return decision;
+    }
+
+    /**
+     * 规则判不准时问模型：只在「不支持」与「澄清」两条分支上兜底，
+     * 规则已经判定的问题不再多花一次调用，也就不会因为模型抖动改变既有基线。
+     * 模型自评置信度低于 0.5 时不接管，避免用一次含糊的判断替换另一次含糊的判断。
+     */
+    private Decision askModel(String text, AiContext context) {
+        LlmRouteAdvisor.Decision byModel = routeAdvisor == null ? null : routeAdvisor.decide(text, context);
+        if (byModel == null || byModel.confidence() < 0.5) {
+            return null;
+        }
+        Decision decision = new Decision();
+        decision.setModelAssisted(true);
+        decision.setConfidence(BigDecimal.valueOf(byModel.confidence()).setScale(4, RoundingMode.HALF_UP));
+        if (byModel.isNone()) {
+            decision.setStatus(Status.UNSUPPORTED);
+            decision.setMessage("这个问题不属于制度问答、操作教程、业务数据查询中的任何一类，我不能臆造答案。"
+                    + "可以换成「审批时限是几天」「怎么提交采购申请」「CG-DD-20261011-0001 现在什么状态」。");
+            return decision;
+        }
+        decision.setRoute(byModel.route());
+        decision.setRouteName(routeName(byModel.route()));
         decision.setStatus(Status.ROUTED);
         return decision;
     }
@@ -162,5 +203,7 @@ public class RouteService {
         private Status status;
         private String message;
         private List<ChatVO.Option> options = new ArrayList<>();
+        /** 本次分类是否由大模型补判（规则已判定的情况恒为 false） */
+        private boolean modelAssisted;
     }
 }

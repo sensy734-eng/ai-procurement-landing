@@ -15,7 +15,7 @@
       DEVELOPMENT_LOG.md  开发记录（系统状态快照、每轮做了什么、问题与解决），每次开发前后更新
       DESIGN_OVERVIEW.md  设计与实现总览（论文素材）
       DATA_DICTIONARY.md  数据字典（49 表 / 718 字段，脚本生成）
-      DIAGRAMS.md         流程图集说明（八张图 + 图注 + 追问点）
+      DIAGRAMS.md         流程图集说明（十一张图 + 图注 + 追问点）
       API_LIST.md         接口清单（183 个接口，脚本生成）
       TEST_RECORD.md      测试记录（断言数、实测结果、数据来源、复跑顺序）
 
@@ -174,8 +174,9 @@ pdf 走正文补录）、正文补录、元数据维护与版本链（同文档�
    键、说明），按八个域组织，每表附业务用途与索引清单；末尾是全局约定与状态码总表。
    由 `scripts/gen_data_dict.py` 从 `information_schema` 生成，附 CSV 版
    （`docs/data_dictionary.csv`，Excel 可直接打开筛选）。改表后重跑即可，`--check` 做覆盖性校验。
-7. **流程图集** `DIAGRAMS.md` + `docs/diagrams/`：八张矢量流程图（业务主流程、单据链追溯、
-   三状态正交、审批或签会签、确认入库事务、验收三道校验、M8 问答链路、M9 四道闸），
+7. **流程图集** `DIAGRAMS.md` + `docs/diagrams/`：十一张矢量流程图（业务主流程、单据链追溯、
+   三状态正交、审批或签会签、确认入库事务、验收三道校验、M8 问答链路、M9 四道闸、
+   五环节操作要点、两条 AI 功能流程（双通道）、系统运行图），
    每张配图注、要点与「可能被追问的点」；SVG 与同尺寸 PNG 各一份，可直接插 Word / PPT。
    由 `scripts/gen_diagrams.py` 生成（绘图工具 `scripts/svgkit.py` 自写，不引绘图库）。
 

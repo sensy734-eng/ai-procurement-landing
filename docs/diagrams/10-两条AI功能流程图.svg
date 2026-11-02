@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="940" viewBox="0 0 1200 940" font-family="Microsoft YaHei, PingFang SC, Hiragino Sans GB, sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#41556b"/></marker><marker id="ahL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#8fa3b8"/></marker><marker id="ahR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#c0562b"/></marker></defs>
+<rect width="1200" height="940" fill="#ffffff"/>
+<text x="24.0" y="30.0" font-size="13" fill="#9aa9b8" text-anchor="start" font-weight="normal">图 10　两条 AI 功能的工作流程：同一入口、两条业务线、每线两档</text>
+<rect x="500.0" y="62.0" width="200.0" height="56.0" rx="8" fill="#ffffff" stroke="#8fa3b8" stroke-width="1.3"/>
+<text x="600.0" y="86.0" font-size="11.6" fill="#1f2937" text-anchor="middle" font-weight="600">用户问句</text>
+<text x="600.0" y="104.0" font-size="9.6" fill="#5a6b7b" text-anchor="middle" font-weight="normal">AI 助手输入框</text>
+<rect x="500.0" y="148.0" width="200.0" height="72.0" rx="8" fill="#ffffff" stroke="#8fa3b8" stroke-width="1.3"/>
+<text x="600.0" y="172.0" font-size="11.6" fill="#1f2937" text-anchor="middle" font-weight="600">M7 入口：装载会话上下文</text>
+<text x="600.0" y="190.0" font-size="9.6" fill="#5a6b7b" text-anchor="middle" font-weight="normal">意图 / 实体 / 参数</text>
+<text x="600.0" y="203.0" font-size="9.6" fill="#5a6b7b" text-anchor="middle" font-weight="normal">+ 最近两轮问答原文</text>
+<rect x="500.0" y="250.0" width="200.0" height="72.0" rx="8" fill="#ffffff" stroke="#8fa3b8" stroke-width="1.3"/>
+<text x="600.0" y="274.0" font-size="11.6" fill="#1f2937" text-anchor="middle" font-weight="600">路由判定</text>
+<text x="600.0" y="292.0" font-size="9.6" fill="#5a6b7b" text-anchor="middle" font-weight="normal">模型先判（1.5s 预算）</text>
+<text x="600.0" y="305.0" font-size="9.6" fill="#5a6b7b" text-anchor="middle" font-weight="normal">未配置 / 失败 / 不自信 → 词表</text>
+<line x1="600.0" y1="118.0" x2="600.0" y2="137.0" stroke="#41556b" stroke-width="1.6" marker-end="url(#ah)"/>
+<line x1="600.0" y1="220.0" x2="600.0" y2="239.0" stroke="#41556b" stroke-width="1.6" marker-end="url(#ah)"/>
+<line x1="600.0" y1="322.0" x2="600.0" y2="344.0" stroke="#41556b" stroke-width="1.6"/>
+<path d="M 600.0 344.0 L 308.0 344.0 Q 300.0 344.0 300.0 352.0 L 300.0 375.0" fill="none" stroke="#41556b" stroke-width="1.6" marker-end="url(#ah)"/>
+<path d="M 600.0 344.0 L 892.0 344.0 Q 900.0 344.0 900.0 352.0 L 900.0 375.0" fill="none" stroke="#41556b" stroke-width="1.6" marker-end="url(#ah)"/>
+<text x="330.0" y="338.0" font-size="9.8" fill="#41556b" text-anchor="start" font-weight="600">制度 / 教程</text>
+<text x="960.0" y="338.0" font-size="9.8" fill="#41556b" text-anchor="start" font-weight="600">数据查询</text>
+<rect x="40.0" y="386.0" width="520.0" height="36.0" rx="8" fill="#eef3f9" stroke="#8fa3b8" stroke-width="1.2"/>
+<text x="60.0" y="410.0" font-size="12.4" fill="#2e5f8a" text-anchor="start" font-weight="600">M8　制度与教程问答</text>
+<text x="300.0" y="410.0" font-size="9.8" fill="#5a6b7b" text-anchor="start" font-weight="normal">route = 1 制度　/　2 教程</text>
+<rect x="40.0" y="440.0" width="520.0" height="62.0" rx="8" fill="#ffffff" stroke="#8fa3b8" stroke-width="1.3"/>
+<text x="300.0" y="464.0" font-size="11.6" fill="#1f2937" text-anchor="middle" font-weight="600">双路召回（各取 Top-5，互不预滤）</text>
+<text x="300.0" y="482.0" font-size="9.6" fill="#5a6b7b" text-anchor="middle" font-weight="normal">BM25  k1=1.5 · b=0.75　｜　512 维哈希向量 · 余弦</text>
+<rect x="40.0" y="522.0" width="520.0" height="62.0" rx="8" fill="#ffffff" stroke="#8fa3b8" stroke-width="1.3"/>
+<text x="300.0" y="546.0" font-size="11.6" fill="#1f2937" text-anchor="middle" font-weight="600">RRF 融合（K=60）→ 拒答判定</text>
+<text x="300.0" y="564.0" font-size="9.6" fill="#5a6b7b" text-anchor="middle" font-weight="normal">最高分 &lt; 0.35 且 词元命中 &lt; 2 → 拒答，写 kb_reject_log</text>
+<rect x="40.0" y="604.0" width="520.0" height="76.0" rx="8" fill="#ffffff" stroke="#8fa3b8" stroke-width="1.3"/>
+<rect x="41.0" y="605.0" width="518.0" height="37.0" rx="7" fill="#eef3f9" stroke="none" stroke-width="0"/>
+<rect x="41.0" y="642.0" width="518.0" height="37.0" rx="7" fill="#fbf0ea" stroke="none" stroke-width="0"/>
+<text x="54.0" y="627.0" font-size="10.4" fill="#2e5f8a" text-anchor="start" font-weight="600">模型档</text>
+<text x="54.0" y="665.0" font-size="10.4" fill="#c0562b" text-anchor="start" font-weight="600">兜底档</text>
+<text x="106.0" y="627.0" font-size="9.8" fill="#5a6b7b" text-anchor="start" font-weight="normal">LlmAnswerComposer：基于召回片段成文，标引用编号</text>
+<text x="106.0" y="665.0" font-size="9.8" fill="#5a6b7b" text-anchor="start" font-weight="normal">模板直引条款原文；教程型按原文顺序拆步骤</text>
+<rect x="40.0" y="700.0" width="520.0" height="56.0" rx="8" fill="#ffffff" stroke="#8fa3b8" stroke-width="1.3"/>
+<text x="300.0" y="724.0" font-size="11.6" fill="#1f2937" text-anchor="middle" font-weight="600">数字一致性守卫 AnswerFidelityGuard</text>
+<text x="300.0" y="742.0" font-size="9.6" fill="#5a6b7b" text-anchor="middle" font-weight="normal">答案里每个数字必须在片段原文出现过，否则回退模板</text>
+<rect x="40.0" y="776.0" width="520.0" height="48.0" rx="8" fill="#eaf4ef" stroke="#2e7d5b" stroke-width="1.3"/>
+<text x="300.0" y="800.0" font-size="11.6" fill="#2e7d5b" text-anchor="middle" font-weight="600">答案 + 引用片段（doc / chunk）</text>
+<line x1="300.0" y1="502.0" x2="300.0" y2="515.0" stroke="#41556b" stroke-width="1.6" marker-end="url(#ah)"/>
+<line x1="300.0" y1="584.0" x2="300.0" y2="597.0" stroke="#41556b" stroke-width="1.6" marker-end="url(#ah)"/>
+<line x1="300.0" y1="680.0" x2="300.0" y2="693.0" stroke="#41556b" stroke-width="1.6" marker-end="url(#ah)"/>
+<line x1="300.0" y1="756.0" x2="300.0" y2="769.0" stroke="#41556b" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="640.0" y="386.0" width="520.0" height="36.0" rx="8" fill="#f2eef9" stroke="#a99cc9" stroke-width="1.2"/>
+<text x="660.0" y="410.0" font-size="12.4" fill="#5b4b8a" text-anchor="start" font-weight="600">M9　受控自然语言查询</text>
+<text x="870.0" y="410.0" font-size="9.8" fill="#5a6b7b" text-anchor="start" font-weight="normal">模型不接触数据库</text>
+<rect x="640.0" y="440.0" width="520.0" height="76.0" rx="8" fill="#ffffff" stroke="#8fa3b8" stroke-width="1.3"/>
+<rect x="641.0" y="441.0" width="518.0" height="37.0" rx="7" fill="#eef3f9" stroke="none" stroke-width="0"/>
+<rect x="641.0" y="478.0" width="518.0" height="37.0" rx="7" fill="#fbf0ea" stroke="none" stroke-width="0"/>
+<text x="654.0" y="463.0" font-size="10.4" fill="#2e5f8a" text-anchor="start" font-weight="600">模型档</text>
+<text x="654.0" y="501.0" font-size="10.4" fill="#c0562b" text-anchor="start" font-weight="600">兜底档</text>
+<text x="706.0" y="463.0" font-size="9.8" fill="#5a6b7b" text-anchor="start" font-weight="normal">一次调用给出：意图 + 实体指称 + 参数 + 时间归一</text>
+<text x="706.0" y="501.0" font-size="9.8" fill="#5a6b7b" text-anchor="start" font-weight="normal">词表权重 + 正则参数 + 三级实体匹配</text>
+<rect x="640.0" y="536.0" width="520.0" height="56.0" rx="8" fill="#ffffff" stroke="#8fa3b8" stroke-width="1.3"/>
+<text x="900.0" y="560.0" font-size="11.6" fill="#1f2937" text-anchor="middle" font-weight="600">实体指称 → 撞库 → 主键</text>
+<text x="900.0" y="578.0" font-size="9.6" fill="#5a6b7b" text-anchor="middle" font-weight="normal">模型只给类型 / 业务编号 / 原话，主键一律由后端撞库得出</text>
+<rect x="640.0" y="612.0" width="520.0" height="64.0" rx="8" fill="#ffffff" stroke="#8fa3b8" stroke-width="1.3"/>
+<text x="900.0" y="636.0" font-size="11.6" fill="#1f2937" text-anchor="middle" font-weight="600">四道闸（两档共用，位置不变）</text>
+<text x="900.0" y="654.0" font-size="9.6" fill="#5a6b7b" text-anchor="middle" font-weight="normal">意图在白名单　/　实体已归一　/　参数名合法　/　操作符与枚举合法</text>
+<rect x="640.0" y="696.0" width="520.0" height="56.0" rx="8" fill="#ffffff" stroke="#8fa3b8" stroke-width="1.3"/>
+<text x="900.0" y="720.0" font-size="11.6" fill="#1f2937" text-anchor="middle" font-weight="600">执行：只读 + 数据范围强制注入</text>
+<text x="900.0" y="738.0" font-size="9.6" fill="#5a6b7b" text-anchor="middle" font-weight="normal">deptScope / warehouseScope 由后端按登录人注入，模型无从干预</text>
+<rect x="640.0" y="772.0" width="520.0" height="52.0" rx="8" fill="#ffffff" stroke="#8fa3b8" stroke-width="1.3"/>
+<text x="900.0" y="796.0" font-size="11.6" fill="#1f2937" text-anchor="middle" font-weight="600">转述 + 审计落库（ai_query_audit）</text>
+<line x1="900.0" y1="516.0" x2="900.0" y2="529.0" stroke="#41556b" stroke-width="1.6" marker-end="url(#ah)"/>
+<line x1="900.0" y1="592.0" x2="900.0" y2="605.0" stroke="#41556b" stroke-width="1.6" marker-end="url(#ah)"/>
+<line x1="900.0" y1="676.0" x2="900.0" y2="689.0" stroke="#41556b" stroke-width="1.6" marker-end="url(#ah)"/>
+<line x1="900.0" y1="752.0" x2="900.0" y2="765.0" stroke="#41556b" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="8.0" y="852.0" width="1184.0" height="62.0" rx="6" fill="#fbfcfd" stroke="#e3e9f1" stroke-width="1"/>
+<text x="24.0" y="874.0" font-size="10.8" fill="#41556b" text-anchor="start" font-weight="600">分叉在哪：</text>
+<text x="82.0" y="874.0" font-size="10.6" fill="#5a6b7b" text-anchor="start" font-weight="normal">模型可用、输出可解析、编码在白名单、置信度达阈值 → 模型档；未配置 / 超时 / 限流 / 输出不合契约 / 编码越界 / 低置信 → 整条走兜底档，用户无感。</text>
+<text x="24.0" y="896.0" font-size="10.8" fill="#41556b" text-anchor="start" font-weight="600">什么不变：</text>
+<text x="82.0" y="896.0" font-size="10.6" fill="#5a6b7b" text-anchor="start" font-weight="normal">四道闸、数据范围、只读拒绝位置两档共用——模型说错话的代价是「按错意图查了一次受限数据」，不是绕过权限。</text>
+</svg>

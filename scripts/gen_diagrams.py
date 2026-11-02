@@ -568,10 +568,197 @@ def fig8():
     return "08-M9受控查询链路.svg"
 
 
+# ======================================================================
+# 图 10　两条 AI 功能的工作流程（双通道）
+# ======================================================================
+def fig10():
+    W, H = 1200, 940
+    s = Svg(W, H)
+    head(s, "图 10　两条 AI 功能的工作流程：同一入口、两条业务线、每线两档")
+
+    def nd(x, y, w, h, title, lines=(), color=BLUE, fill="#ffffff", tfs=11.6, lfs=9.6):
+        s.rect(x, y, w, h, fill, color if fill != "#ffffff" else "#8fa3b8", 8, 1.3)
+        s.text(x + w / 2, y + 24, title, tfs, color if fill != "#ffffff" else INK, "middle", "600")
+        for i, ln in enumerate(lines):
+            s.text(x + w / 2, y + 42 + i * 13, ln, lfs, INK2, "middle")
+
+    def dual(x, y, w, h, model_txt, rule_txt):
+        """双通道框：上半模型档、下半兜底档，一眼看出在哪分叉。"""
+        top = h / 2
+        s.rect(x, y, w, h, "#ffffff", "#8fa3b8", 8, 1.3)
+        s.rect(x + 1, y + 1, w - 2, top - 1, BLUE_L, "none", 7, 0)
+        s.rect(x + 1, y + top, w - 2, h - top - 1, ORANGE_L, "none", 7, 0)
+        s.text(x + 14, y + top / 2 + 4, "模型档", 10.4, BLUE, "start", "600")
+        s.text(x + 14, y + top + (h - top) / 2 + 4, "兜底档", 10.4, ORANGE, "start", "600")
+        s.text(x + 66, y + top / 2 + 4, model_txt, 9.8, INK2)
+        s.text(x + 66, y + top + (h - top) / 2 + 4, rule_txt, 9.8, INK2)
+
+    nd(500, 62, 200, 56, "用户问句", ["AI 助手输入框"])
+    nd(500, 148, 200, 72, "M7 入口：装载会话上下文",
+       ["意图 / 实体 / 参数", "+ 最近两轮问答原文"], PURPLE)
+    nd(500, 250, 200, 72, "路由判定",
+       ["模型先判（1.5s 预算）", "未配置 / 失败 / 不自信 → 词表"], BLUE)
+
+    s.line(600, 118, 600, 144, "#41556b", 1.6)
+    s.line(600, 220, 600, 246, "#41556b", 1.6)
+    s.line(600, 322, 600, 344, "#41556b", 1.6, arrow=False)
+    s.poly([(600, 344), (300, 344), (300, 382)], "#41556b", 1.6)
+    s.poly([(600, 344), (900, 344), (900, 382)], "#41556b", 1.6)
+    s.text(330, 338, "制度 / 教程", 9.8, "#41556b", "start", "600")
+    s.text(960, 338, "数据查询", 9.8, "#41556b", "start", "600")
+
+    # ---------------- M8 列 ----------------
+    s.rect(40, 386, 520, 36, BLUE_L, "#8fa3b8", 8, 1.2)
+    s.text(60, 410, "M8　制度与教程问答", 12.4, BLUE, "start", "600")
+    s.text(300, 410, "route = 1 制度　/　2 教程", 9.8, INK2, "start")
+
+    nd(40, 440, 520, 62, "双路召回（各取 Top-5，互不预滤）",
+       ["BM25  k1=1.5 · b=0.75　｜　512 维哈希向量 · 余弦"])
+    nd(40, 522, 520, 62, "RRF 融合（K=60）→ 拒答判定",
+       ["最高分 < 0.35 且 词元命中 < 2 → 拒答，写 kb_reject_log"], ORANGE)
+    dual(40, 604, 520, 76,
+         "LlmAnswerComposer：基于召回片段成文，标引用编号",
+         "模板直引条款原文；教程型按原文顺序拆步骤")
+    nd(40, 700, 520, 56, "数字一致性守卫 AnswerFidelityGuard",
+       ["答案里每个数字必须在片段原文出现过，否则回退模板"], GREEN)
+    nd(40, 776, 520, 48, "答案 + 引用片段（doc / chunk）", (), GREEN, GREEN_L)
+
+    for y1, y2 in ((502, 522), (584, 604), (680, 700), (756, 776)):
+        s.line(300, y1, 300, y2, "#41556b", 1.6)
+
+    # ---------------- M9 列 ----------------
+    s.rect(640, 386, 520, 36, "#f2eef9", "#a99cc9", 8, 1.2)
+    s.text(660, 410, "M9　受控自然语言查询", 12.4, PURPLE, "start", "600")
+    s.text(870, 410, "模型不接触数据库", 9.8, INK2, "start")
+
+    dual(640, 440, 520, 76,
+         "一次调用给出：意图 + 实体指称 + 参数 + 时间归一",
+         "词表权重 + 正则参数 + 三级实体匹配")
+    nd(640, 536, 520, 56, "实体指称 → 撞库 → 主键",
+       ["模型只给类型 / 业务编号 / 原话，主键一律由后端撞库得出"], PURPLE)
+    nd(640, 612, 520, 64, "四道闸（两档共用，位置不变）",
+       ["意图在白名单　/　实体已归一　/　参数名合法　/　操作符与枚举合法"], ORANGE)
+    nd(640, 696, 520, 56, "执行：只读 + 数据范围强制注入",
+       ["deptScope / warehouseScope 由后端按登录人注入，模型无从干预"])
+    nd(640, 772, 520, 52, "转述 + 审计落库（ai_query_audit）", (), BLUE)
+
+    for y1, y2 in ((516, 536), (592, 612), (676, 696), (752, 772)):
+        s.line(900, y1, 900, y2, "#41556b", 1.6)
+
+    y0 = 852
+    s.rect(8, y0, W - 16, 62, "#fbfcfd", "#e3e9f1", 6, 1)
+    s.text(24, y0 + 22, "分叉在哪：", 10.8, "#41556b", "start", "600")
+    s.text(24 + measure("分叉在哪：", 10.8) + 4, y0 + 22,
+           "模型可用、输出可解析、编码在白名单、置信度达阈值 → 模型档；未配置 / 超时 / 限流 / 输出不合契约 / 编码越界 / 低置信 → 整条走兜底档，用户无感。",
+           10.6, INK2)
+    s.text(24, y0 + 44, "什么不变：", 10.8, "#41556b", "start", "600")
+    s.text(24 + measure("什么不变：", 10.8) + 4, y0 + 44,
+           "四道闸、数据范围、只读拒绝位置两档共用——模型说错话的代价是「按错意图查了一次受限数据」，不是绕过权限。",
+           10.6, INK2)
+
+    s.save(os.path.join(OUT, "10-两条AI功能流程图.svg"))
+    return "10-两条AI功能流程图.svg"
+
+
+# ======================================================================
+# 图 11　整个系统的运行图
+# ======================================================================
+def fig11():
+    W, H = 1200, 820
+    s = Svg(W, H)
+    head(s, "图 11　整个系统的运行图：请求怎么走、业务怎么跑、AI 挂在哪")
+
+    def layer(x, y, w, h, title, lines=(), color=BLUE, fill="#ffffff", tfs=11.8):
+        s.rect(x, y, w, h, fill, color if fill != "#ffffff" else "#8fa3b8", 8, 1.3)
+        s.text(x + 20, y + 24, title, tfs, color if fill != "#ffffff" else INK, "start", "600")
+        for i, ln in enumerate(lines):
+            s.text(x + 20, y + 42 + i * 13, ln, 9.6, INK2, "start")
+
+    layer(40, 66, 600, 58, "浏览器　Vue3 + TS + Vite + Element Plus",
+          ["27 个页面 · JWT 登录态 · 菜单与按钮按权限点渲染"])
+    layer(40, 148, 600, 58, "接入层　AuthInterceptor → @RequirePermission",
+          ["认证在前、鉴权在后；权限点形如　模块:对象:动作"])
+    layer(40, 230, 600, 58, "控制层　Controller　183 个接口",
+          ["M1~M12 十二个模块，接口清单由 gen_api_list.py 校验"])
+    layer(40, 312, 600, 82, "服务层　Service　业务规则都在这一层",
+          ["五环节流转 · 三状态正交（lifecycle / audit / fulfill）",
+           "库存唯一写入点 = 入库单确认（同事务写余额与流水）",
+           "M4 双配额 · 验收守恒 · 参考价版本链"])
+    layer(40, 412, 600, 58, "数据层　Mapper　MyBatis-Plus",
+          ["逻辑删除 · 乐观锁 version · 分页与条件构造"])
+    layer(40, 494, 600, 66, "MySQL　procurement_db",
+          ["49 张表 · 718 个字段 · A~H 八个业务域"], GREEN, GREEN_L)
+
+    for y1, y2 in ((124, 148), (206, 230), (288, 312), (394, 412), (470, 494)):
+        s.line(340, y1, 340, y2, "#41556b", 1.6)
+
+    # ---------------- AI 子系统 ----------------
+    s.text(680, 52, "AI 子系统（旁路接入，模型可关）", 11.2, "#41556b", "start", "600")
+    layer(680, 66, 480, 56, "M7　编排入口　/api/assistant/chat",
+          ["会话上下文 · 路由判定 · 结果组装"], PURPLE)
+    s.rect(680, 140, 228, 64, "#ffffff", "#a99cc9", 8, 1.3)
+    s.text(794, 164, "M8　制度与教程问答", 10.8, PURPLE, "middle", "600")
+    s.text(794, 182, "双路检索 · 拒答 · 成文", 9.4, INK2, "middle")
+    s.rect(932, 140, 228, 64, "#ffffff", "#a99cc9", 8, 1.3)
+    s.text(1046, 164, "M9　受控自然语言查询", 10.8, PURPLE, "middle", "600")
+    s.text(1046, 182, "理解层 · 四道闸 · 只读", 9.4, INK2, "middle")
+
+    s.line(794, 122, 794, 136, "#41556b", 1.6)
+    s.line(1046, 122, 1046, 136, "#41556b", 1.6)
+
+    s.line(794, 204, 794, 222, "#8fa3b8", 1.5, dash="5,4")
+    s.line(1046, 204, 1046, 222, "#8fa3b8", 1.5, dash="5,4")
+    s.rect(680, 222, 480, 64, "#fbfcfd", "#a99cc9", 8, 1.2, dash="6,4")
+    s.text(920, 246, "外部大模型（可选）", 10.8, PURPLE, "middle", "600")
+    s.text(920, 264, "DeepSeek · 超时 / 失败 / 输出不合契约即熔断，整条退回规则档", 9.4, INK2, "middle")
+
+    layer(680, 306, 480, 56, "AiChannelGuard　三通道熔断 + 截止预算",
+          ["route 1.5s / plan 2.5s / answer 2.5s，只能收紧不能放宽"], ORANGE)
+
+    s.rect(680, 382, 480, 116, "#fbfcfd", "#a99cc9", 8, 1.2, dash="6,4")
+    s.text(700, 406, "AI 不进主流程", 10.8, PURPLE, "start", "600")
+    notes = [
+        "读库经 Service / Mapper，与页面同一条路径，不直连数据库",
+        "关掉模型：问答退模板、查询退规则，下单与入库不受影响",
+        "任一通道熔断只影响本次回答，不阻断业务操作",
+        "四道闸、数据范围、只读拒绝与模型无关，两档共用",
+    ]
+    for i, ln in enumerate(notes):
+        s.text(700, 428 + i * 16, ln, 9.4, INK2, "start")
+
+    # ---------------- 业务主流程 ----------------
+    s.rect(8, 574, W - 16, 104, "#fbfcfd", "#e3e9f1", 8, 1)
+    s.text(28, 598, "业务主流程（五个环节一条单据链）", 10.8, "#41556b", "start", "600")
+    steps = ["采购申请", "采购订单", "到货验收", "采购入库", "库存查询"]
+    for i, name in enumerate(steps):
+        x = 70 + i * 216
+        s.rect(x, 608, 196, 48, "#ffffff", BLUE, 7, 1.2)
+        s.text(x + 98, 637, name, 11.6, INK, "middle", "600")
+        if i < 4:
+            s.line(x + 198, 632, x + 214, 632, "#41556b", 1.6)
+
+    # ---------------- 横切能力 ----------------
+    s.text(28, 712, "横切能力（三条，全链路生效）", 10.8, "#41556b", "start", "600")
+    cards = [
+        ("权限与数据范围", ["deptScope / warehouseScope 由后端注入", "拿不到范围 → 哨兵值失败关闭"]),
+        ("审计留痕", ["ai_query_audit 记录问句 / 意图 / 参数 / 结果码", "拒绝的参数单独落 rejected_params"]),
+        ("只读边界", ["AI 侧没有任何写接口", "写操作在路由前就被拒绝，与模型无关"]),
+    ]
+    for i, (title, lines) in enumerate(cards):
+        x = 40 + i * 380
+        s.rect(x, 722, 360, 62, "#ffffff", "#8fa3b8", 8, 1.2)
+        s.text(x + 16, 744, title, 10.8, INK, "start", "600")
+        for j, ln in enumerate(lines):
+            s.text(x + 16, 762 + j * 13, ln, 9.2, INK2, "start")
+
+    s.save(os.path.join(OUT, "11-系统运行图.svg"))
+    return "11-系统运行图.svg"
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     made = []
-    for fn in (fig1, fig2, fig3, fig4, fig5, fig6, fig7, fig8):
+    for fn in (fig1, fig2, fig3, fig4, fig5, fig6, fig7, fig8, fig10, fig11):
         made.append(fn())
     for m in made:
         print("已生成 docs/diagrams/" + m)

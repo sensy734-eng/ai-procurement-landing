@@ -62,11 +62,11 @@
     <!-- 答案正文 -->
     <div v-if="result.answer" class="text">{{ result.answer }}</div>
 
-    <!-- 拒答原因（M8-5-2） -->
+    <!-- 拒答原因 -->
     <el-alert v-if="result.refusalReason" class="block" type="warning" :closable="false" show-icon
               title="检索依据不足，已拒答" :description="result.refusalReason" />
 
-    <!-- 澄清选项（M7-2-2 / M9-3-2 / M9-2-5） -->
+    <!-- 澄清选项 -->
     <div v-if="clarify" class="block clarify">
       <div class="clarify-q">{{ clarify.question }}</div>
       <div class="options">
@@ -78,7 +78,7 @@
       </div>
     </div>
 
-    <!-- 结果表格（M7-4-1） -->
+    <!-- 结果表格 -->
     <div v-if="result.table && (result.table.rows || []).length" class="block">
       <el-table :data="result.table.rows" size="small" border max-height="300">
         <el-table-column v-for="column in result.table.columns" :key="column.key"
@@ -89,7 +89,7 @@
       </div>
     </div>
 
-    <!-- 来源引用（M7-4-2 / M8-3-1 / M8-3-3） -->
+    <!-- 来源引用 -->
     <div v-if="(result.refs || []).length" class="block">
       <div class="section-title">来源引用（{{ result.refs!.length }}）</div>
       <el-collapse>
@@ -125,7 +125,7 @@
       </el-collapse>
     </div>
 
-    <!-- 双路召回对照（M8-1-3） -->
+    <!-- 双路召回对照 -->
     <div v-if="(result.dualPath || []).length" class="block">
       <el-collapse>
         <el-collapse-item :title="'双路召回对照（稀疏 ' + sparseCount + ' 条 / 向量 ' + vectorCount + ' 条）'">
@@ -149,12 +149,12 @@
       </el-collapse>
     </div>
 
-    <!-- 版本冲突提示（M8-4-2） -->
+    <!-- 版本冲突提示 -->
     <el-alert v-if="result.versionConflict" class="block" type="info" :closable="false" show-icon
               title="命中多个版本文档"
               :description="result.versionConflict.message || JSON.stringify(result.versionConflict)" />
 
-    <!-- 重跑对比（M7-3-4） -->
+    <!-- 重跑对比 -->
     <div v-if="result.compare" class="block compare">
       <span class="label">重跑对比</span>
       <div>
@@ -169,7 +169,7 @@
       </div>
     </div>
 
-    <!-- 结果码提示（M7-4-3） -->
+    <!-- 结果码提示 -->
     <div v-if="result.resultCodeHint && code !== 'Success'" class="block hint">
       {{ result.resultCodeHint }}
     </div>

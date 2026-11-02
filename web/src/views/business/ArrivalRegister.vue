@@ -2,8 +2,8 @@
   <div class="page-card register-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">{{ editing ? '编辑到货登记' : '新建到货登记' }}</h2>
-        <p class="text-sub">P11｜M4-1 到货登记、M4-2 验收判定：守恒律 合格 + 不合格 = 到货</p>
+        <h2 class="page-title">{{ editing ? '编辑到货登记' : '新建到货登记' }}<span class="page-code">M4</span></h2>
+        <p class="text-sub">到货登记与验收判定：合格 + 不合格 = 到货</p>
       </div>
       <div class="actions">
         <el-button :icon="Back" @click="router.back()">返回</el-button>

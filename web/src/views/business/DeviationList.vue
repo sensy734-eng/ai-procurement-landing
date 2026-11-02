@@ -2,8 +2,8 @@
   <div class="page-card deviation-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">价格偏离关注</h2>
-        <p class="text-sub">P16｜M3-6：偏离率 =（单价 − 参考价）/ 参考价，按绝对值与阈值比较；整单取明细行最高等级</p>
+        <h2 class="page-title">价格偏离关注<span class="page-code">M3</span></h2>
+        <p class="text-sub">偏离率按绝对值与阈值比较，整单取明细行最高等级</p>
       </div>
       <div class="actions">
         <el-button v-if="store.hasPerm('m6:price:update')" :icon="RefreshLeft" :loading="recalculating" @click="recalcVisible = true">
@@ -12,7 +12,7 @@
       </div>
     </header>
 
-    <!-- 汇总卡（M3-6） -->
+    <!-- 汇总卡 -->
     <el-row v-if="summary" :gutter="12" class="summary-row">
       <el-col :span="6">
         <el-card shadow="never" class="summary-card">
@@ -136,7 +136,7 @@
       />
     </div>
 
-    <!-- 重算对话框（M3-6） -->
+    <!-- 重算对话框 -->
     <el-dialog v-model="recalcVisible" title="重算偏离" width="440px">
       <el-alert type="warning" :closable="false" show-icon
         title="按当前生效参考价重算订单行偏离并同步整单标记，操作留痕。全量重算会覆盖所有订单行的既有判定。" />

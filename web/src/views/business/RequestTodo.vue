@@ -2,8 +2,8 @@
   <div class="page-card todo-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">我的待办</h2>
-        <p class="text-sub">P6｜M2-3 审批待办：或签/会签任务处理、通过、驳回与按行退回</p>
+        <h2 class="page-title">我的待办<span class="page-code">M2</span></h2>
+        <p class="text-sub">或签/会签任务处理、通过、驳回与按行退回</p>
       </div>
       <div class="actions">
         <el-button :icon="Refresh" @click="reload(1)">刷新</el-button>
@@ -15,7 +15,7 @@
       type="info"
       :closable="false"
       show-icon
-      title="待办按审批人生成：或签节点任一人处理即推进，其余任务自动失效；会签节点需全部处理（M2-3-7）。"
+      title="待办按审批人生成：或签节点任一人处理即推进，其余任务自动失效；会签节点需全部处理。"
     />
 
     <el-table v-loading="loading" :data="rows" border stripe>
@@ -68,7 +68,7 @@
       @current-change="reload"
     />
 
-    <!-- 单据详情：主表 + 明细 + 审批时间线（M2-3-6） -->
+    <!-- 单据详情：主表 + 明细 + 审批时间线 -->
     <el-drawer v-model="detailVisible" title="申请单详情" size="720px">
       <template v-if="detail">
         <el-descriptions :column="2" border>
@@ -124,7 +124,7 @@
       </template>
     </el-drawer>
 
-    <!-- 审批通过（M2-3-2） -->
+    <!-- 审批通过 -->
     <el-dialog v-model="approveVisible" title="审批通过" width="520px">
       <p>确认通过申请单 <strong>{{ activeTodo?.billNo }}</strong> ？</p>
       <p class="dialog-hint">
@@ -136,7 +136,7 @@
       </template>
     </el-dialog>
 
-    <!-- 审批驳回（M2-3-3）：意见必填 -->
+    <!-- 审批驳回：意见必填 -->
     <el-dialog v-model="rejectVisible" title="审批驳回" width="520px">
       <el-form label-width="70px">
         <el-form-item label="驳回意见" required>
@@ -156,7 +156,7 @@
       </template>
     </el-dialog>
 
-    <!-- 按行退回（M2-2-4）：勾选行拆分为退回草稿单 -->
+    <!-- 按行退回：勾选行拆分为退回草稿单 -->
     <el-dialog v-model="returnVisible" title="按行退回" width="760px">
       <template v-if="returnBill">
         <el-alert

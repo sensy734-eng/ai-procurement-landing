@@ -2,8 +2,8 @@
   <div class="page-card dict-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">业务字典</h2>
-        <p class="text-sub">P4｜M1-4 字典类型与字典项；计量单位（unit）与单据类型（bill_type）在此维护</p>
+        <h2 class="page-title">业务字典<span class="page-code">M1</span></h2>
+        <p class="text-sub">字典类型与字典项；计量单位与单据类型在此维护</p>
       </div>
       <div class="actions">
         <el-button v-if="store.hasPerm('m1:dict:create')" type="primary" :icon="Plus" @click="openTypeCreate">
@@ -22,19 +22,19 @@
           highlight-current-row
           @current-change="onTypeChange"
         >
-          <el-table-column prop="typeCode" label="类型编码" width="150" />
-          <el-table-column prop="typeName" label="类型名称" min-width="110" />
-          <el-table-column label="项数" width="60" align="center">
+          <el-table-column prop="typeCode" label="类型编码" width="140" />
+          <el-table-column prop="typeName" label="类型名称" min-width="100" />
+          <el-table-column label="项数" width="56" align="center">
             <template #default="{ row }">{{ row.itemCount }}</template>
           </el-table-column>
-          <el-table-column label="状态" width="70" align="center">
+          <el-table-column label="状态" width="62" align="center">
             <template #default="{ row }">
               <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
                 {{ row.status === 1 ? '启用' : '停用' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="70" align="center">
+          <el-table-column label="操作" width="62" align="center">
             <template #default="{ row }">
               <el-button
                 v-if="store.hasPerm('m1:dict:update')"
@@ -74,24 +74,24 @@
         />
 
         <el-table v-loading="itemLoading" :data="items" border size="small">
-          <el-table-column prop="itemCode" label="项编码" width="120" />
-          <el-table-column prop="itemName" label="项名称" min-width="120" />
-          <el-table-column prop="parentName" label="上级" width="100">
+          <el-table-column prop="itemCode" label="项编码" width="110" />
+          <el-table-column prop="itemName" label="项名称" min-width="110" />
+          <el-table-column prop="parentName" label="上级" width="90">
             <template #default="{ row }">{{ row.parentName || '-' }}</template>
           </el-table-column>
-          <el-table-column prop="sortNo" label="排序" width="70" align="center" />
-          <el-table-column prop="extValue" label="扩展值" width="100" show-overflow-tooltip>
+          <el-table-column prop="sortNo" label="排序" width="60" align="center" />
+          <el-table-column prop="extValue" label="扩展值" width="90" show-overflow-tooltip>
             <template #default="{ row }">{{ row.extValue || '-' }}</template>
           </el-table-column>
-          <el-table-column label="状态" width="70" align="center">
+          <el-table-column label="状态" width="62" align="center">
             <template #default="{ row }">
               <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
                 {{ row.status === 1 ? '启用' : '停用' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="remark" label="备注" min-width="110" show-overflow-tooltip />
-          <el-table-column label="操作" width="70" align="center">
+          <el-table-column prop="remark" label="备注" min-width="100" show-overflow-tooltip />
+          <el-table-column label="操作" width="62" align="center">
             <template #default="{ row }">
               <el-button
                 v-if="store.hasPerm('m1:dict:update')"

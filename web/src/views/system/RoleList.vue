@@ -44,7 +44,7 @@
         <el-tabs v-model="activeTab">
           <el-tab-pane label="功能权限" name="perm">
             <div class="perm-toolbar">
-              <span class="text-sub">按 M1 至 M12 模块分组，动作级权限点，勾选后保存立即生效</span>
+              <span class="text-sub">按功能模块分组，动作级权限点，勾选后保存立即生效</span>
               <div>
                 <el-button size="small" @click="checkAll(true)">全选</el-button>
                 <el-button size="small" @click="checkAll(false)">清空</el-button>

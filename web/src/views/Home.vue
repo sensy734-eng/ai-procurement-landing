@@ -14,7 +14,7 @@
       </el-button>
     </section>
 
-    <!-- 指标卡（M12-1-1）：只显示当前角色有权拿的指标，缺权限的指标项由后端不返回 -->
+    <!-- 指标卡：只显示当前角色有权拿的指标，缺权限的指标项由后端不返回 -->
     <section class="metric-grid">
       <div v-for="metric in overview?.metrics || []" :key="metric.key" class="metric-card page-card">
         <span class="metric-label">{{ metric.label }}</span>
@@ -26,7 +26,7 @@
       <div v-if="!overview?.metrics?.length" class="metric-card page-card muted">暂无指标</div>
     </section>
 
-    <!-- 维护入口聚合（M12-1-2）：五类入口按权限点过滤，无权限的整组不出现 -->
+    <!-- 维护入口聚合：五类入口按权限点过滤，无权限的整组不出现 -->
     <section class="entry-groups">
       <div v-for="group in overview?.groups || []" :key="group.key" class="group-card page-card">
         <header class="group-head">
@@ -50,18 +50,12 @@
       </div>
     </section>
 
+    <!-- 页脚只留环境信息：原来那一段「入口按权限点动态显示……不是页面缺项」
+         是写给评审看的解说词，属于答辩材料，不该出现在使用者每天打开的界面上。 -->
     <section class="footer-card page-card">
-      <h3>关于入口</h3>
-      <p class="text-sub">
-        入口按当前账号的权限点动态显示（M12-1-1）：没有权限的入口既不在菜单里，也不在首页出现。
-        例如物料、供应商、分类归采购员维护，系统管理员不持有这三类权限，
-        所以管理员的「基础数据」只保留仓库与库位——这是权限矩阵的设计结果，不是页面缺项。
-      </p>
-      <el-divider />
       <div class="env-row">
-        <span>后端 Spring Boot 3.5.16 / JDK 17</span>
-        <span>数据库 procurement_db，49 张表</span>
-        <span>会话落库，默认 8 小时滑动续期</span>
+        <span>采购管理系统</span>
+        <span>会话 8 小时滑动续期</span>
       </div>
     </section>
   </div>

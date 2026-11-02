@@ -2,8 +2,8 @@
   <div class="page-card arrival-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">到货验收</h2>
-        <p class="text-sub">P10｜M4 到货验收：到货登记、合格判定、让步接收与入库单生成</p>
+        <h2 class="page-title">到货验收<span class="page-code">M4</span></h2>
+        <p class="text-sub">到货登记、合格判定、让步接收与入库单生成</p>
       </div>
       <div class="actions">
         <el-button v-if="store.hasPerm('m4:inspection:create')" type="primary" :icon="Plus" @click="openRegister">
@@ -71,21 +71,22 @@
       type="info"
       :closable="false"
       show-icon
-      title="列表按数据范围过滤：仓管员只见管辖仓库的验收单（部门维度账号失败关闭返回空）；统计为跨仓库质量视角，归采购主管（M4-4-3）。"
+      title="列表按数据范围过滤：仓管员只见管辖仓库的验收单（部门维度账号失败关闭返回空）；统计为跨仓库质量视角，归采购主管。"
     />
 
     <el-table v-loading="loading" :data="rows" border stripe>
-      <el-table-column prop="inspectionNo" label="验收单号" width="185" fixed="left" />
-      <el-table-column prop="orderNo" label="来源订单" width="185" />
-      <el-table-column prop="supplierName" label="供应商" min-width="150" show-overflow-tooltip />
-      <el-table-column prop="warehouseName" label="收货仓库" width="100" />
-      <el-table-column prop="arrivalDate" label="到货日期" width="120" />
-      <el-table-column label="验收方式" width="90">
+      <!-- 列序按「先看结论、再看过程」排：单据号与来源在最左，合格/不合格与验收结果紧跟，
+           到货日期、仓库、制单人这些过程信息靠右。这样表格横向滚动时，
+           被 fixed 操作列遮住的是次要列而不是验收结论。 -->
+      <el-table-column prop="inspectionNo" label="验收单号" width="165" fixed="left" />
+      <el-table-column prop="orderNo" label="来源订单" width="165" />
+      <el-table-column prop="supplierName" label="供应商" min-width="140" show-overflow-tooltip />
+      <el-table-column label="合格 / 不合格" width="124">
         <template #default="{ row }">
-          <span>{{ row.inspectionModeName || '—' }}</span>
+          <span class="num-pair">{{ row.qualifiedQty }} / {{ row.unqualifiedQty }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="验收结果" width="110">
+      <el-table-column label="验收结果" width="100">
         <template #default="{ row }">
           <el-tag v-if="!row.inspectionResult" type="info" size="small">未判定</el-tag>
           <el-tag v-else-if="row.inspectionResult === 1" type="success" size="small">
@@ -97,59 +98,71 @@
           <el-tag v-else type="warning" size="small">{{ row.inspectionResultName }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="合格 / 不合格" width="150">
+      <el-table-column label="验收方式" width="88">
         <template #default="{ row }">
-          <span>{{ row.qualifiedQty }} / {{ row.unqualifiedQty }}</span>
+          <span>{{ row.inspectionModeName || '—' }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="单据状态" width="90">
+      <el-table-column label="单据状态" width="88">
         <template #default="{ row }">
           <el-tag :type="row.status === 2 ? 'success' : 'info'" size="small">
             {{ row.statusName }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="createdByName" label="制单人" width="90" />
-      <el-table-column label="操作" width="300" fixed="right">
+      <el-table-column prop="arrivalDate" label="到货日期" width="112" />
+      <el-table-column prop="warehouseName" label="收货仓库" width="92" />
+      <el-table-column prop="createdByName" label="制单人" width="84" />
+      <el-table-column label="操作" width="184" fixed="right">
         <template #default="{ row }">
           <el-button v-if="store.hasPerm('m4:inspection:view')" link type="primary" @click="openDetail(row)">
             详情
           </el-button>
           <el-button
-            v-if="store.hasPerm('m4:inspection:update') && row.status === 1"
-            link type="primary"
-            @click="openRegister(row)"
-          >
-            编辑
-          </el-button>
-          <el-button
             v-if="store.hasPerm('m4:inspection:submit') && row.status === 1"
-            link type="success"
+            link
+            type="primary"
             @click="submitBill(row)"
           >
             提交
           </el-button>
           <el-button
-            v-if="store.hasPerm('m4:inspection:concession') && row.status === 2"
-            link type="warning"
-            @click="openConcession(row)"
-          >
-            让步
-          </el-button>
-          <el-button
-            v-if="store.hasPerm('m4:inbound:generate') && row.status === 2"
-            link type="primary"
+            v-else-if="store.hasPerm('m4:inbound:generate') && row.status === 2"
+            link
+            type="primary"
             @click="openInbound(row)"
           >
             生成入库单
           </el-button>
-          <el-button
-            v-if="store.hasPerm('m4:inspection:create') && row.status === 1"
-            link type="danger"
-            @click="removeBill(row)"
-          >
-            删除
-          </el-button>
+
+          <el-dropdown trigger="click" class="more-actions">
+            <el-button link type="primary" title="更多操作" aria-label="更多操作">
+              <el-icon class="more-icon"><MoreFilled /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m4:inspection:update') && row.status === 1"
+                  @click="openRegister(row)"
+                >
+                  编辑验收单
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m4:inspection:concession') && row.status === 2"
+                  @click="openConcession(row)"
+                >
+                  让步接收
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m4:inspection:create') && row.status === 1"
+                  divided
+                  @click="removeBill(row)"
+                >
+                  删除草稿
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </template>
       </el-table-column>
     </el-table>
@@ -214,7 +227,7 @@
           <el-table-column prop="ownerNo" label="归属" width="110" show-overflow-tooltip />
         </el-table>
 
-        <h4 class="block-title">已生成的入库单草稿（多批次可有多张，确认入库在 M5）</h4>
+        <h4 class="block-title">已生成的入库单草稿（多批次可有多张，确认入库请到「采购入库」页）</h4>
         <el-table :data="detail.inboundOrders" border size="small">
           <el-table-column prop="inboundNo" label="入库单号" width="185" />
           <el-table-column prop="inboundDate" label="入库日期" width="120" />
@@ -234,7 +247,7 @@
       </template>
     </el-drawer>
 
-    <!-- 让步接收对话框（M4-2-4，整单动作） -->
+    <!-- 让步接收对话框（整单动作） -->
     <el-dialog v-model="concessionVisible" title="让步接收标记" width="480px">
       <el-alert type="warning" :closable="false" show-icon
         title="让步是整单动作：一单多行不能只让一行；打标后不合格数量也可生成入库单。" />
@@ -256,7 +269,7 @@
       </template>
     </el-dialog>
 
-    <!-- 生成入库单对话框（M4-3，缺省全量，改量即部分入库） -->
+    <!-- 生成入库单对话框（缺省全量，改量即部分入库） -->
     <el-dialog v-model="inboundVisible" title="生成入库单草稿" width="720px">
       <template v-if="current">
         <el-alert :closable="false" show-icon type="info"
@@ -292,7 +305,7 @@
       </template>
     </el-dialog>
 
-    <!-- 验收统计对话框（M4-4-3） -->
+    <!-- 验收统计对话框 -->
     <el-dialog v-model="statVisible" title="验收结果统计（按供应商）" width="720px">
       <el-form :inline="true" class="filter-bar" @submit.prevent>
         <el-form-item label="统计周期">
@@ -324,7 +337,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { DataLine, Plus, Refresh, Search } from '@element-plus/icons-vue'
+import { DataLine, MoreFilled, Plus, Refresh, Search } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import * as m4Api from '@/api/m4'
 import type { ArrivalItemRow, ArrivalRow, ArrivalStatRow } from '@/api/m4'
@@ -401,7 +414,7 @@ function openRegister(row?: ArrivalRow) {
   }
 }
 
-// ---------------- 提交（M4-2-5） ----------------
+// ---------------- 提交 ----------------
 
 async function submitBill(row: ArrivalRow) {
   await ElMessageBox.confirm(
@@ -427,7 +440,7 @@ async function removeBill(row: ArrivalRow) {
   load()
 }
 
-// ---------------- 让步接收（M4-2-4） ----------------
+// ---------------- 让步接收 ----------------
 
 const concessionVisible = ref(false)
 const current = ref<ArrivalRow | null>(null)
@@ -452,7 +465,7 @@ async function submitConcession(flag: boolean) {
   }
 }
 
-// ---------------- 生成入库单（M4-3） ----------------
+// ---------------- 生成入库单 ----------------
 
 const inboundVisible = ref(false)
 const inboundForm = reactive({ inboundDate: '', remark: '' })
@@ -483,7 +496,7 @@ async function submitInbound() {
       remark: inboundForm.remark || undefined,
       items
     })
-    ElMessage.success(`已生成入库单草稿（id=${id}），确认入库在 M5 采购入库`)
+    ElMessage.success(`已生成入库单草稿（id=${id}），确认入库请到「采购入库」页完成`)
     inboundVisible.value = false
     load()
   } finally {
@@ -491,7 +504,7 @@ async function submitInbound() {
   }
 }
 
-// ---------------- 验收统计（M4-4-3） ----------------
+// ---------------- 验收统计 ----------------
 
 const statVisible = ref(false)
 const statLoading = ref(false)
@@ -519,6 +532,21 @@ onMounted(load)
 </script>
 
 <style scoped>
+.more-actions {
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.more-icon {
+  font-size: 15px;
+  vertical-align: 2px;
+}
+
+/* 合格 / 不合格 是「数对数」的列，等宽字体才比得出来 */
+.num-pair {
+  font-variant-numeric: tabular-nums;
+}
+
 .block-title {
   margin: 18px 0 10px;
   font-size: 14px;

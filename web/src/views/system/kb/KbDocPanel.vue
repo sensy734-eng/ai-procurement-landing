@@ -54,7 +54,7 @@
       <el-table-column prop="uploadAt" label="上传时间" width="165">
         <template #default="{ row }">{{ formatTime(row.uploadAt) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="300" fixed="right">
+      <el-table-column label="操作" width="232" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openDetail(row)">详情</el-button>
           <el-button v-if="store.hasPerm('m10:document:parse')" link type="primary" @click="reparse(row)">重新解析</el-button>

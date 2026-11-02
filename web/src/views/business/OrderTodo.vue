@@ -2,8 +2,8 @@
   <div class="page-card todo-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">订单待办</h2>
-        <p class="text-sub">P9｜M3-3 订单审批：会签任务处理、通过与驳回</p>
+        <h2 class="page-title">订单待办<span class="page-code">M3</span></h2>
+        <p class="text-sub">会签任务处理、通过与驳回</p>
       </div>
       <div class="actions">
         <el-button :icon="Refresh" @click="reload(1)">刷新</el-button>
@@ -15,15 +15,15 @@
       type="info"
       :closable="false"
       show-icon
-      title="订单审批为单节点会签：两名采购主管全部通过才推进，任一驳回即整单驳回（M11-5-3）；待办同时按单据部门数据范围过滤。"
+      title="订单审批为单节点会签：两名采购主管全部通过才推进，任一驳回即整单驳回；待办同时按单据部门数据范围过滤。"
     />
 
     <el-table v-loading="loading" :data="rows" border stripe>
-      <el-table-column prop="billNo" label="订单号" width="185" fixed="left" />
-      <el-table-column prop="supplierName" label="供应商" min-width="160" show-overflow-tooltip />
+      <el-table-column prop="billNo" label="订单号" width="165" fixed="left" />
+      <el-table-column prop="supplierName" label="供应商" width="150" show-overflow-tooltip />
       <el-table-column prop="buyerName" label="采购员" width="90" />
       <el-table-column prop="orderDate" label="下单日期" width="120" />
-      <el-table-column label="交货期" width="130">
+      <el-table-column label="交货期" width="120">
         <template #default="{ row }">
           <span>{{ row.deliveryDate || '—' }}</span>
           <el-tag v-if="row.overdueDays > 0" type="danger" size="small" class="overdue-tag">
@@ -41,7 +41,7 @@
           <span>{{ row.itemCount }} 行</span>
         </template>
       </el-table-column>
-      <el-table-column label="审批节点" min-width="140">
+      <el-table-column label="审批节点" width="150" show-overflow-tooltip>
         <template #default="{ row }">
           <span>节点 {{ row.nodeSeq }}｜{{ row.nodeName }}</span>
         </template>
@@ -58,7 +58,7 @@
           {{ formatTime(row.createdTime) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column label="操作" width="176" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openDetail(row)">查看单据</el-button>
           <el-button link type="success" @click="openApprove(row)">通过</el-button>
@@ -139,7 +139,7 @@
       </template>
     </el-drawer>
 
-    <!-- 审批通过（M3-3-2） -->
+    <!-- 审批通过 -->
     <el-dialog v-model="approveVisible" title="审批通过" width="520px">
       <p>确认通过采购订单 <strong>{{ activeTodo?.billNo }}</strong> ？</p>
       <p class="dialog-hint">
@@ -151,7 +151,7 @@
       </template>
     </el-dialog>
 
-    <!-- 审批驳回（M3-3-3）：意见必填 -->
+    <!-- 审批驳回：意见必填 -->
     <el-dialog v-model="rejectVisible" title="审批驳回" width="520px">
       <el-form label-width="70px">
         <el-form-item label="驳回意见" required>

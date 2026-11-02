@@ -2,8 +2,8 @@
   <div class="page-card request-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">采购申请</h2>
-        <p class="text-sub">P5｜M2 申请单维护：草稿、明细行、审批流转与转订单</p>
+        <h2 class="page-title">采购申请<span class="page-code">M2</span></h2>
+        <p class="text-sub">草稿、明细行、审批流转与转订单</p>
       </div>
       <div class="actions">
         <el-button v-if="store.hasPerm('m2:request:create')" type="primary" :icon="Plus" @click="openCreate">
@@ -68,7 +68,7 @@
       type="info"
       :closable="false"
       show-icon
-      title="列表按数据范围过滤：采购员只见本部门单据，主管可见被授权部门；勾选已审核单据可批量转订单（M2-4）。"
+      title="列表按数据范围过滤：采购员只见本部门单据，主管可见被授权部门；勾选已审核单据可批量转订单。"
     />
 
     <el-table
@@ -108,59 +108,62 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="300" fixed="right">
+      <!-- 操作列：7 个动作平铺要 300px，会把「操作」推到卡片外。
+           改成「详情 + 当前状态下唯一能推进的动作」常显，其余收进 ⋯，宽 124 足够。 -->
+      <el-table-column label="操作" width="136" fixed="right">
         <template #default="{ row }">
           <el-button v-if="store.hasPerm('m2:request:view')" link type="primary" @click="openDetail(row)">
             详情
           </el-button>
           <el-button
-            v-if="store.hasPerm('m2:request:update') && row.lifecycleStatus !== 2 && row.lifecycleStatus !== 3"
-            link
-            type="primary"
-            @click="openEdit(row)"
-          >
-            维护明细
-          </el-button>
-          <el-button
             v-if="store.hasPerm('m2:request:submit') && (row.lifecycleStatus === 1 || row.auditStatus === 3)"
             link
-            type="success"
+            type="primary"
             @click="submitBill(row)"
           >
             提交
           </el-button>
           <el-button
-            v-if="store.hasPerm('m2:request:withdraw') && row.lifecycleStatus === 2"
+            v-else-if="store.hasPerm('m2:request:withdraw') && row.lifecycleStatus === 2"
             link
-            type="warning"
+            type="primary"
             @click="withdrawBill(row)"
           >
             撤回
           </el-button>
-          <el-button
-            v-if="store.hasPerm('m2:request:copy')"
-            link
-            type="primary"
-            @click="copyBill(row)"
-          >
-            复制
-          </el-button>
-          <el-button
-            v-if="store.hasPerm('m2:request:export')"
-            link
-            type="primary"
-            @click="downloadRequestCsv(row.id)"
-          >
-            导出
-          </el-button>
-          <el-button
-            v-if="store.hasPerm('m2:request:delete') && row.lifecycleStatus === 1"
-            link
-            type="danger"
-            @click="deleteBill(row)"
-          >
-            删除
-          </el-button>
+
+          <el-dropdown trigger="click" class="more-actions">
+            <el-button link type="primary" title="更多操作" aria-label="更多操作">
+              <el-icon class="more-icon"><MoreFilled /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m2:request:update') && row.lifecycleStatus !== 2 && row.lifecycleStatus !== 3"
+                  @click="openEdit(row)"
+                >
+                  维护明细
+                </el-dropdown-item>
+                <el-dropdown-item v-if="store.hasPerm('m2:request:copy')" @click="copyBill(row)">
+                  复制为新建
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m2:request:export')"
+                  divided
+                  @click="downloadRequestCsv(row.id)"
+                >
+                  导出明细
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m2:request:delete') && row.lifecycleStatus === 1"
+                  divided
+                  @click="deleteBill(row)"
+                >
+                  删除草稿
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </template>
       </el-table-column>
     </el-table>
@@ -176,7 +179,7 @@
       @size-change="onSizeChange"
     />
 
-    <!-- 详情抽屉：主表 + 明细 + 审批时间线（M2-3-6） -->
+    <!-- 详情抽屉：主表 + 明细 + 审批时间线 -->
     <el-drawer v-model="detailVisible" title="申请单详情" size="720px">
       <template v-if="detail">
         <el-descriptions :column="2" border>
@@ -258,13 +261,13 @@
       </template>
     </el-drawer>
 
-    <!-- 新建申请：主表 + 明细行编辑器（M2-1-2 / M2-2-1） -->
+    <!-- 新建申请：主表 + 明细行编辑器 -->
     <el-dialog v-model="createVisible" title="新建采购申请" width="980px" @close="resetCreateForm">
       <el-alert
         type="info"
         :closable="false"
         show-icon
-        title="先建草稿单，再逐行保存明细；明细行的物料、建议供应商必须在其供货范围内（M2-2-3）。"
+        title="先建草稿单，再逐行保存明细；明细行的物料、建议供应商必须在其供货范围内。"
         class="dialog-alert"
       />
       <el-form :model="createForm" label-width="90px">
@@ -362,7 +365,7 @@
       </template>
     </el-dialog>
 
-    <!-- 维护明细：草稿 / 已驳回单的明细行增删改（M2-1-3 / M2-2-2） -->
+    <!-- 维护明细：草稿 / 已驳回单的明细行增删改 -->
     <el-dialog v-model="editVisible" title="维护申请明细" width="980px">
       <template v-if="editBill">
         <el-descriptions :column="3" border size="small" class="edit-head">
@@ -485,13 +488,13 @@
       </template>
     </el-dialog>
 
-    <!-- 转订单：勾选已审核单与明细行（M2-4-1 / M2-4-2） -->
+    <!-- 转订单：勾选已审核单与明细行 -->
     <el-dialog v-model="transferVisible" title="申请转订单" width="900px">
       <el-alert
         type="warning"
         :closable="false"
         show-icon
-        title="仅已审核且指定了建议供应商的明细行可转订单；同一供应商的多行会合并为一张订单（M2-4-2）。"
+        title="仅已审核且指定了建议供应商的明细行可转订单；同一供应商的多行会合并为一张订单。"
         class="dialog-alert"
       />
       <div v-for="src in transferSources" :key="src.requestId" class="transfer-source">
@@ -532,7 +535,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Delete, Plus, Refresh, Search, Switch } from '@element-plus/icons-vue'
+import { Delete, MoreFilled, Plus, Refresh, Search, Switch } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import * as m2Api from '@/api/m2'
 import type { RequestItemRow, RequestRow, TodoRow } from '@/api/m2'
@@ -973,6 +976,16 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.more-actions {
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.more-icon {
+  font-size: 15px;
+  vertical-align: 2px;
+}
+
 .scope-alert {
   margin-bottom: 12px;
 }

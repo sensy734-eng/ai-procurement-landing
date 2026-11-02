@@ -3,7 +3,7 @@
     <header class="toolbar">
       <div>
         <h2 class="page-title">用户管理</h2>
-        <p class="text-sub">M11-2 用户维护与角色分配，列表按部门数据范围过滤</p>
+        <p class="text-sub">用户维护与角色分配，列表按部门数据范围过滤</p>
       </div>
       <div class="actions">
         <el-button v-if="store.hasPerm('m11:user:create')" type="primary" :icon="Plus" @click="openCreate">
@@ -148,7 +148,7 @@
     </el-dialog>
 
     <el-dialog v-model="roleVisible" title="分配角色" width="420px">
-      <p class="text-sub role-hint">M11-2-6 支持多角色，权限点取并集，数据范围取并集。</p>
+      <p class="text-sub role-hint">支持多角色，权限点取并集，数据范围取并集。</p>
       <el-checkbox-group v-model="roleSelection" class="role-group">
         <el-checkbox v-for="role in enabledRoles" :key="role.id" :value="role.id" :label="role.id">
           {{ role.roleName }}

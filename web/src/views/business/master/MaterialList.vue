@@ -2,8 +2,8 @@
   <div class="page-card material-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">物料档案</h2>
-        <p class="text-sub">P1｜M1-1 物料主数据：档案维护、启停、批量导入导出与分类树</p>
+        <h2 class="page-title">物料档案<span class="page-code">M1</span></h2>
+        <p class="text-sub">档案维护、启停、批量导入导出与分类树</p>
       </div>
       <div class="actions">
         <el-button v-if="store.hasPerm('m1:material:import')" :icon="Upload" @click="openImport">
@@ -212,7 +212,7 @@
 
     <!-- 分类维护 -->
     <el-dialog v-model="categoryVisible" title="物料分类维护" width="560px">
-      <p class="text-sub">M1-1-7：分类树供物料档案引用；上级不能是自身或子孙节点。计量单位在业务字典页按 unit 类型维护。</p>
+      <p class="text-sub">分类树供物料档案引用；上级不能是自身或子孙节点。计量单位在业务字典页按 unit 类型维护。</p>
       <div class="category-body">
         <el-tree
           :data="categories"

@@ -2,8 +2,8 @@
   <div class="page-card inbound-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">采购入库</h2>
-        <p class="text-sub">P12｜M5 采购入库：入库单维护、确认（库存唯一写入点）、作废与溯源</p>
+        <h2 class="page-title">采购入库<span class="page-code">M5</span></h2>
+        <p class="text-sub">入库单维护、确认（库存唯一写入点）、作废与溯源</p>
       </div>
       <div class="actions">
         <el-button v-if="store.hasPerm('m5:inbound:create')" type="primary" :icon="Plus" @click="openCreate">
@@ -57,7 +57,7 @@
       type="info"
       :closable="false"
       show-icon
-      title="列表按数据范围过滤：仓管员只见管辖仓库的入库单（部门维度账号失败关闭返回空）。确认入库是库存唯一写入点（R2）：同事务写余额、流水并回写订单已交付数量。"
+      title="列表按数据范围过滤：仓管员只见管辖仓库的入库单（部门维度账号失败关闭返回空）。确认入库是库存唯一写入点：同事务写余额、流水并回写订单已交付数量。"
     />
 
     <el-table v-loading="loading" :data="rows" border stripe>
@@ -83,39 +83,45 @@
         </template>
       </el-table-column>
       <el-table-column prop="createdByName" label="制单人" width="90" />
-      <el-table-column label="操作" width="330" fixed="right">
+      <el-table-column label="操作" width="172" fixed="right">
         <template #default="{ row }">
           <el-button v-if="store.hasPerm('m5:inbound:view')" link type="primary" @click="openDetail(row)">
             详情
           </el-button>
           <el-button
-            v-if="store.hasPerm('m5:inbound:update') && row.status === 1"
-            link type="primary"
-            @click="openEdit(row)"
-          >
-            编辑
-          </el-button>
-          <el-button
             v-if="store.hasPerm('m5:inbound:confirm') && row.status === 1"
-            link type="success"
+            link
+            type="primary"
             @click="confirmBill(row)"
           >
             确认入库
           </el-button>
-          <el-button
-            v-if="store.hasPerm('m5:inbound:trace')"
-            link type="primary"
-            @click="openTrace(row)"
-          >
-            溯源
-          </el-button>
-          <el-button
-            v-if="store.hasPerm('m5:inbound:void') && row.status !== 3"
-            link type="danger"
-            @click="openVoid(row)"
-          >
-            作废
-          </el-button>
+
+          <el-dropdown trigger="click" class="more-actions">
+            <el-button link type="primary" title="更多操作" aria-label="更多操作">
+              <el-icon class="more-icon"><MoreFilled /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m5:inbound:update') && row.status === 1"
+                  @click="openEdit(row)"
+                >
+                  编辑入库单
+                </el-dropdown-item>
+                <el-dropdown-item v-if="store.hasPerm('m5:inbound:trace')" @click="openTrace(row)">
+                  来源溯源
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m5:inbound:void') && row.status !== 3"
+                  divided
+                  @click="openVoid(row)"
+                >
+                  作废冲减
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </template>
       </el-table-column>
     </el-table>
@@ -199,7 +205,7 @@
       </template>
     </el-drawer>
 
-    <!-- 溯源对话框（M5-1-5） -->
+    <!-- 溯源对话框 -->
     <el-dialog v-model="traceVisible" title="入库单溯源" width="560px">
       <template v-if="traceData">
         <el-steps direction="vertical" :active="traceActive">
@@ -218,7 +224,7 @@
       </template>
     </el-dialog>
 
-    <!-- 作废对话框（M5-1-4，归采购主管） -->
+    <!-- 作废对话框（归采购主管） -->
     <el-dialog v-model="voidVisible" title="作废入库单" width="480px">
       <template v-if="current">
         <el-alert type="warning" :closable="false" show-icon
@@ -331,7 +337,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh, Search } from '@element-plus/icons-vue'
+import { MoreFilled, Plus, Refresh, Search } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import * as m5Api from '@/api/m5'
 import type { InboundRow, InboundItemRow, TraceChain } from '@/api/m5'
@@ -397,7 +403,7 @@ async function openDetail(row: InboundRow) {
   detailVisible.value = true
 }
 
-// ---------------- 溯源（M5-1-5） ----------------
+// ---------------- 溯源 ----------------
 
 const traceVisible = ref(false)
 const traceData = ref<TraceChain | null>(null)
@@ -412,7 +418,7 @@ async function openTrace(row: InboundRow) {
   traceVisible.value = true
 }
 
-// ---------------- 作废（M5-1-4） ----------------
+// ---------------- 作废 ----------------
 
 const voidVisible = ref(false)
 const current = ref<InboundRow | null>(null)
@@ -441,7 +447,7 @@ async function submitVoid() {
   }
 }
 
-// ---------------- 确认入库（M5-1-3，库存唯一写入点） ----------------
+// ---------------- 确认入库（库存唯一写入点） ----------------
 
 async function confirmBill(row: InboundRow) {
   await ElMessageBox.confirm(
@@ -454,7 +460,7 @@ async function confirmBill(row: InboundRow) {
   load()
 }
 
-// ---------------- 新建 / 编辑（M5-1-1） ----------------
+// ---------------- 新建 / 编辑 ----------------
 
 interface FormItem {
   orderItemId: number | null
@@ -678,6 +684,16 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.more-actions {
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.more-icon {
+  font-size: 15px;
+  vertical-align: 2px;
+}
+
 .block-title {
   margin: 18px 0 10px;
   font-size: 14px;

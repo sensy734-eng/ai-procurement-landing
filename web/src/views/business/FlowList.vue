@@ -2,8 +2,8 @@
   <div class="page-card flow-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">库存流水</h2>
-        <p class="text-sub">P14｜M5 库存流水：变动记录查询、来源单据回溯与余额对账（流水只由入库确认/作废写入）</p>
+        <h2 class="page-title">库存流水<span class="page-code">M5</span></h2>
+        <p class="text-sub">变动记录查询、来源单据回溯与余额对账</p>
       </div>
       <div class="actions">
         <el-button v-if="store.hasPerm('m5:flow:reconcile')" :icon="ScaleToOriginal" @click="openReconcile">
@@ -66,7 +66,7 @@
       type="info"
       :closable="false"
       show-icon
-      title="流水按数据范围过滤：仓管员只见管辖仓库的流水（部门维度账号失败关闭返回空）。每条分录记录变动前/后余额，是余额对账（M5-4-4）的依据。"
+      title="流水按数据范围过滤：仓管员只见管辖仓库的流水（部门维度账号失败关闭返回空）。每条分录记录变动前/后余额，是余额对账的依据。"
     />
 
     <el-table v-loading="loading" :data="rows" border stripe>
@@ -115,7 +115,7 @@
       />
     </div>
 
-    <!-- 来源单据回溯抽屉（M5-4-3） -->
+    <!-- 来源单据回溯抽屉 -->
     <el-drawer v-model="sourceVisible" title="来源单据回溯" size="60%">
       <template v-if="sourceBill">
         <el-descriptions :column="3" border>
@@ -147,7 +147,7 @@
       </template>
     </el-drawer>
 
-    <!-- 余额对账对话框（M5-4-4，归系统管理员） -->
+    <!-- 余额对账对话框（归系统管理员） -->
     <el-dialog v-model="reconcileVisible" title="余额与流水对账" width="860px">
       <el-form :inline="true" class="filter-bar" @submit.prevent>
         <el-form-item label="对账截止">
@@ -265,7 +265,7 @@ function resetQuery() {
   reload(1)
 }
 
-// ---------------- 来源单据回溯（M5-4-3） ----------------
+// ---------------- 来源单据回溯 ----------------
 
 const sourceVisible = ref(false)
 const sourceBill = ref<InboundRow | null>(null)
@@ -275,7 +275,7 @@ async function openSource(row: FlowRow) {
   sourceVisible.value = true
 }
 
-// ---------------- 余额对账（M5-4-4） ----------------
+// ---------------- 余额对账 ----------------
 
 const reconcileVisible = ref(false)
 const reconcileLoading = ref(false)

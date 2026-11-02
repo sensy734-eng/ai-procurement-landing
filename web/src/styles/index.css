@@ -1,20 +1,51 @@
+/*
+ * 全局视觉基线（工业管理软件风格）
+ *
+ * 设计取舍：这类系统的界面不承担表达欲，只承担「扫读」。所以
+ * — 只用一种主色（深钢蓝），其余全是中性灰；
+ * — 层次靠留白和一条极淡的分隔线，不靠阴影和边框堆叠；
+ * — 数字一律等宽对齐，金额与数量必须能竖着比大小；
+ * — 控件尺寸统一到 32px，表格行高压到 44px 换信息密度。
+ */
 :root {
   --brand: #1f4e79;
   --brand-dark: #12314f;
   --brand-light: #2e6da4;
-  --page-bg: #f5f7fa;
+  --page-bg: #f6f8fb;
   --card-bg: #ffffff;
-  --text-main: #1f2937;
-  --text-sub: #6b7280;
-  --border: #e4e7ed;
+  --text-main: #1f2a37;
+  --text-sub: #6b7684;
+  --text-mute: #98a2b3;
+  --border: #e6eaf0;
+  --border-strong: #d8dfe8;
+
+  /* 间距与圆角：整站只用这四档间距、两档圆角，避免各页各写一套 */
+  --gap-xs: 6px;
+  --gap-sm: 10px;
+  --gap-md: 16px;
+  --gap-lg: 24px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --shadow-card: 0 1px 2px rgba(16, 32, 53, 0.04);
+  --shadow-pop: 0 6px 20px rgba(16, 32, 53, 0.10);
 
   --el-color-primary: #1f4e79;
   --el-color-primary-light-3: #4a739c;
   --el-color-primary-light-5: #7c9ab8;
   --el-color-primary-light-7: #aec2d5;
   --el-color-primary-light-8: #c8d6e3;
-  --el-color-primary-light-9: #e3ebf2;
+  --el-color-primary-light-9: #e9eff5;
   --el-color-primary-dark-2: #16395a;
+
+  --el-border-radius-base: 6px;
+  --el-border-color: #dfe5ec;
+  --el-border-color-light: #e6eaf0;
+  --el-border-color-lighter: #eef1f6;
+  --el-font-size-base: 13px;
+  --el-text-color-primary: #1f2a37;
+  --el-text-color-regular: #46505e;
+  --el-text-color-secondary: #6b7684;
+  --el-fill-color-blank: #ffffff;
 }
 
 * {
@@ -30,10 +61,13 @@ body,
 }
 
 body {
-  font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
   color: var(--text-main);
   background: var(--page-bg);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
@@ -41,19 +75,347 @@ a {
   text-decoration: none;
 }
 
+/* ---------------------------------------------------------------- 版式骨架 */
+
+/* 内边距由各页面根类自己给（历史上已按页调过），这里只统一表面 */
 .page-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
 }
 
 .page-title {
+  margin: 0;
   font-size: 16px;
   font-weight: 600;
-  margin: 0;
+  letter-spacing: 0.2px;
+  color: var(--text-main);
 }
 
+/* 页面副标题：一句话说清这页能做什么，不写实现细节 */
 .text-sub {
+  margin: 5px 0 0;
   color: var(--text-sub);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* 模块编号徽章：留作答辩时指认功能点，视觉上退到标题后面 */
+.page-code {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-mute);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: "SF Mono", "Consolas", "Menlo", monospace;
+  vertical-align: 2px;
+  letter-spacing: 0;
+}
+
+/* 数字列：等宽 + 右对齐，金额和数量才比得出来 */
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ---------------------------------------------------------------- 表格 */
+
+.el-table {
   font-size: 13px;
+  --el-table-border-color: var(--border);
+  --el-table-header-bg-color: #fafbfc;
+  --el-table-row-hover-bg-color: #f4f8fc;
+}
+
+.el-table th.el-table__cell {
+  height: 38px;
+  padding: 0 !important;
+  background: var(--el-table-header-bg-color) !important;
+  font-weight: 600;
+  font-size: 12.5px;
+  color: #55616f;
+}
+
+.el-table td.el-table__cell {
+  height: 42px;
+  padding: 0 !important;
+  color: var(--text-main);
+}
+
+.el-table .cell {
+  padding: 0 10px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* 横向滚动条必须看得见：列多时 el-table 会横向滚动，而右侧 fixed 列会盖住
+ * 中间列，用户看到的是「金额被操作列压住」，以为列被截断。给滚动条加底色
+ * 之后，同样的布局读起来就是「表格可以往右拖」，性质完全不同。 */
+.el-table .el-scrollbar__bar.is-horizontal {
+  height: 8px;
+  opacity: 1;
+  background: rgba(16, 32, 53, 0.03);
+}
+
+.el-table .el-scrollbar__bar.is-horizontal > div {
+  background: #c3ccd8;
+}
+
+.el-table .el-scrollbar__bar.is-horizontal > div:hover {
+  background: #9caab9;
+}
+
+/* fixed 列与滚动区之间给一道投影，视觉上区分「钉住的」和「滚动的」 */
+.el-table--scrollable-x .el-table-fixed-column--right {
+  box-shadow: -6px 0 12px -8px rgba(16, 32, 53, 0.28);
+}
+
+.el-table--scrollable-x .el-table-fixed-column--left {
+  box-shadow: 6px 0 12px -8px rgba(16, 32, 53, 0.28);
+}
+
+/* 去掉竖分隔线：表格靠行分隔已经够清楚，竖线只会让表变碎 */
+.el-table--border .el-table__cell,
+.el-table td.el-table__cell,
+.el-table th.el-table__cell {
+  border-right: none;
+}
+
+/* 单元格内数字默认右对齐（列里全是数字时观感立刻整齐） */
+.el-table .el-table__cell .cell-num,
+.el-table .el-table__cell .num {
+  text-align: right;
+}
+
+.el-table__empty-block {
+  min-height: 120px;
+}
+
+.el-table__empty-text {
+  color: var(--text-mute);
+  font-size: 13px;
+}
+
+/* 表格里的链接型操作按钮：平时克制，hover 才显色 */
+.el-table .el-button.is-link {
+  padding: 0 2px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--brand);
+}
+
+.el-table .el-button.is-link + .el-button.is-link {
+  margin-left: 10px;
+}
+
+.el-table .el-button.is-link.is-danger,
+.el-table .el-button.is-link.el-button--danger {
+  color: var(--text-mute);
+}
+
+.el-table .el-button.is-link.is-danger:hover,
+.el-table .el-button.is-link.el-button--danger:hover {
+  color: var(--el-color-danger);
+}
+
+/* 分页容器：各页面统一右对齐、与表格留出 14px，避免分页贴着表格线 */
+.pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+/* 分页：右对齐、去掉多余边框 */
+.el-pagination {
+  --el-pagination-button-height: 28px;
+  --el-pagination-font-size: 13px;
+  font-weight: 500;
+}
+
+.el-pagination.is-background .el-pager li,
+.el-pagination.is-background .btn-prev,
+.el-pagination.is-background .btn-next {
+  border-radius: var(--radius-sm);
+}
+
+/* ---------------------------------------------------------------- 表单控件 */
+
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 1px var(--el-border-color) inset;
+}
+
+.el-input__wrapper:hover,
+.el-select__wrapper:hover {
+  box-shadow: 0 0 0 1px var(--border-strong) inset;
+}
+
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--brand) inset;
+}
+
+.el-input--default .el-input__wrapper,
+.el-select--default .el-select__wrapper {
+  min-height: 32px;
+}
+
+.el-form-item__label {
+  color: var(--text-sub);
+  font-size: 12.5px;
+}
+
+/* 行内筛选条：底部一条淡线区隔表格，而不是给整条加框 */
+.el-form--inline.filter-bar {
+  padding-bottom: 2px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.el-form--inline .el-form-item {
+  margin-right: 14px;
+  margin-bottom: 12px;
+}
+
+/* ---------------------------------------------------------------- 按钮 */
+
+.el-button {
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+}
+
+.el-button--default:not(.is-link):not(.is-text) {
+  color: var(--text-main);
+  border-color: var(--border-strong);
+}
+
+.el-button--default:not(.is-link):not(.is-text):hover {
+  color: var(--brand);
+  border-color: var(--el-color-primary-light-7);
+  background: var(--el-color-primary-light-9);
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--brand);
+  --el-button-border-color: var(--brand);
+  --el-button-hover-bg-color: var(--brand-light);
+  --el-button-hover-border-color: var(--brand-light);
+  --el-button-active-bg-color: var(--brand-dark);
+  --el-button-active-border-color: var(--brand-dark);
+}
+
+/* ---------------------------------------------------------------- 容器类组件 */
+
+.el-card {
+  border-radius: var(--radius-md);
+  border-color: var(--border);
+  box-shadow: var(--shadow-card) !important;
+}
+
+.el-dialog {
+  border-radius: 10px;
+  box-shadow: var(--shadow-pop);
+}
+
+.el-dialog__header {
+  padding: 18px 22px 14px;
+  margin-right: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.el-dialog__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.el-dialog__body {
+  padding: 18px 22px;
+}
+
+.el-dialog__footer {
+  padding: 12px 22px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.el-drawer__header {
+  padding: 16px 20px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-main);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.el-drawer__body {
+  padding: 18px 20px;
+}
+
+.el-tag {
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.el-alert {
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+}
+
+.el-alert__title {
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.el-descriptions__label {
+  color: var(--text-sub);
+  font-weight: 500;
+}
+
+.el-descriptions__content {
+  color: var(--text-main);
+}
+
+.el-tabs__item {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.el-tabs__nav-wrap::after {
+  height: 1px;
+  background: var(--border);
+}
+
+.el-divider {
+  border-color: var(--border);
+  margin: 16px 0;
+}
+
+.el-dropdown-menu__item {
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------------------- 滚动条 */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccd4de;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b3bdcb;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }

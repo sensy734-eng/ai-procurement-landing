@@ -4,7 +4,7 @@
       <div>
         <h2 class="page-title">助手对话</h2>
         <p class="text-sub">
-          M7 统一对话入口 · M8 制度与教程问答 · M9 受控数据查询（只读，不执行业务变更）
+          制度与教程问答、受控数据查询都在这里；只读，不改动任何业务单据
         </p>
       </div>
       <div class="toolbar-actions">
@@ -17,15 +17,16 @@
               :title="profile.scope.hint" />
 
     <div class="body">
-      <!-- 历史会话（M7-1-2） -->
+      <!-- 历史会话 -->
       <aside class="side">
         <div class="side-title">历史会话</div>
         <el-empty v-if="!sessions.length" description="暂无会话" :image-size="60" />
         <div v-for="session in sessions" :key="session.id" class="session"
              :class="{ active: session.id === currentSession }" @click="openSession(session.id)">
           <div class="session-title">{{ session.title }}</div>
+          <!-- 只留时间与条数：标题已经说明问了什么，再叠一个意图名是重复信息；
+               而意图编码（kb_tutorial_qa 这类）是内部标识，不该出现在界面上。 -->
           <div class="session-meta">
-            <span>{{ session.lastIntentName || session.lastIntentCode || '未识别' }}</span>
             <span>{{ session.messageCount }} 条 · {{ shortTime(session.lastTime) }}</span>
           </div>
         </div>
@@ -199,7 +200,7 @@ async function openSession(sessionId: number) {
   }
 }
 
-/** 历史消息还原成对话流；结构化结果从 result_json 快照恢复（M7-1-2） */
+/** 历史消息还原成对话流；结构化结果从 result_json 快照恢复 */
 function toItems(messages: AiMessage[]): ChatItem[] {
   const list: ChatItem[] = []
   let lastQuestion = ''
@@ -292,7 +293,7 @@ async function send(override?: { question?: string; intentCode?: string; params?
   }
 }
 
-/** 澄清选项点击：意图歧义带 intentCode，实体歧义与参数缺失带 params（M7-2-2 / M9-3-3） */
+/** 澄清选项点击：意图歧义带 intentCode，实体歧义与参数缺失带 params */
 async function pickOption(payload: { option: AiOption; clarify: string }) {
   const option = payload.option
   const params = (option.params || {}) as Record<string, unknown>

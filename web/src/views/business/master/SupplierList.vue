@@ -2,8 +2,8 @@
   <div class="page-card supplier-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">供应商档案</h2>
-        <p class="text-sub">P2｜M1-2 供应商主数据：档案、联系人、供货范围与资质附件</p>
+        <h2 class="page-title">供应商档案<span class="page-code">M1</span></h2>
+        <p class="text-sub">档案、联系人、供货范围与资质附件</p>
       </div>
       <div class="actions">
         <el-button v-if="store.hasPerm('m1:supplier:create')" type="primary" :icon="Plus" @click="openCreate">
@@ -45,7 +45,7 @@
       type="info"
       :closable="false"
       show-icon
-      title="供应商档案为共享主数据；停用后不可用于新订单（M1-2-3），存量单据不受影响。"
+      title="供应商档案为共享主数据；停用后不可用于新订单，存量单据不受影响。"
     />
 
     <el-table v-loading="loading" :data="rows" border stripe>
@@ -145,7 +145,7 @@
         </el-tab-pane>
 
         <el-tab-pane label="联系人" name="contacts">
-          <p class="text-sub">M1-2-4：一对多联系人整体保存，主联系人同一供应商至多一个。</p>
+          <p class="text-sub">一对多联系人整体保存，主联系人同一供应商至多一个。</p>
           <el-table :data="contacts" border size="small">
             <el-table-column label="主联系人" width="90" align="center">
               <template #default="{ row }">
@@ -187,7 +187,7 @@
         </el-tab-pane>
 
         <el-tab-pane label="供货范围" name="scopes">
-          <p class="text-sub">M1-2-6：按物料或物料分类授权供货范围，订单选择物料时据此提示，不做强制拦截。</p>
+          <p class="text-sub">按物料或物料分类授权供货范围，订单选择物料时据此提示，不做强制拦截。</p>
           <el-table :data="scopes" border size="small">
             <el-table-column label="范围类型" width="130">
               <template #default="{ row }">
@@ -229,7 +229,7 @@
         </el-tab-pane>
 
         <el-tab-pane label="资质附件" name="attachments">
-          <p class="text-sub">M1-2-5：仅支持 pdf、jpg、jpeg、png、docx，单个不超过 10MB；删除记录不删文件，保留审计依据。</p>
+          <p class="text-sub">仅支持 pdf、jpg、jpeg、png、docx，单个不超过 10MB；删除记录不删文件，保留审计依据。</p>
           <div class="upload-bar">
             <input ref="fileInput" type="file" accept=".pdf,.jpg,.jpeg,.png,.docx" hidden @change="onFilePicked" />
             <el-button :icon="Upload" :disabled="!form.id" @click="fileInput?.click()">选择文件</el-button>

@@ -2,8 +2,8 @@
   <div class="page-card warehouse-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">仓库与库位</h2>
-        <p class="text-sub">P3｜M1-3 仓库档案、库位与使用人对应关系（数据范围授权依据）</p>
+        <h2 class="page-title">仓库与库位<span class="page-code">M1</span></h2>
+        <p class="text-sub">仓库档案、库位与使用人对应关系</p>
       </div>
       <div class="actions">
         <el-button v-if="store.hasPerm('m1:warehouse:create')" type="primary" :icon="Plus" @click="openCreate">
@@ -161,7 +161,7 @@
 
     <!-- 使用人分配 -->
     <el-dialog v-model="userVisible" :title="`使用人分配 - ${currentWarehouse?.warehouseName || ''}`" width="560px">
-      <p class="text-sub">M1-3-3：整体替换该仓库的使用人；默认仓库使用人至多一个，且必须在列表中。</p>
+      <p class="text-sub">整体替换该仓库的使用人；默认仓库使用人至多一个，且必须在列表中。</p>
       <el-table
         ref="userTableRef"
         v-loading="userLoading"

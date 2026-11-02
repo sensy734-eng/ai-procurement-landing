@@ -2,8 +2,8 @@
   <div class="page-card price-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">价格参考</h2>
-        <p class="text-sub">P15｜M6：参考价维护与版本、成交价统计快照（参考价为手工治理基准，与当前供应商报价严格分离）</p>
+        <h2 class="page-title">价格参考<span class="page-code">M6</span></h2>
+        <p class="text-sub">参考价维护与版本、成交价统计快照</p>
       </div>
       <div class="actions">
         <el-button v-if="store.hasPerm('m6:param:config')" :icon="Refresh" @click="refreshStats">
@@ -16,7 +16,7 @@
     </header>
 
     <el-tabs v-model="activeTab" class="price-tabs">
-      <!-- 参考价维护（M6-1-1） -->
+      <!-- 参考价维护 -->
       <el-tab-pane label="参考价维护" name="reference">
         <el-form :inline="true" class="filter-bar" @submit.prevent>
           <el-form-item label="物料">
@@ -99,7 +99,7 @@
         </div>
       </el-tab-pane>
 
-      <!-- 成交统计（M6-1-2 / M6-1-3） -->
+      <!-- 成交统计 -->
       <el-tab-pane label="成交统计" name="stat">
         <el-alert class="scope-alert" type="info" :closable="false" show-icon
           title="统计快照由刷新任务写入、查询只读；均价按窗口内 Σ金额/Σ数量 加权计算，最近成交价带来源单号可溯源。无成交样本的物料不伪造数据。" />
@@ -147,7 +147,7 @@
         </el-table>
       </el-tab-pane>
 
-      <!-- 口径说明（M6-2） -->
+      <!-- 口径说明 -->
       <el-tab-pane label="口径说明" name="rule">
         <el-descriptions :column="1" border>
           <el-descriptions-item label="偏离率">
@@ -172,7 +172,7 @@
       </el-tab-pane>
     </el-tabs>
 
-    <!-- 新建 / 编辑对话框（M6-1-1） -->
+    <!-- 新建 / 编辑对话框 -->
     <el-dialog
       v-model="formVisible"
       :title="editingId ? '编辑参考价' : '新建参考价'"
@@ -214,7 +214,7 @@
       </template>
     </el-dialog>
 
-    <!-- 详情抽屉：版本历史（M6-1-1） -->
+    <!-- 详情抽屉：版本历史 -->
     <el-drawer v-model="detailVisible" title="参考价详情与版本历史" size="560px">
       <template v-if="detail">
         <el-descriptions :column="2" border>
@@ -270,7 +270,7 @@ const store = useUserStore()
 
 const materialOptions = ref<{ id: number; materialNo: string; materialName: string }[]>([])
 
-// ---------------- 参考价（M6-1-1） ----------------
+// ---------------- 参考价 ----------------
 
 const activeTab = ref('reference')
 const referenceLoading = ref(false)
@@ -306,7 +306,7 @@ function resetReferenceQuery() {
   loadReferences(1)
 }
 
-// ---------------- 成交统计（M6-1-2 / M6-1-3） ----------------
+// ---------------- 成交统计 ----------------
 
 const statLoading = ref(false)
 const statRows = ref<PriceStatRow[]>([])
@@ -346,7 +346,7 @@ function deviationClass(rate: number) {
   return 'dev-normal'
 }
 
-// ---------------- 新建 / 编辑（M6-1-1） ----------------
+// ---------------- 新建 / 编辑 ----------------
 
 const formVisible = ref(false)
 const saving = ref(false)

@@ -2,8 +2,8 @@
   <div class="page-card order-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">采购订单</h2>
-        <p class="text-sub">P7｜M3 订单管理：草稿维护、会签审批、变更留痕与履约跟踪</p>
+        <h2 class="page-title">采购订单<span class="page-code">M3</span></h2>
+        <p class="text-sub">草稿维护、会签审批、变更留痕与履约跟踪</p>
       </div>
       <div class="actions">
         <el-button v-if="store.hasPerm('m3:order:create')" type="primary" :icon="Plus" @click="openCreate">
@@ -92,16 +92,16 @@
       type="info"
       :closable="false"
       show-icon
-      title="列表按数据范围过滤：采购员只见本部门订单，主管可见被授权部门；超期天数为服务端按交货期与当前日期计算（M3-5-4）。"
+      title="列表按数据范围过滤：采购员只见本部门订单，主管可见被授权部门；超期天数为服务端按交货期与当前日期计算。"
     />
 
     <el-table v-loading="loading" :data="rows" border stripe>
-      <el-table-column prop="orderNo" label="订单号" width="185" fixed="left" />
-      <el-table-column prop="orderDate" label="下单日期" width="120" />
-      <el-table-column prop="supplierName" label="供应商" min-width="160" show-overflow-tooltip />
-      <el-table-column prop="buyerName" label="采购员" width="90" />
-      <el-table-column prop="deptName" label="部门" width="90" />
-      <el-table-column label="交货期" width="130">
+      <el-table-column prop="orderNo" label="订单号" width="172" fixed="left" show-overflow-tooltip />
+      <el-table-column prop="orderDate" label="下单日期" width="108" />
+      <el-table-column prop="supplierName" label="供应商" min-width="150" show-overflow-tooltip />
+      <el-table-column prop="buyerName" label="采购员" width="84" />
+      <el-table-column prop="deptName" label="部门" width="84" />
+      <el-table-column label="交货期" width="114">
         <template #default="{ row }">
           <span>{{ row.deliveryDate || '—' }}</span>
           <el-tag v-if="row.overdueDays > 0" type="danger" size="small" class="overdue-tag">
@@ -109,36 +109,36 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="数量" width="100" align="right">
+      <el-table-column label="数量" width="88" align="right">
         <template #default="{ row }">{{ row.totalQty }}</template>
       </el-table-column>
-      <el-table-column label="含税金额" width="120" align="right">
+      <el-table-column label="含税金额" width="110" align="right">
         <template #default="{ row }">
           <span>¥{{ formatAmount(row.totalAmount) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="生命周期" width="90" align="center">
+      <el-table-column label="生命周期" width="84" align="center">
         <template #default="{ row }">
           <el-tag :type="lifecycleTagType(row.lifecycleStatus)" size="small">
             {{ row.lifecycleStatusName }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="审核" width="90" align="center">
+      <el-table-column label="审核" width="84" align="center">
         <template #default="{ row }">
           <el-tag :type="auditTagType(row.auditStatus)" size="small">
             {{ row.auditStatusName }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="履约" width="90" align="center">
+      <el-table-column label="履约" width="84" align="center">
         <template #default="{ row }">
           <el-tag :type="fulfillTagType(row.fulfillStatus)" size="small">
             {{ row.fulfillStatusName }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="偏离" width="90" align="center">
+      <el-table-column label="偏离" width="84" align="center">
         <template #default="{ row }">
           <el-tag v-if="row.deviationFlag > 0" :type="deviationTagType(row.deviationFlag)" size="small">
             {{ deviationName(row.deviationFlag) }}
@@ -146,94 +146,104 @@
           <span v-else class="text-sub">正常</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="410" fixed="right">
+      <!-- 操作列：12 个动作平铺要 410px，会把「含税金额」压到 fixed 列下面。
+           改成「详情 + 当前状态下唯一可推进的动作」常显，其余收进更多，
+           列宽 150px 足够；动作本身与权限条件一个都没少。 -->
+      <el-table-column label="操作" width="188" fixed="right">
         <template #default="{ row }">
-          <el-button v-if="store.hasPerm('m6:evidence:view')" link type="primary" @click="openEvidence(row)">
-            价格证据
-          </el-button>
           <el-button v-if="store.hasPerm('m3:order:view')" link type="primary" @click="openDetail(row)">
             详情
           </el-button>
           <el-button
-            v-if="store.hasPerm('m3:order:update') && row.lifecycleStatus === 1"
-            link
-            type="primary"
-            @click="openEdit(row)"
-          >
-            维护明细
-          </el-button>
-          <el-button
             v-if="store.hasPerm('m3:order:submit') && row.lifecycleStatus === 1"
             link
-            type="success"
+            type="primary"
             @click="submitBill(row)"
           >
             提交
           </el-button>
           <el-button
-            v-if="store.hasPerm('m3:order:withdraw') && row.lifecycleStatus === 2"
-            link
-            type="warning"
-            @click="withdrawBill(row)"
-          >
-            撤回
-          </el-button>
-          <el-button
-            v-if="store.hasPerm('m3:order_change:create') && row.lifecycleStatus === 3"
+            v-if="
+              store.hasPerm('m3:delivery:register') &&
+              (row.lifecycleStatus === 3 || row.lifecycleStatus === 4) &&
+              row.items.some((i) => i.remainingQty > 0 && i.itemFulfillStatus !== 4)
+            "
             link
             type="primary"
-            @click="openChange(row)"
-          >
-            变更登记
-          </el-button>
-          <el-button
-            v-if="store.hasPerm('m3:delivery:register') && (row.lifecycleStatus === 3 || row.lifecycleStatus === 4) && row.items.some((i) => i.remainingQty > 0 && i.itemFulfillStatus !== 4)"
-            link
-            type="success"
             @click="openDelivery(row)"
           >
             交付登记
           </el-button>
-          <el-button
-            v-if="store.hasPerm('m3:order_item:close') && row.lifecycleStatus === 3 && row.items.some((i) => i.itemFulfillStatus !== 4)"
-            link
-            type="warning"
-            @click="openCloseItems(row)"
-          >
-            按行关闭
-          </el-button>
-          <el-button
-            v-if="store.hasPerm('m3:order:close') && row.lifecycleStatus === 3"
-            link
-            type="danger"
-            @click="closeBill(row)"
-          >
-            关闭
-          </el-button>
-          <el-button
-            v-if="store.hasPerm('m3:order:void') && (row.lifecycleStatus === 2 || row.lifecycleStatus === 3)"
-            link
-            type="danger"
-            @click="voidBill(row)"
-          >
-            作废
-          </el-button>
-          <el-button
-            v-if="store.hasPerm('m3:order:reaudit') && row.lifecycleStatus === 3"
-            link
-            type="danger"
-            @click="openReaudit(row)"
-          >
-            反审
-          </el-button>
-          <el-button
-            v-if="store.hasPerm('m3:order:export')"
-            link
-            type="primary"
-            @click="downloadOrderCsv(row.id)"
-          >
-            导出
-          </el-button>
+
+          <el-dropdown trigger="click" class="more-actions">
+            <el-button link type="primary" title="更多操作" aria-label="更多操作">
+              <el-icon class="more-icon"><MoreFilled /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m6:evidence:view')"
+                  @click="openEvidence(row)"
+                >
+                  价格证据
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m3:order:update') && row.lifecycleStatus === 1"
+                  @click="openEdit(row)"
+                >
+                  维护明细
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m3:order:withdraw') && row.lifecycleStatus === 2"
+                  @click="withdrawBill(row)"
+                >
+                  撤回提交
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m3:order_change:create') && row.lifecycleStatus === 3"
+                  @click="openChange(row)"
+                >
+                  变更登记
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="
+                    store.hasPerm('m3:order_item:close') &&
+                    row.lifecycleStatus === 3 &&
+                    row.items.some((i) => i.itemFulfillStatus !== 4)
+                  "
+                  @click="openCloseItems(row)"
+                >
+                  按行关闭
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m3:order:export')"
+                  divided
+                  @click="downloadOrderCsv(row.id)"
+                >
+                  导出明细
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m3:order:close') && row.lifecycleStatus === 3"
+                  divided
+                  @click="closeBill(row)"
+                >
+                  关闭订单
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m3:order:void') && (row.lifecycleStatus === 2 || row.lifecycleStatus === 3)"
+                  @click="voidBill(row)"
+                >
+                  作废订单
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="store.hasPerm('m3:order:reaudit') && row.lifecycleStatus === 3"
+                  @click="openReaudit(row)"
+                >
+                  反审
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </template>
       </el-table-column>
     </el-table>
@@ -438,7 +448,7 @@
       </template>
     </el-drawer>
 
-    <!-- 溯源：来源申请单详情（M3-1-1） -->
+    <!-- 溯源：来源申请单详情 -->
     <el-drawer v-model="traceVisible" title="订单溯源：来源申请单" size="720px">
       <template v-if="traceBill">
         <el-descriptions :column="2" border>
@@ -464,13 +474,13 @@
       </template>
     </el-drawer>
 
-    <!-- 新建订单：主表 + 明细行编辑器（M3-1-2 / M3-2-1） -->
+    <!-- 新建订单：主表 + 明细行编辑器 -->
     <el-dialog v-model="createVisible" title="新建采购订单" width="1020px" @close="resetCreateForm">
       <el-alert
         type="info"
         :closable="false"
         show-icon
-        title="先建草稿单，再逐行保存明细；明细行的物料必须在所选供应商的供货范围内（M3-2-3）。"
+        title="先建草稿单，再逐行保存明细；明细行的物料必须在所选供应商的供货范围内。"
         class="dialog-alert"
       />
       <el-form :model="createForm" label-width="90px" class="create-head">
@@ -600,7 +610,7 @@
       </template>
     </el-dialog>
 
-    <!-- 维护明细：草稿单的主表与明细行增删改（M3-1-4 / M3-2-2） -->
+    <!-- 维护明细：草稿单的主表与明细行增删改 -->
     <el-dialog v-model="editVisible" title="维护订单明细" width="1020px">
       <template v-if="editBill">
         <el-descriptions :column="3" border size="small" class="edit-head">
@@ -717,13 +727,13 @@
       </template>
     </el-dialog>
 
-    <!-- 由申请单生成（M3-1-3） -->
+    <!-- 由申请单生成 -->
     <el-dialog v-model="fromRequestVisible" title="由申请单生成订单" width="760px">
       <el-alert
         type="info"
         :closable="false"
         show-icon
-        title="仅已审核且指定了建议供应商的申请单可转订单；生成的订单为草稿，明细与归属对象随申请单带入（M3-1-3）。"
+        title="仅已审核且指定了建议供应商的申请单可转订单；生成的订单为草稿，明细与归属对象随申请单带入。"
         class="dialog-alert"
       />
       <el-table
@@ -753,14 +763,14 @@
       </template>
     </el-dialog>
 
-    <!-- 变更登记（M3-4-1）：行级 / 整单级，前后值留痕 -->
+    <!-- 变更登记：行级 / 整单级，前后值留痕 -->
     <el-dialog v-model="changeVisible" title="订单变更登记" width="640px">
       <template v-if="changeBill">
         <el-alert
           type="warning"
           :closable="false"
           show-icon
-          title="变更登记用于已审核订单的数量、单价、交期、地点与结算方式调整；系统逐字段比对前后值写入变更历史（M3-4-1）。"
+          title="变更登记用于已审核订单的数量、单价、交期、地点与结算方式调整；系统逐字段比对前后值写入变更历史。"
           class="dialog-alert"
         />
         <el-form label-width="90px">
@@ -820,14 +830,14 @@
       </template>
     </el-dialog>
 
-    <!-- 交付登记（M3-5-1）：累计不超过订单行数量 -->
+    <!-- 交付登记：累计不超过订单行数量 -->
     <el-dialog v-model="deliveryVisible" title="交付进度登记" width="600px">
       <template v-if="deliveryBill">
         <el-alert
           type="info"
           :closable="false"
           show-icon
-          title="交付登记只写履约流水；已交付数量由入库单确认回写（M3-5-1，库存唯一写入点为入库确认）。"
+          title="交付登记只写履约流水；已交付数量由入库单确认回写（库存唯一写入点为入库确认）。"
           class="dialog-alert"
         />
         <el-form label-width="90px">
@@ -869,14 +879,14 @@
       </template>
     </el-dialog>
 
-    <!-- 按行关闭（M3-2-4） -->
+    <!-- 按行关闭 -->
     <el-dialog v-model="closeItemsVisible" title="按行关闭" width="680px">
       <template v-if="closeItemsBill">
         <el-alert
           type="warning"
           :closable="false"
           show-icon
-          title="勾选的明细行剩余数量不再要求交付，行履约状态置已关闭；全部行关闭后主单履约状态重算为已关闭（M3-2-4）。"
+          title="勾选的明细行剩余数量不再要求交付，行履约状态置已关闭；全部行关闭后主单履约状态重算为已关闭。"
           class="dialog-alert"
         />
         <el-table
@@ -911,7 +921,7 @@
       </template>
     </el-dialog>
 
-    <!-- 整单关闭（M3-3-6）：原因必填 -->
+    <!-- 整单关闭：原因必填 -->
     <el-dialog v-model="closeVisible" title="关闭订单" width="520px">
       <el-form label-width="70px">
         <el-form-item label="关闭原因" required>
@@ -931,7 +941,7 @@
       </template>
     </el-dialog>
 
-    <!-- 反审（M3-3-5）：仅系统管理员，需二次确认 -->
+    <!-- 反审：仅系统管理员，需二次确认 -->
     <el-dialog v-model="reauditVisible" title="反审（撤销审核）" width="560px">
       <el-alert
         type="error"
@@ -958,7 +968,7 @@
       </template>
     </el-dialog>
 
-    <!-- 交付汇总（M3-5-5） -->
+    <!-- 交付汇总 -->
     <el-dialog v-model="summaryVisible" title="交付汇总" width="900px">
       <div class="summary-filter">
         <el-date-picker
@@ -1001,7 +1011,7 @@
       </div>
       <el-empty v-if="!summaryLoading && !summaryRows.length" description="日期范围内暂无已审核订单" :image-size="60" />
     </el-dialog>
-    <!-- 价格证据面板（M6-4-1）：审批辅助一屏展示单价/参考价/偏离/历史成交 -->
+    <!-- 价格证据面板：审批辅助一屏展示单价/参考价/偏离/历史成交 -->
     <el-drawer v-model="evidenceVisible" title="价格证据（审批辅助）" size="860px">
       <template v-if="evidence">
         <el-descriptions :column="3" border>
@@ -1071,7 +1081,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Connection, DataLine, Delete, Plus, Refresh, Right, Search, Switch } from '@element-plus/icons-vue'
+import { Connection, DataLine, Delete, MoreFilled, Plus, Refresh, Right, Search, Switch } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import * as m3Api from '@/api/m3'
 import type { DeliverySummaryRow, OrderItemRow, OrderRow } from '@/api/m3'
@@ -1769,7 +1779,7 @@ async function loadSummary() {
   }
 }
 
-// ---------------- 价格证据（M6-4-1） ----------------
+// ---------------- 价格证据 ----------------
 
 const evidenceVisible = ref(false)
 const evidenceLoading = ref(false)
@@ -1799,6 +1809,17 @@ onMounted(() => {  loadOptions()
 </script>
 
 <style scoped>
+/* 操作列的「更多」：与相邻的 link 按钮对齐成一行，不额外撑高行 */
+.more-actions {
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.more-icon {
+  font-size: 15px;
+  vertical-align: 2px;
+}
+
 .scope-alert {
   margin-bottom: 12px;
 }

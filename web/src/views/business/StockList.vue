@@ -2,8 +2,8 @@
   <div class="page-card stock-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">库存台账</h2>
-        <p class="text-sub">P13｜M5 库存：余额与可用量、归属分组、预警与批次追溯（库存只读，写入在入库确认）</p>
+        <h2 class="page-title">库存台账<span class="page-code">M5</span></h2>
+        <p class="text-sub">余额与可用量、归属分组、预警与批次追溯</p>
       </div>
       <div class="actions">
         <el-button v-if="store.hasPerm('m5:stock:available')" :icon="Search" @click="availableVisible = true">
@@ -19,7 +19,7 @@
     </header>
 
     <el-tabs v-model="activeTab" class="stock-tabs">
-      <!-- 库存余额（M5-3-1） -->
+      <!-- 库存余额 -->
       <el-tab-pane label="库存余额" name="balance">
         <el-form :inline="true" class="filter-bar" @submit.prevent>
           <el-form-item label="物料关键字">
@@ -77,7 +77,7 @@
         </div>
       </el-tab-pane>
 
-      <!-- 归属分组（M5-3-3） -->
+      <!-- 归属分组 -->
       <el-tab-pane label="归属分组" name="owner">
         <el-alert class="scope-alert" type="info" :closable="false" show-icon
           title="公共库存与项目/工单库存分开呈现；每行展开该归属下的批次明细（批次展开见 M5-2-3 追溯）。" />
@@ -124,7 +124,7 @@
         </div>
       </el-tab-pane>
 
-      <!-- 库存预警（M5-5-1 / M5-5-2） -->
+      <!-- 库存预警 -->
       <el-tab-pane label="库存预警" name="alert">
         <el-alert class="scope-alert" type="warning" :closable="false" show-icon
           title="可用量低于物料预警下限即列入短缺；缺口 = 预警下限 − 可用量（现算不落库）。" />
@@ -162,7 +162,7 @@
       </el-tab-pane>
     </el-tabs>
 
-    <!-- 可用量查询对话框（M5-3-2） -->
+    <!-- 可用量查询对话框 -->
     <el-dialog v-model="availableVisible" title="可用量查询" width="480px">
       <el-form label-width="80px" class="dialog-form">
         <el-form-item label="物料" required>
@@ -191,10 +191,10 @@
         </el-descriptions-item>
       </el-descriptions>
       <el-alert type="info" :closable="false" show-icon style="margin-top: 12px"
-        title="可用量 = 库存数量 − 冻结 − 预留（R3），查询时现算，不落库。" />
+        title="可用量 = 库存数量 − 冻结 − 预留，查询时现算，不落库。" />
     </el-dialog>
 
-    <!-- 批次追溯对话框（M5-2-3） -->
+    <!-- 批次追溯对话框 -->
     <el-dialog v-model="traceVisible" title="批次追溯" width="760px">
       <el-form :inline="true" class="filter-bar" @submit.prevent>
         <el-form-item label="批次号">
@@ -248,7 +248,7 @@ const store = useUserStore()
 const warehouseOptions = ref<{ id: number; warehouseNo: string; warehouseName: string }[]>([])
 const materialOptions = ref<{ id: number; materialNo: string; materialName: string; unitId: number; unitName: string }[]>([])
 
-// ---------------- 库存余额（M5-3-1） ----------------
+// ---------------- 库存余额 ----------------
 
 const activeTab = ref('balance')
 const balanceLoading = ref(false)
@@ -298,7 +298,7 @@ function exportCsv() {
   }))
 }
 
-// ---------------- 归属分组（M5-3-3） ----------------
+// ---------------- 归属分组 ----------------
 
 const ownerLoading = ref(false)
 const ownerRows = ref<StockBalanceRow[]>([])
@@ -323,7 +323,7 @@ async function loadOwner(pageNo?: number) {
   }
 }
 
-// ---------------- 库存预警（M5-5-1 / M5-5-2） ----------------
+// ---------------- 库存预警 ----------------
 
 const alertLoading = ref(false)
 const alertRows = ref<StockAlertRow[]>([])
@@ -340,7 +340,7 @@ async function loadAlert() {
   }
 }
 
-// ---------------- 可用量查询（M5-3-2） ----------------
+// ---------------- 可用量查询 ----------------
 
 const availableVisible = ref(false)
 const availableLoading = ref(false)
@@ -366,7 +366,7 @@ async function queryAvailable() {
   }
 }
 
-// ---------------- 批次追溯（M5-2-3） ----------------
+// ---------------- 批次追溯 ----------------
 
 const traceVisible = ref(false)
 const traceLoading = ref(false)

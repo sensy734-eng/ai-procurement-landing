@@ -2,10 +2,9 @@
   <div class="page-card dashboard-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">采购运营仪表盘</h2>
+        <h2 class="page-title">采购运营仪表盘<span class="page-code">M12</span></h2>
         <p class="text-sub">
-          P26｜M12-3：四图共用一套筛选条件联动刷新；金额类只统计已审核及之后的订单，
-          库存不足与 M5 库存预警同一判定
+          四个图共用一套筛选条件联动刷新；金额只统计已审核及之后的订单，库存不足与库存预警同一判定
         </p>
       </div>
       <div class="actions">
@@ -44,13 +43,13 @@
       </el-form-item>
     </el-form>
 
-    <!-- 四张图（M12-3-1 至 M12-3-4） -->
+    <!-- 四张图 -->
     <section class="chart-grid">
       <div class="chart-card">
         <div class="chart-head">
           <div>
             <h3>采购订单状态分布</h3>
-            <p class="text-sub">M12-3-1｜三状态字段组合成五个业务桶，草稿与作废不计入</p>
+            <p class="text-sub">三状态字段组合成五个业务桶，草稿与作废不计入</p>
           </div>
           <el-tag v-if="status" size="small" type="info" effect="plain">
             {{ status.orderCount }} 单 · {{ formatMoney(status.amount) }} 元
@@ -70,7 +69,7 @@
         <div class="chart-head">
           <div>
             <h3>采购金额月度趋势</h3>
-            <p class="text-sub">M12-3-2｜已审核及之后订单按月汇总，缺月补零</p>
+            <p class="text-sub">已审核及之后订单按月汇总，缺月补零</p>
           </div>
           <el-tag v-if="trend" size="small" type="info" effect="plain">
             合计 {{ formatMoney(trend.totalAmount) }} 元
@@ -85,7 +84,7 @@
         <div class="chart-head">
           <div>
             <h3>供应商采购金额排名</h3>
-            <p class="text-sub">M12-3-3｜Top-{{ topN }}，占比分母是区间全部已成交金额</p>
+            <p class="text-sub">Top-{{ topN }}，占比分母是区间全部已成交金额</p>
           </div>
           <el-select v-model="topN" size="small" style="width: 92px" @change="loadSupplier">
             <el-option v-for="n in [5, 10, 20]" :key="n" :label="'Top ' + n" :value="n" />
@@ -102,7 +101,7 @@
         <div class="chart-head">
           <div>
             <h3>库存不足物料</h3>
-            <p class="text-sub">M12-3-4｜可用量低于预警下限，缺口 = 下限 − 可用量</p>
+            <p class="text-sub">可用量低于预警下限，缺口 = 下限 − 可用量</p>
           </div>
           <div v-if="alertData" class="alert-metric">
             <span class="metric-value">{{ alertData.materialCount }}</span>
@@ -123,7 +122,7 @@
       <div class="summary-head">
         <div>
           <h3>汇总查询</h3>
-          <p class="text-sub">M12-2-1 / M12-2-2｜与上方图表同口径，可切换分组维度并导出 CSV</p>
+          <p class="text-sub">与上方图表同口径，可切换分组维度并导出 CSV</p>
         </div>
         <div class="summary-actions">
           <el-radio-group v-model="summaryType" size="small" @change="onSummaryTypeChange">

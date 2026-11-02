@@ -19,7 +19,21 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 受控查询流水线（M9 全流程）：意图 → 实体归一 → 参数提取 → 白名单校验 → 执行 → 转述。
+ * 受控查询流水线（M9 全流程）：理解 → 实体归一 → 参数提取 → 白名单校验 → 执行 → 转述。
+ *
+ * 两档处理（这是本类的核心结构）：
+ *
+ * **模型档**：{@link LlmQueryPlanner} 一次调用同时产出意图、实体指称、查询参数与时间归一。
+ * 这一步替换掉的是「规则最到不了」的三处——正则抽不出「近三个月」的中文数字、
+ * 字符串匹配认不出「螺栓」就是「内六角螺栓」、contains 认不出「签了没」是审批状态。
+ *
+ * **降级档**：模型未配置、调用失败、输出不可解析、编码不在白名单、自评置信度低于阈值，
+ * 任一情况走 {@link IntentClassifier} + {@link ParamExtractor} + {@link EntityNormalizer}
+ * 的规则链路，行为与未接入模型时逐条一致。
+ *
+ * 两档共用同一道裁决：模型给的东西不被信任，实体编号要撞库、参数要过四道闸、
+ * 意图要在启用清单内、数据范围由后端注入。模型说错话的代价是「按错意图查了一次受限数据」，
+ * 而不是「绕过权限查了全表」。
  *
  * 每一步都可能中断并返回非 Success 结果码，且中断原因都以澄清选项或说明文字返回，
  * 不抛异常黑箱：用户看到的是「系统为什么不能查」，而不是一句参数错误。
@@ -33,29 +47,47 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
     private final ParamValidator validator;
     private final EntityNormalizer normalizer;
     private final DataQueryExecutor executor;
-    private final LlmIntentAdvisor intentAdvisor;
+    private final LlmQueryPlanner planner;
 
     public ControlledQueryPipeline(AiIntentCatalog catalog, IntentClassifier classifier,
                                    ParamExtractor extractor, ParamValidator validator,
                                    EntityNormalizer normalizer, DataQueryExecutor executor,
-                                   LlmIntentAdvisor intentAdvisor) {
+                                   LlmQueryPlanner planner) {
         this.catalog = catalog;
         this.classifier = classifier;
         this.extractor = extractor;
         this.validator = validator;
         this.normalizer = normalizer;
         this.executor = executor;
-        this.intentAdvisor = intentAdvisor;
+        this.planner = planner;
     }
 
     @Override
     public DataAnswer query(String question, String overrideIntentCode, Map<String, Object> overrideParams,
                             Long confirmedEntityId, AiContext context) {
         DataAnswer answer = new DataAnswer();
-        List<EntityNormalizer.Group> groups = normalizer.detect(question);
+        List<EntityNormalizer.Archive> archives = normalizer.archives();
+
+        // ---------- 0 查询理解（模型档）----------
+        // 一次调用拿到意图 + 实体 + 参数；返回 null 说明模型没接管，下面整条走规则。
+        // override 是用户在上一次结果上手工改条件，此时问句不作数，不该再花一次调用去理解它。
+        LlmQueryPlanner.Plan plan = null;
+        if (overrideIntentCode == null || overrideIntentCode.isBlank()) {
+            List<AiIntent> enabled = catalog.enabledIntents();
+            plan = planner.plan(question, enabled, catalog.paramsByIntent(enabled), archives, context);
+            if (plan != null && plan.isNone()) {
+                // 模型说「不属于任何一类」只作参考，不作决定：直接据此判 Unsupported 会把
+                // 规则本来答得上的问题砍掉（「台州的供应商」被这么砍过），回退词表复核。
+                answer.getNotices().add("大模型判定不属于任何一类受控查询，已回退词表复核："
+                        + trimReason(plan.reason()));
+                plan = null;
+            }
+        }
 
         // ---------- 1 意图 M9-1-1 / M9-1-2 ----------
         AiIntent intent;
+        boolean modelAccepted = false;
+        List<EntityNormalizer.Group> ruleGroups = null;
         if (overrideIntentCode != null && !overrideIntentCode.isBlank()) {
             intent = catalog.byCode(overrideIntentCode);
             if (intent == null) {
@@ -66,32 +98,22 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
             answer.setConfidence(BigDecimal.ONE);
         } else {
             double threshold = catalog.confidenceThreshold();
-            // 优先问模型：它只给建议，编码合法性、权限、参数仍由后续四道闸决定
-            LlmIntentAdvisor.Suggestion suggestion = intentAdvisor.enabled()
-                    ? intentAdvisor.suggest(question, catalog.enabledIntents(), context) : null;
-            if (suggestion != null && suggestion.isNone()) {
-                // 模型说「不属于任何一类」只作参考，不作决定。
-                // 直接据此判 Unsupported 会把规则本来答得上的问题砍掉
-                // （实测「台州的供应商」「订单金额大于 999999999999 的有哪些」都被这么砍过），
-                // 所以这里回退词表复核，词表也认不出才判不支持。
-                answer.getNotices().add("大模型判定不属于任何一类受控查询，已回退词表复核："
-                        + trimReason(suggestion.reason()));
-                suggestion = null;
-            }
-            AiIntent fromModel = suggestion == null ? null : catalog.byCode(suggestion.intentCode());
-            if (fromModel != null && suggestion.confidence() >= threshold) {
-                intent = fromModel;
-                answer.setConfidence(BigDecimal.valueOf(suggestion.confidence())
+            AiIntent fromPlan = plan == null ? null : catalog.byCode(plan.intentCode());
+            if (fromPlan != null && plan.confidence() >= threshold) {
+                intent = fromPlan;
+                modelAccepted = true;
+                answer.setConfidence(BigDecimal.valueOf(plan.confidence())
                         .setScale(4, java.math.RoundingMode.HALF_UP));
-                answer.getNotices().add("意图由大模型判定（" + intent.getIntentName()
-                        + "，自评置信度 " + percent(answer.getConfidence()) + "%），已按白名单校验");
+                answer.getNotices().add("意图、实体与参数由大模型一次性理解（" + intent.getIntentName()
+                        + "，自评置信度 " + percent(answer.getConfidence()) + "%），已按白名单逐项校验");
                 answer.setGenerator("llm");
             } else {
-                if (suggestion != null) {
-                    answer.getNotices().add("大模型意图置信度低于阈值或编码不可用，已回退词表分类："
-                            + (suggestion.reason().isBlank() ? "未给出理由" : trimReason(suggestion.reason())));
+                if (plan != null) {
+                    answer.getNotices().add("大模型理解结果的置信度低于阈值或编码不可用，已回退规则链路："
+                            + (plan.reason().isBlank() ? "未给出理由" : trimReason(plan.reason())));
                 }
-                IntentClassifier.IntentMatch match = classifier.classify(question, groups);
+                ruleGroups = normalizer.detect(question, archives);
+                IntentClassifier.IntentMatch match = classifier.classify(question, ruleGroups);
                 if (match.getIntent() == null) {
                     answer.setResultCode(ResultCode.UNSUPPORTED.getCode());
                     answer.setSummary("这个问题不属于当前支持的订单、交付、价格、库存、供应商交付五类查询。"
@@ -104,7 +126,7 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
                     // （「最近哪家供应商交货老迟到」里的「供应商」「交货」），只是没说清哪个对象，
                     // 反问「请补充供应商」是有意义的；一个领域词都没有（「采购合同的违约金比例是多少」
                     // 只靠「多少」蹭上库存意图），反问就是空转，还给了用户一个本来就答不上的选项。
-                    if (match.getLexiconScore() <= 0 && (groups == null || groups.isEmpty())) {
+                    if (match.getLexiconScore() <= 0 && (ruleGroups == null || ruleGroups.isEmpty())) {
                         answer.setResultCode(ResultCode.UNSUPPORTED.getCode());
                         answer.setSummary("这个问题不属于当前支持的订单、交付、价格、库存、供应商交付五类查询。"
                                 + "可以换个说法，或到对应业务页面查看。");
@@ -133,6 +155,24 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
         List<AiIntentParam> specs = catalog.paramsOf(intent.getId());
 
         // ---------- 2 实体归一与消歧 M9-3-1 / M9-3-2 / M9-3-3 ----------
+        // 模型档用模型给的指称去撞库；它没认出实体时才让规则再看一遍，
+        // 因为档案全名出现在问句里时规则比模型更可靠（字符串就是全名）。
+        List<EntityNormalizer.Group> groups;
+        if (modelAccepted && plan != null && !plan.entities().isEmpty()) {
+            EntityNormalizer.Group inferred = inferredGroup(plan, archives);
+            if (inferred != null) {
+                // 语义推断不当场生效：给出最接近的候选让用户点一下，比替他决定更稳
+                answer.getNotices().add("「" + inferred.getMention() + "」不是档案里的名称，"
+                        + "按语义最接近「" + inferred.getCandidates().get(0).getName()
+                        + "」，需要确认后再查");
+                return ambiguousEntity(answer, inferred, intent);
+            }
+            groups = groupsOf(plan, archives, answer);
+        } else if (ruleGroups != null) {
+            groups = ruleGroups;
+        } else {
+            groups = normalizer.detect(question, archives);
+        }
         List<ChatVO.EntityRef> entities = new ArrayList<>();
         for (EntityNormalizer.Group group : groups) {
             ChatVO.EntityRef chosen = null;
@@ -159,7 +199,11 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
         answer.setEntities(entities);
 
         // ---------- 3 参数提取与合并 M9-2-1 / M9-2-2 / M9-2-3 ----------
-        ParamExtractor.Extraction extraction = extractor.extract(question, specs);
+        // 模型档直接用模型给的参数与时间（「近三个月」已换算成具体日期、
+        // 「签了没」已换算成 audit_status=2）；规则档走正则。
+        ParamExtractor.Extraction extraction = modelAccepted && plan != null
+                ? extractionOf(plan, specs)
+                : extractor.extract(question, specs);
         answer.setTimeRange(extraction.getTimeRange());
         List<ChatVO.ParamItem> rejected = new ArrayList<>(extraction.getRejected());
 
@@ -243,6 +287,152 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
             answer.getNotices().addAll(outcome.getNotices());
         }
         return answer;
+    }
+
+    /**
+     * 找出「需要语义跳跃才能对上」的实体指称。
+     *
+     * 模型很擅长把「螺丝」想到「内六角螺栓」，但这类推断不该由系统替他确认：
+     * 档案里可能只有一种螺栓，也可能有十种紧固件，答错一次就是「查了错的物料还理直气壮」。
+     * 判据是字面关系——「螺栓」在「内六角螺栓」里、「温州正泰」在「温州正泰电气销售有限公司」里，
+     * 这种叫可解释；「螺丝」对「内六角螺栓」一个字都不沾，就必须让用户点一下确认。
+     *
+     * 只在模型档生效：规则档的模糊匹配本来就要求片段包含，不存在这种跳跃。
+     */
+    private EntityNormalizer.Group inferredGroup(LlmQueryPlanner.Plan plan,
+                                                 List<EntityNormalizer.Archive> archives) {
+        for (LlmQueryPlanner.EntityMention mention : plan.entities()) {
+            ChatVO.EntityRef ref = normalizer.refByNo(mention.type(), mention.no(), archives);
+            if (ref == null) {
+                ref = normalizer.refByName(mention.type(), mention.mention(), archives);
+            }
+            if (ref == null || literal(mention.mention(), ref)) {
+                continue;
+            }
+            EntityNormalizer.Group group = new EntityNormalizer.Group(mention.type());
+            group.setMention(mention.mention());
+            group.getCandidates().add(ref);
+            return group;
+        }
+        return null;
+    }
+
+    /**
+     * 指称能不能字面解释得通。
+     *
+     * 只有「一个字都不沾」才算语义跳跃——「螺丝」对「内六角螺栓」是典型：
+     * 用户说的是类别，档案里是具体型号，答不答得看运气。
+     * 下面三种都算可解释，不走澄清：
+     * 1. 指称就是业务编号（SUP-001），本来就不该和中文名比字面；
+     * 2. 指称含代词（这个物料、那张单），它指向的是上一轮，由上下文继承负责；
+     * 3. 指称与档案名有足够字符重叠（「内六角罗栓」对「内六角螺栓」是错别字，
+     *    重叠 4/5；「螺丝」只重叠 1/2，不能算）。
+     */
+    private boolean literal(String mention, ChatVO.EntityRef ref) {
+        if (mention == null || mention.isBlank() || ref.getName() == null) {
+            return true;
+        }
+        String text = mention.trim();
+        if (ref.getNo() != null && ref.getNo().equalsIgnoreCase(text)) {
+            return true;
+        }
+        if (text.contains("这个") || text.contains("那个") || text.contains("该")
+                || text.contains("它") || text.contains("这张") || text.contains("那家")) {
+            return true;
+        }
+        int hit = 0;
+        for (char ch : text.toCharArray()) {
+            if (ref.getName().indexOf(ch) >= 0) {
+                hit++;
+            }
+        }
+        return (double) hit / text.length() >= 0.6;
+    }
+
+    /**
+     * 把模型给出的实体指称落成可执行实体。
+     *
+     * 模型只给「类型 + 编号 + 指称」，不给 id——编号是它的建议，必须在这里撞库验证真的存在。
+     * 不验证就等于信任模型编出来的 SUP-999，结果是「查了一个不存在的供应商」
+     * 而不是「找不到这个供应商」，两种失败在用户看来完全不同。
+     */
+    private List<EntityNormalizer.Group> groupsOf(LlmQueryPlanner.Plan plan,
+                                                  List<EntityNormalizer.Archive> archives,
+                                                  DataAnswer answer) {
+        List<EntityNormalizer.Group> groups = new ArrayList<>();
+        for (LlmQueryPlanner.EntityMention mention : plan.entities()) {
+            ChatVO.EntityRef ref = normalizer.refByNo(mention.type(), mention.no(), archives);
+            if (ref == null) {
+                ref = normalizer.refByName(mention.type(), mention.mention(), archives);
+            }
+            if (ref == null) {
+                // 编号与名称都撞不上：模型可能把「宁波那家」对到了一个不存在的档案。
+                // 不采信、也不静默丢掉——交给规则按指称再找一次，还找不到就明确告知已忽略。
+                EntityNormalizer.Group hit = normalizer.detect(mention.mention(), archives).stream()
+                        .filter(group -> group.getType().equals(mention.type()))
+                        .findFirst().orElse(null);
+                if (hit != null) {
+                    groups.add(hit);
+                } else {
+                    answer.getNotices().add("未能把「" + mention.mention() + "」对应到"
+                            + normalizer.typeName(mention.type()) + "档案，该条件已忽略。");
+                }
+                continue;
+            }
+            ref.setMatchedBy("llm");
+            EntityNormalizer.Group group = new EntityNormalizer.Group(mention.type());
+            group.setMention(mention.mention());
+            group.getCandidates().add(ref);
+            groups.add(group);
+        }
+        return groups;
+    }
+
+    /**
+     * 把模型给出的参数转成与正则提取同构的结果，后续走同一个 ParamValidator。
+     *
+     * 口径与规则档保持一致：意图不支持的条件记 rejected（上层据此回 InvalidParameter），
+     * 不悄悄丢掉。丢掉会让用户拿到一个「看似按他要求查了、其实少了条件」的答案。
+     */
+    private ParamExtractor.Extraction extractionOf(LlmQueryPlanner.Plan plan, List<AiIntentParam> specs) {
+        ParamExtractor.Extraction extraction = new ParamExtractor.Extraction();
+        for (Map.Entry<String, Object> entry : plan.params().entrySet()) {
+            String code = entry.getKey();
+            Object value = entry.getValue();
+            // 实体类参数一律不采信模型的值：它拿到的只有业务编号（M-1001），
+            // 而这里要的是主键。这一步走 entities → 撞库 → 主键，已在上面完成。
+            if (ENTITY_PARAM_CODES.contains(code)) {
+                continue;
+            }
+            boolean supported = specs.stream().anyMatch(spec -> code.equals(spec.getParamCode()));
+            if (!supported) {
+                extraction.reject(code, code, value, "当前意图不支持该条件");
+                continue;
+            }
+            extraction.put(code, value, paramNameOf(specs, code));
+        }
+        timeRangeOf(plan, extraction);
+        return extraction;
+    }
+
+    private String paramNameOf(List<AiIntentParam> specs, String code) {
+        return specs.stream().filter(spec -> code.equals(spec.getParamCode()))
+                .map(AiIntentParam::getParamName).findFirst().orElse(code);
+    }
+
+    /** 时间范围用于前端展示「这次查的是哪一段」，模型已把相对时间换成具体日期 */
+    private void timeRangeOf(LlmQueryPlanner.Plan plan, ParamExtractor.Extraction extraction) {
+        Object from = plan.params().get("date_from");
+        Object to = plan.params().get("date_to");
+        if (from == null && to == null) {
+            return;
+        }
+        ChatVO.TimeRange range = new ChatVO.TimeRange();
+        range.setFrom(from == null ? null : String.valueOf(from));
+        range.setTo(to == null ? null : String.valueOf(to));
+        range.setLabel(from != null && to != null ? from + " 至 " + to
+                : String.valueOf(from == null ? to : from));
+        extraction.setTimeRange(range);
     }
 
     private DataAnswer ambiguousIntent(DataAnswer answer, IntentClassifier.IntentMatch match, double threshold) {

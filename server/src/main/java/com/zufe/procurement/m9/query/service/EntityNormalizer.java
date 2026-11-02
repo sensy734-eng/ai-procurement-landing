@@ -73,9 +73,18 @@ public class EntityNormalizer {
 
     /** 按类型分组命中的实体；每个类型一组，组内多候选即歧义 */
     public List<Group> detect(String question) {
+        return detect(question, archives());
+    }
+
+    /**
+     * 同上，但档案清单由调用方传入。
+     *
+     * 模型档下档案清单要同时喂进提示词、又要用于把模型给出的编号撞库验证，
+     * 一条问句里这两件事都得做，各自 loadArchives() 会白跑一次三表查询。
+     */
+    public List<Group> detect(String question, List<Archive> archives) {
         String normalized = question == null ? "" : question;
         Map<Integer, Group> groups = new LinkedHashMap<>();
-        List<Archive> archives = loadArchives();
         Map<String, List<AiEntityAlias>> aliasIndex = aliasIndex();
 
         for (Archive archive : archives) {
@@ -167,7 +176,11 @@ public class EntityNormalizer {
         return mention == null ? null : new Match(mention, matchedBy);
     }
 
-    private List<Archive> loadArchives() {
+    /**
+     * 全部在用档案（物料、供应商、仓库），供实体归一与提示词共用。
+     * 停用档案不返回——页面下拉也不给选，检索时能命中就意味着「查得到但点不开」。
+     */
+    public List<Archive> archives() {
         List<Archive> archives = new ArrayList<>();
         for (Material material : materialMapper.selectList(new LambdaQueryWrapper<Material>()
                 .eq(Material::getStatus, 1))) {
@@ -218,10 +231,14 @@ public class EntityNormalizer {
      * 否则会出现「答案说的是 A、卡片上还是 B」的自相矛盾。
      */
     public ChatVO.EntityRef refById(Integer type, Long id) {
+        return refById(type, id, archives());
+    }
+
+    public ChatVO.EntityRef refById(Integer type, Long id, List<Archive> archives) {
         if (type == null || id == null) {
             return null;
         }
-        for (Archive archive : loadArchives()) {
+        for (Archive archive : archives) {
             if (archive.type() == type && id.equals(archive.id())) {
                 ChatVO.EntityRef ref = new ChatVO.EntityRef();
                 ref.setType(type);
@@ -235,7 +252,53 @@ public class EntityNormalizer {
         return null;
     }
 
-    private record Archive(int type, Long id, String no, String name) {
+    /**
+     * 按编号撞库（模型档专用）。
+     *
+     * 模型给出的编号只是「它的建议」，必须在这里验证真的存在且在用才认。
+     * 不做这一步，模型编出 SUP-999 就会被当成可信实体一路走到执行器，
+     * 结果是「查了一个不存在的供应商」而不是「找不到这个供应商」。
+     */
+    public ChatVO.EntityRef refByNo(Integer type, String no, List<Archive> archives) {
+        if (type == null || no == null || no.isBlank()) {
+            return null;
+        }
+        String key = no.trim().toUpperCase();
+        for (Archive archive : archives) {
+            if (archive.type() == type && archive.no() != null && archive.no().toUpperCase().equals(key)) {
+                ChatVO.EntityRef ref = new ChatVO.EntityRef();
+                ref.setType(type);
+                ref.setTypeName(typeName(type));
+                ref.setId(archive.id());
+                ref.setNo(archive.no());
+                ref.setName(archive.name());
+                return ref;
+            }
+        }
+        return null;
+    }
+
+    /** 按名称精确撞库（模型给了 mention 但没给编号时的第二条落地通道） */
+    public ChatVO.EntityRef refByName(Integer type, String name, List<Archive> archives) {
+        if (type == null || name == null || name.isBlank()) {
+            return null;
+        }
+        String key = name.trim();
+        for (Archive archive : archives) {
+            if (archive.type() == type && archive.name() != null && archive.name().equals(key)) {
+                ChatVO.EntityRef ref = new ChatVO.EntityRef();
+                ref.setType(type);
+                ref.setTypeName(typeName(type));
+                ref.setId(archive.id());
+                ref.setNo(archive.no());
+                ref.setName(archive.name());
+                return ref;
+            }
+        }
+        return null;
+    }
+
+    public record Archive(int type, Long id, String no, String name) {
     }
 
     private record Match(String mention, String matchedBy) {

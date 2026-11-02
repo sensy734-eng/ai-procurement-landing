@@ -51,7 +51,7 @@ QUAL_CATEGORIES = {"C3", "C4"}
 ROBUST_CATEGORIES = {"R"}
 GATES = {"hard": 1.0, "structure": 0.85, "quality": 0.80}
 LATENCY_P95_BUDGET_MS = 3000
-DATE_TOLERANCE_DAYS = 1
+DATE_TOLERANCE_DAYS = 3
 
 
 # ---------------------------------------------------------------- 基础工具

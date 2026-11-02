@@ -74,6 +74,34 @@ public class AiIntentCatalog {
                 .orderByAsc(AiIntentParam::getSortNo));
     }
 
+    /**
+     * 按意图分组返回参数规格，一次查询取全。
+     *
+     * 模型档要把「每个意图支持哪些参数」整矩阵放进提示词，逐个意图调 paramsOf
+     * 就是五次查询；五类查询每问一次都要付这个成本，合并成一次 IN 查询。
+     */
+    public Map<String, List<AiIntentParam>> paramsByIntent(List<AiIntent> intents) {
+        Map<String, List<AiIntentParam>> result = new LinkedHashMap<>();
+        if (intents == null || intents.isEmpty()) {
+            return result;
+        }
+        Map<Long, String> codeById = new LinkedHashMap<>();
+        for (AiIntent intent : intents) {
+            codeById.put(intent.getId(), intent.getIntentCode());
+            result.put(intent.getIntentCode(), new ArrayList<>());
+        }
+        List<AiIntentParam> all = paramMapper.selectList(new LambdaQueryWrapper<AiIntentParam>()
+                .in(AiIntentParam::getIntentId, codeById.keySet())
+                .orderByAsc(AiIntentParam::getSortNo));
+        for (AiIntentParam param : all) {
+            String code = codeById.get(param.getIntentId());
+            if (code != null) {
+                result.get(code).add(param);
+            }
+        }
+        return result;
+    }
+
     /** 全部别名，供口语化名称归一（M9-3-1） */
     public List<AiEntityAlias> aliases() {
         return new ArrayList<>(aliasMapper.selectList(new LambdaQueryWrapper<>()));

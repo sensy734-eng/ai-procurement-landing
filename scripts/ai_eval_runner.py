@@ -712,6 +712,19 @@ def validate_dataset(data):
     layers = {}
     for case in cases:
         layers[case["layer"]] = layers.get(case["layer"], 0) + 1
+
+    # 理论回答与测试集必须同增同减：新增用例却没有写规范答案，判分标尺就断了一环。
+    try:
+        from ai_eval_theory import THEORY
+    except Exception:
+        THEORY = None
+    if THEORY is not None:
+        orphan = [cid for cid in ids if cid not in THEORY]
+        stale = [cid for cid in THEORY if cid not in set(ids)]
+        if orphan:
+            errors.append("缺少理论回答：%s（补 scripts/ai_eval_theory.py）" % "、".join(orphan))
+        if stale:
+            warnings.append("理论回答对应用例已删除：%s" % "、".join(stale))
     return errors, warnings, layers
 
 

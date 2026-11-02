@@ -99,10 +99,12 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
                     return answer;
                 }
                 if (match.getConfidence().doubleValue() < threshold) {
-                    // 没有可澄清的实体时，反问「您想查哪一类」是空转：
-                    // 用户说了半句，系统连他指哪个对象都不知道，给不出选项只会让人更困惑。
-                    // 典型例子是知识型问句（「采购合同的违约金比例是多少」）被弱匹配到库存意图。
-                    if (groups == null || groups.isEmpty()) {
+                    // 低置信时要不要反问，取决于「用户是不是真的在问这一类」。
+                    // 判据是命中意图的专用词表有没有分：有分说明问句里确实出现了该领域的词
+                    // （「最近哪家供应商交货老迟到」里的「供应商」「交货」），只是没说清哪个对象，
+                    // 反问「请补充供应商」是有意义的；一个领域词都没有（「采购合同的违约金比例是多少」
+                    // 只靠「多少」蹭上库存意图），反问就是空转，还给了用户一个本来就答不上的选项。
+                    if (match.getLexiconScore() <= 0 && (groups == null || groups.isEmpty())) {
                         answer.setResultCode(ResultCode.UNSUPPORTED.getCode());
                         answer.setSummary("这个问题不属于当前支持的订单、交付、价格、库存、供应商交付五类查询。"
                                 + "可以换个说法，或到对应业务页面查看。");

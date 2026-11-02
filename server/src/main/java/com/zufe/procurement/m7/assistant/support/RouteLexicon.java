@@ -103,7 +103,77 @@ public final class RouteLexicon {
         WRITE_INTENT.put("驳回", 1);
         WRITE_INTENT.put("作废", 1);
         WRITE_INTENT.put("入库确认", 1);
+        WRITE_INTENT.put("清空", 1);
         WRITE_INTENT.put("帮我提交", 1);
+    }
+
+    /**
+     * 问信息标记：出现这些词说明用户在要信息，不是在发指令。
+     *
+     * 不能只放「吗/没有」这类疑问词——「查一下这张单的作废情况」一个疑问词都没有，
+     * 但显然是在问。「查一下/看看/统计」这些查询动词同样是「要信息」的信号。
+     * 放宽是安全的：真指令通常带命令标记（帮我/请/把），命令标记会优先判成指令。
+     */
+    public static final String[] INFO_MARKERS = {
+            "吗", "没有", "了没", "是否", "是不是", "有没有", "多少", "哪些", "哪个",
+            "几个", "几张", "哪一", "哪家", "什么时候",
+            "情况", "进度", "状态", "查一下", "查查", "看看", "看一下", "列出", "统计"};
+
+    /** 命令标记：这些词后面接的才是「让我去做」 */
+    public static final String[] COMMAND_MARKERS = {"帮我", "请", "替我", "给我", "把", "将"};
+
+    /** 命令标记后紧跟这些动词时，说明是在让我「查」而不是让我「改」 */
+    public static final String[] QUERY_VERBS = {"查", "看", "找", "列出", "统计", "对比", "告诉", "问", "说"};
+
+    /**
+     * 这是在下写操作指令，还是在问某张单的状态？
+     *
+     * 为什么要单独一个方法：写操作词表里「审批通过」「入库确认」同时也是状态名，
+     * 只靠 {@link #score} 的 contains 命中，会把「这张订单审批通过没有」判成
+     * 「用户在让我审批通过」。判据必须是语气：
+     *   有命令标记 → 指令（「帮我把订单作废」）；
+     *   无命令标记 + 有问信息标记 → 问状态（「审批通过没有」「哪些订单作废了」）；
+     *   两者都无 → 仍按指令处理，宁可多回一句「我不做写操作」，也不对直白命令装没看见。
+     * 「命令标记 + 查询动词」不算命令：「帮我查一下…审批通过没有」里的「帮我」后面接「查」。
+     */
+    public static boolean isWriteInstruction(String question) {
+        if (question == null || question.isBlank()) {
+            return false;
+        }
+        if (score(question, WRITE_INTENT) == 0) {
+            return false;
+        }
+        return hasCommandMarker(question) || !hasInfoMarker(question);
+    }
+
+    public static boolean hasInfoMarker(String question) {
+        for (String marker : INFO_MARKERS) {
+            if (question.contains(marker)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasCommandMarker(String question) {
+        for (String marker : COMMAND_MARKERS) {
+            int at = question.indexOf(marker);
+            while (at >= 0) {
+                String after = question.substring(Math.min(at + marker.length(), question.length()));
+                boolean followedByQuery = false;
+                for (String verb : QUERY_VERBS) {
+                    if (after.startsWith(verb)) {
+                        followedByQuery = true;
+                        break;
+                    }
+                }
+                if (!followedByQuery) {
+                    return true;
+                }
+                at = question.indexOf(marker, at + 1);
+            }
+        }
+        return false;
     }
 
     /** 指代词：命中且上一轮有上下文时做实体继承（M7-1-3） */

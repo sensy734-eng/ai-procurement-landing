@@ -38,7 +38,7 @@ public class IntentClassifier {
                     IntentLexicon.BY_INTENT.getOrDefault(intent.getIntentCode(), Map.of()));
             double dice = maxSampleDice(question, intent.getQuestionSamples());
             double prior = entityPrior(intent.getIntentCode(), entityGroups);
-            scored.add(new Scored(intent, lexicon + 2 * dice + prior, dice));
+            scored.add(new Scored(intent, lexicon + 2 * dice + prior, dice, lexicon));
         }
         // 问句里同时出现供应商与交付词时，供应商交付意图再加权，避免与交付进度平权
         if (containsAny(question, IntentLexicon.SUPPLIER_HINTS) && question.matches(".*(交付|交货|延期|延迟).*")) {
@@ -61,6 +61,7 @@ public class IntentClassifier {
         match.setIntent(top.intent);
         match.setConfidence(BigDecimal.valueOf(total <= 0 ? 0 : top.score / total)
                 .setScale(4, RoundingMode.HALF_UP));
+        match.setLexiconScore(top.lexicon);
         List<Candidate> candidates = new ArrayList<>();
         for (Scored item : scored) {
             if (item.score <= 0) {
@@ -116,6 +117,12 @@ public class IntentClassifier {
         private AiIntent intent;
         private BigDecimal confidence = BigDecimal.ZERO;
         private List<Candidate> candidates = new ArrayList<>();
+        /**
+         * 命中意图的专用词表得分。
+         * 0 表示问句里一个该领域的词都没有，这个意图只是靠示例相似度或泛词「多少/几个」蹭上来的。
+         * 澄清分支用它区分「确实在问这一类，只是没说清对象」和「根本不是这类问题」。
+         */
+        private double lexiconScore;
     }
 
     @Data
@@ -133,11 +140,18 @@ public class IntentClassifier {
         private final AiIntent intent;
         private double score;
         private final double dice;
+        /** 该意图专用词表命中的词数得分：>0 说明问句里确实出现了这个意图的领域词 */
+        private final double lexicon;
 
         Scored(AiIntent intent, double score, double dice) {
+            this(intent, score, dice, 0);
+        }
+
+        Scored(AiIntent intent, double score, double dice, double lexicon) {
             this.intent = intent;
             this.score = score;
             this.dice = dice;
+            this.lexicon = lexicon;
         }
     }
 }

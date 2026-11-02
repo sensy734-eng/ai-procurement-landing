@@ -17,11 +17,20 @@ import java.util.List;
 /**
  * 三类问题路由（M7-2-1、M7-2-2、M7-2-4）。
  *
- * 只要「怎么做」的信号在，就先判教程类：用户问「怎么提交采购申请」时，
- * 「提交」是写操作词，但意图是看步骤，不能按写操作拒掉。
- * 反过来，没有「怎么/如何」却直接说「帮我提交」的，才按只读边界拒绝。
+ * 分工是「理解归模型、裁决归代码」：
+ * 配置了模型就由模型先判三类归属，规则只在模型未配置、调用失败、自评不自信，
+ * 或判定「三类都不属于」时兜底。反过来做（规则先筛、判不准才问模型）会把模型
+ * 锁在规则的盲区里——规则一旦判准，哪怕只有 51% 的把握，模型也没机会纠正，
+ * 而「不合格品能入库吗」这类主体词落在数据域、实际问的是规则的句子，
+ * 恰恰是规则最容易判错的（实测三条 C3 用例全挂在这里）。
  *
- * 置信度用「证据占比」：最高分类得分 ÷ 三类得分之和；
+ * 两条边界不随模型变化，仍在模型之前：
+ * 1. 写操作拒绝——只读是铁律，模型说什么都不改。判定看语气不看词：
+ *    「帮我把订单作废」是指令，「这张订单审批通过没有」是问状态，
+ *    写操作词表里的「审批通过」两个都沾，只能靠命令标记/问信息标记区分；
+ * 2. 超长问句截断——5000 字垃圾文本不整段喂给模型。
+ *
+ * 置信度用「证据占比」：最高分类得分 ÷ 三类得分之和（仅规则兜底时计算）；
  * 低于 ai_intent_confidence_threshold 时返回澄清，让用户自己选方向（M7-2-2）。
  * 含糊与越权不是第四、第五条通道，而是叠加在三类之上的异常分支。
  */
@@ -30,6 +39,9 @@ public class RouteService {
 
     private static final String PARAM_THRESHOLD = "ai_intent_confidence_threshold";
     private static final List<String> STRONG_TUTORIAL = List.of("怎么", "如何", "怎样", "步骤", "在哪", "入口", "怎么弄");
+
+    /** 模型自评低于这个值就不接管，避免用一次含糊的判断替换另一次含糊的判断 */
+    private static final double MODEL_MIN_CONFIDENCE = 0.5;
 
     private final SysParamMapper sysParamMapper;
     private final LlmRouteAdvisor routeAdvisor;
@@ -56,19 +68,23 @@ public class RouteService {
         int data = RouteLexicon.score(text, RouteLexicon.DATA);
         boolean strongTutorial = STRONG_TUTORIAL.stream().anyMatch(text::contains);
 
-        // 只读边界：明确的写指令且没有「怎么做」的信号。
+        // 只读边界：命中写操作词，且这句话确实是在「下指令」而不是在「问状态」。
         // 这一条在模型之前判定，模型说什么都不改变「助手只读」这条铁律。
-        if (!strongTutorial && RouteLexicon.score(text, RouteLexicon.WRITE_INTENT) > 0) {
+        if (!strongTutorial && RouteLexicon.isWriteInstruction(text)) {
             decision.setStatus(Status.READONLY_REFUSED);
             decision.setMessage("智能助手只提供查询与问答，不执行新增、修改、审批、删除等业务操作。"
                     + "如果你是想了解怎么操作，可以问「怎么提交采购申请」这类问题。");
             return decision;
         }
+
+        // 理解归模型：配了模型就由它先判，不再先让规则筛一遍。
+        Decision byModel = routeByModel(text, context);
+        if (byModel != null) {
+            return byModel;
+        }
+
+        // 规则兜底：模型未配置、调用失败、自评不自信，或判定「三类都不属于」时才走到这里。
         if (tutorial == 0 && knowledge == 0 && data == 0) {
-            Decision byModel = askModel(text, context);
-            if (byModel != null) {
-                return byModel;
-            }
             decision.setStatus(Status.UNSUPPORTED);
             decision.setMessage("这个问题不属于制度问答、操作教程、业务数据查询中的任何一类，我不能臆造答案。"
                     + "可以换成「审批时限是几天」「怎么提交采购申请」「CG-DD-20261011-0001 现在什么状态」。");
@@ -94,10 +110,8 @@ public class RouteService {
 
         double threshold = threshold();
         if (share.doubleValue() < threshold) {
-            Decision byModel = askModel(text, context);
-            if (byModel != null) {
-                return byModel;
-            }
+            // 模型已经在上面给了机会，这里不再重复调用：一次请求只花一次路由判定，
+            // 否则「模型说不知道怎么分」和「规则说不知道怎么分」要各花一次钱。
             decision.setStatus(Status.CLARIFY);
             decision.setMessage("这个问题的类型不够明确（置信度 "
                     + share.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP)
@@ -111,24 +125,26 @@ public class RouteService {
     }
 
     /**
-     * 规则判不准时问模型：只在「不支持」与「澄清」两条分支上兜底，
-     * 规则已经判定的问题不再多花一次调用，也就不会因为模型抖动改变既有基线。
-     * 模型自评置信度低于 0.5 时不接管，避免用一次含糊的判断替换另一次含糊的判断。
+     * 模型优先判定三类归属（M7-2-1 的模型侧）。
+     *
+     * @return null 表示这次不由模型定：未配置 / 开关关闭 / 调用失败 / 自评置信度低于
+     *         {@link #MODEL_MIN_CONFIDENCE} / 判定三类都不属于。返回 null 后由规则兜底。
+     *
+     *         最后一种情况（模判 NONE）必须回退规则复核，不能直接判不支持——
+     *         模型说「不知道」不等于规则也答不上，直接据此拒绝会把规则本来答得上的
+     *         问题砍掉（实测「台州的供应商」「订单金额大于 999999999999 的有哪些」都被这么砍过）。
      */
-    private Decision askModel(String text, AiContext context) {
+    private Decision routeByModel(String text, AiContext context) {
         LlmRouteAdvisor.Decision byModel = routeAdvisor == null ? null : routeAdvisor.decide(text, context);
-        if (byModel == null || byModel.confidence() < 0.5) {
+        if (byModel == null || byModel.confidence() < MODEL_MIN_CONFIDENCE) {
+            return null;
+        }
+        if (byModel.isNone()) {
             return null;
         }
         Decision decision = new Decision();
         decision.setModelAssisted(true);
         decision.setConfidence(BigDecimal.valueOf(byModel.confidence()).setScale(4, RoundingMode.HALF_UP));
-        if (byModel.isNone()) {
-            decision.setStatus(Status.UNSUPPORTED);
-            decision.setMessage("这个问题不属于制度问答、操作教程、业务数据查询中的任何一类，我不能臆造答案。"
-                    + "可以换成「审批时限是几天」「怎么提交采购申请」「CG-DD-20261011-0001 现在什么状态」。");
-            return decision;
-        }
         decision.setRoute(byModel.route());
         decision.setRouteName(routeName(byModel.route()));
         decision.setStatus(Status.ROUTED);

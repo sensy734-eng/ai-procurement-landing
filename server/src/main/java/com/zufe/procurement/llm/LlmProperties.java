@@ -48,6 +48,26 @@ public class LlmProperties {
     /** 生成后做数字一致性校验，编造数字则回退模板 */
     private boolean numberGuard = true;
 
+    // ---------------- 通道闸门（两档切换的执行保障） ----------------
+
+    /**
+     * 连续失败多少次后打开熔断器。计失败的不只是超时与 5xx，
+     * 也包括「HTTP 200 但输出不是 JSON / 契约不成立」——这类失败传统熔断器看不见，
+     * 却会让每一次请求都白等一个完整预算。
+     */
+    private int failureThreshold = 3;
+    /** 熔断打开后多久放一个探针过去（毫秒） */
+    private long breakerOpenMs = 60_000;
+
+    /**
+     * 三条通道各自的截止预算（毫秒）。到点即走规则通道，不再等模型。
+     * 取值依据是交互体验：单次问答整体预算 3 秒，路由只是其中一环，
+     * 理解与成文各占大半，所以三处都远小于 30 秒的 HTTP 超时。
+     */
+    private int budgetRouteMs = 1_500;
+    private int budgetPlanMs = 2_500;
+    private int budgetAnswerMs = 2_500;
+
     /** 健康检查与日志用的掩码，形如 sk-a****9f */
     public String maskedKey() {
         if (apiKey == null || apiKey.isBlank()) {

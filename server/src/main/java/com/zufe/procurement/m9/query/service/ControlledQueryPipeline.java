@@ -10,6 +10,7 @@ import com.zufe.procurement.m7.assistant.vo.ChatVO;
 import com.zufe.procurement.m7.assistant.vo.DataAnswer;
 import com.zufe.procurement.m9.query.entity.AiIntent;
 import com.zufe.procurement.m9.query.entity.AiIntentParam;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -38,6 +39,7 @@ import java.util.Map;
  * 每一步都可能中断并返回非 Success 结果码，且中断原因都以澄清选项或说明文字返回，
  * 不抛异常黑箱：用户看到的是「系统为什么不能查」，而不是一句参数错误。
  */
+@Slf4j
 @Service
 public class ControlledQueryPipeline implements AiDataQueryPort {
 
@@ -109,6 +111,11 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
                 answer.setGenerator("llm");
             } else {
                 if (plan != null) {
+                    // 排障日志：notice 把「低置信」与「编码不可用」合成同一句话返回给用户，
+                    // 但两者的处理方向相反（前者校准提示词，后者查契约与白名单），
+                    // 只有日志能分清是哪一种，否则只能靠猜。
+                    log.info("查询理解未采用：intent={} confidence={} threshold={} 问题={}",
+                            plan.intentCode(), plan.confidence(), threshold, question);
                     answer.getNotices().add("大模型理解结果的置信度低于阈值或编码不可用，已回退规则链路："
                             + (plan.reason().isBlank() ? "未给出理由" : trimReason(plan.reason())));
                 }
@@ -116,8 +123,7 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
                 IntentClassifier.IntentMatch match = classifier.classify(question, ruleGroups);
                 if (match.getIntent() == null) {
                     answer.setResultCode(ResultCode.UNSUPPORTED.getCode());
-                    answer.setSummary("这个问题不属于当前支持的订单、交付、价格、库存、供应商交付五类查询。"
-                            + "可以换个说法，或到对应业务页面查看。");
+                    answer.setSummary(unsupportedSummary(plan));
                     return answer;
                 }
                 if (match.getConfidence().doubleValue() < threshold) {
@@ -128,8 +134,7 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
                     // 只靠「多少」蹭上库存意图），反问就是空转，还给了用户一个本来就答不上的选项。
                     if (match.getLexiconScore() <= 0 && (ruleGroups == null || ruleGroups.isEmpty())) {
                         answer.setResultCode(ResultCode.UNSUPPORTED.getCode());
-                        answer.setSummary("这个问题不属于当前支持的订单、交付、价格、库存、供应商交付五类查询。"
-                                + "可以换个说法，或到对应业务页面查看。");
+                        answer.setSummary(unsupportedSummary(plan));
                         return answer;
                     }
                     return ambiguousIntent(answer, match, threshold);
@@ -618,5 +623,25 @@ public class ControlledQueryPipeline implements AiDataQueryPort {
         }
         String flat = reason.replace('\n', ' ').trim();
         return flat.length() <= 30 ? flat : flat.substring(0, 30) + "…";
+    }
+
+    /**
+     * 判不出意图时给用户看的说明。
+     *
+     * 模型判了但没把握时（「指代不明，疑为比价但对象不清」），把它的判断转告用户：
+     * 直接回一句「不属于支持的五类查询」会把用户丢在原地——他明明是在追问，只是没说清对象，
+     * 系统却告诉他这类问题根本不受理。
+     *
+     * 只改说明文字，**不改结果码**：能力边界仍然是边界，
+     * 不能因为模型猜了一句就把「答不上」改成「答得上」。
+     */
+    private String unsupportedSummary(LlmQueryPlanner.Plan plan) {
+        String base = "这个问题不属于当前支持的订单、交付、价格、库存、供应商交付五类查询。";
+        if (plan == null || plan.reason() == null || plan.reason().isBlank()) {
+            return base + "可以换个说法，或到对应业务页面查看。";
+        }
+        return base + "大模型的判断是「" + trimReason(plan.reason()) + "」。"
+                + "如果是接着上一轮追问，请补上对象（物料名、供应商名或单据号）；"
+                + "也可以到对应业务页面查看。";
     }
 }

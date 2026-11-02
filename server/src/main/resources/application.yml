@@ -68,6 +68,14 @@ app:
     answer-enabled: true
     # 生成后数字一致性校验：编造数字则回退模板
     number-guard: true
+    # 通道闸门：连续失败达到阈值即熔断，冷却期内零等待走规则通道
+    # （超时、5xx、429、空响应、输出非 JSON、编码不在白名单都计失败）
+    failure-threshold: ${LLM_FAILURE_THRESHOLD:3}
+    breaker-open-ms: ${LLM_BREAKER_OPEN_MS:60000}
+    # 三条通道各自的截止预算（毫秒）：到点放弃模型结果，不等满 HTTP 超时
+    budget-route-ms: ${LLM_BUDGET_ROUTE_MS:1500}
+    budget-plan-ms: ${LLM_BUDGET_PLAN_MS:2500}
+    budget-answer-ms: ${LLM_BUDGET_ANSWER_MS:2500}
 
 logging:
   level:

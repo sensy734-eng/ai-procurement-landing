@@ -1,6 +1,7 @@
 package com.zufe.procurement.m7.assistant.controller;
 
 import com.zufe.procurement.common.Result;
+import com.zufe.procurement.llm.AiChannelGuard;
 import com.zufe.procurement.llm.LlmGateway;
 import com.zufe.procurement.llm.LlmProperties;
 import com.zufe.procurement.llm.LlmResult;
@@ -26,12 +27,17 @@ import java.util.Map;
 @RequestMapping("/api/assistant/llm")
 public class LlmHealthController {
 
+    /** 探针预算固定 5 秒：比正常问答宽，但不至于让排障页面自己卡住 */
+    private static final int PROBE_BUDGET_MS = 5_000;
+
     private final LlmGateway gateway;
     private final LlmProperties properties;
+    private final AiChannelGuard guard;
 
-    public LlmHealthController(LlmGateway gateway, LlmProperties properties) {
+    public LlmHealthController(LlmGateway gateway, LlmProperties properties, AiChannelGuard guard) {
         this.gateway = gateway;
         this.properties = properties;
+        this.guard = guard;
     }
 
     @GetMapping("/health")
@@ -50,6 +56,8 @@ public class LlmHealthController {
         features.put("answer", properties.isAnswerEnabled());
         features.put("numberGuard", properties.isNumberGuard());
         body.put("features", features);
+        // 通道状态：CLOSED 正常、OPEN 熔断中（这段时间请求零等待走规则通道）、HALF_OPEN 探针在途
+        body.put("channels", guard.snapshot());
 
         if (!gateway.available()) {
             body.put("probe", Map.of("ok", false,
@@ -57,7 +65,8 @@ public class LlmHealthController {
             body.put("hint", "在 application-local.yml 的 app.llm 下填 api-key，或设置环境变量 LLM_API_KEY");
             return Result.ok(body);
         }
-        LlmResult probe = gateway.chat("你是连通性探针。", "只回复两个字：正常", 16);
+        // 探针也要有预算：诊断接口本身不该等满 30 秒超时
+        LlmResult probe = gateway.chat("你是连通性探针。", "只回复两个字：正常", 16, PROBE_BUDGET_MS);
         Map<String, Object> probeBody = new LinkedHashMap<>();
         probeBody.put("ok", probe.isOk());
         probeBody.put("errorKind", probe.getErrorKind());

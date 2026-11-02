@@ -10,6 +10,7 @@ import com.zufe.procurement.m10.kb.support.TextTokens;
 import com.zufe.procurement.m11.param.entity.SysParam;
 import com.zufe.procurement.m11.param.mapper.SysParamMapper;
 import com.zufe.procurement.m7.assistant.port.AiKnowledgePort;
+import com.zufe.procurement.m7.assistant.vo.AiContext;
 import com.zufe.procurement.m7.assistant.vo.ChatVO;
 import com.zufe.procurement.m7.assistant.vo.KnowledgeAnswer;
 import com.zufe.procurement.llm.LlmProperties;
@@ -51,6 +52,8 @@ public class KnowledgeQaService implements AiKnowledgePort {
     private static final String PARAM_THRESHOLD = "kb_score_threshold";
     private static final Pattern CLAUSE_NO = Pattern.compile("第\\s*[一二三四五六七八九十百零0-9]+\\s*条");
     private static final Pattern CLAUSE_ASK = Pattern.compile(".*(几天|多久|多少天|几个工作日|期限|规定|是否允许|可以吗).*");
+    /** 指代型追问的信号词，只与「短问句」条件一起生效 */
+    private static final Pattern FOLLOW_UP = Pattern.compile("(第几|这个|那个|该|它|这条|这张|上面|刚才|前面|上一|那家)");
 
     private final KbRetrievalService retrievalService;
     private final KbChunkMapper chunkMapper;
@@ -80,12 +83,25 @@ public class KnowledgeQaService implements AiKnowledgePort {
 
     @Override
     public KnowledgeAnswer answer(String question, int route) {
+        return answer(question, route, null);
+    }
+
+    @Override
+    public KnowledgeAnswer answer(String question, int route, AiContext context) {
         KnowledgeAnswer answer = new KnowledgeAnswer();
         answer.setNotices(new ArrayList<>());
         int topK = intParam(PARAM_TOPK, 5);
         BigDecimal threshold = decimalParam(PARAM_THRESHOLD, new BigDecimal("0.35"));
 
-        KbRetrievalService.RetrievalResult retrieval = retrievalService.search(question, topK);
+        // 指代型追问（「第几条说的」「那这个呢」）本身没有检索价值，
+        // 先按上一轮问句补全成自包含的问句再检索；补全只影响检索与条款判定，
+        // 送进模型的仍然是用户原话，避免模型把补全的部分当成用户说的条件。
+        String retrievalQuestion = resolveQuestion(question, context);
+        if (!retrievalQuestion.equals(question)) {
+            answer.getNotices().add("追问指代已按上一轮问题补全检索词：" + retrievalQuestion);
+        }
+
+        KbRetrievalService.RetrievalResult retrieval = retrievalService.search(retrievalQuestion, topK);
         answer.setDualPath(buildDualPath(retrieval));
 
         Set<Long> chunkIds = new LinkedHashSet<>();
@@ -129,7 +145,7 @@ public class KnowledgeQaService implements AiKnowledgePort {
         double vectorTop = retrieval.getVector().isEmpty() ? 0
                 : retrieval.getVector().get(0).getScore().doubleValue();
         answer.setTopScore(BigDecimal.valueOf(vectorTop).setScale(4, RoundingMode.HALF_UP));
-        int termHits = countTermHits(question, bestText);
+        int termHits = countTermHits(retrievalQuestion, bestText);
         if (vectorTop < threshold.doubleValue() && termHits < 2) {
             return refuse(answer, "知识库里没有找到足以支撑回答的依据（最高相似度 "
                             + answer.getTopScore().toPlainString() + " 低于阈值 " + threshold.toPlainString()
@@ -140,7 +156,7 @@ public class KnowledgeQaService implements AiKnowledgePort {
         // ---------- 引用 M8-3-1 / M8-3-3 ----------
         List<ChatVO.Citation> refs = new ArrayList<>();
         List<LlmAnswerComposer.Passage> passages = new ArrayList<>();
-        StringBuilder context = new StringBuilder();
+        StringBuilder corpus = new StringBuilder();
         for (Candidate candidate : candidates) {
             if (refs.size() >= 3) {
                 break;
@@ -169,7 +185,7 @@ public class KnowledgeQaService implements AiKnowledgePort {
             passages.add(new LlmAnswerComposer.Passage(refs.size(),
                     citation.getDocName() == null ? "知识库文档" : citation.getDocName(),
                     citation.getSectionNo(), citation.getSectionTitle(), passageText));
-            context.append(passageText).append('\n');
+            corpus.append(passageText).append('\n');
         }
         if (refs.isEmpty()) {
             return refuse(answer, "检索到的片段均未通过引用有效性校验。", "请检查文档是否已被删除或停用。");
@@ -183,7 +199,7 @@ public class KnowledgeQaService implements AiKnowledgePort {
         }
         answer.setGenerator("template");
         LlmAnswerComposer.Draft draft = composer.enabled()
-                ? composer.compose(question, route, passages) : null;
+                ? composer.compose(question, route, passages, context) : null;
 
         if (draft != null && !draft.answerable()) {
             // 模型有依据却判定「答不了」：只允许把结论往保守方向调，不允许反过来
@@ -196,7 +212,7 @@ public class KnowledgeQaService implements AiKnowledgePort {
         }
         if (draft != null && draft.answer() != null && !draft.answer().isBlank()) {
             List<String> violations = llmProperties.isNumberGuard()
-                    ? AnswerFidelityGuard.check(draft.answer(), context.toString()) : List.of();
+                    ? AnswerFidelityGuard.check(draft.answer(), corpus.toString()) : List.of();
             if (violations.isEmpty() && !draft.citations().isEmpty()) {
                 answer.setAnswer(draft.answer());
                 answer.setGenerator("llm");
@@ -214,7 +230,7 @@ public class KnowledgeQaService implements AiKnowledgePort {
             if (route == 2) {
                 answer.setAnswer(composeTutorial(best, steps));
             } else {
-                answer.setAnswer(composeKnowledge(question, best, bestText));
+                answer.setAnswer(composeKnowledge(retrievalQuestion, best, bestText));
             }
         }
         answer.getNotices().add("稀疏路首位与向量路首位"
@@ -450,9 +466,42 @@ public class KnowledgeQaService implements AiKnowledgePort {
                 .equals(retrieval.getVector().get(0).getChunkId());
     }
 
+    /**
+     * 把「第几条说的」这类指代型追问补全成可检索的问句。
+     *
+     * 触发条件刻意收得很窄：**短问句（不超过 8 字）+ 出现指代词**。
+     * 超过 8 字基本已经自带主体词（「这个物料的库存是多少」虽然带「这个」，
+     * 但它自己能检索到东西，再拼上一轮的问句反而会把无关话题拽进来）。
+     * 只借用最近一轮**知识类**问句，不借数据查询、不借答案——数据查询的问句里没有制度术语，
+     * 拿它当检索底稿只会把结果带偏；答案则是系统的说法，不是用户的问题。
+     */
+    static String resolveQuestion(String question, AiContext context) {
+        if (question == null || context == null || context.getHistory() == null
+                || context.getHistory().isEmpty()) {
+            return question;
+        }
+        String current = question.trim();
+        if (current.length() > 8 || !FOLLOW_UP.matcher(current).find()) {
+            return question;
+        }
+        AiContext.Turn last = null;
+        for (int i = context.getHistory().size() - 1; i >= 0; i--) {
+            AiContext.Turn turn = context.getHistory().get(i);
+            if (turn != null && turn.getQuestion() != null && turn.getIntentCode() != null
+                    && turn.getIntentCode().startsWith("kb_")) {
+                last = turn;
+                break;
+            }
+        }
+        String previous = last == null ? null : last.getQuestion();
+        if (previous == null || previous.isBlank() || previous.contains(current)) {
+            return question;
+        }
+        return previous.trim() + " " + current;
+    }
+
     /** 问句词元在给定切块中的命中个数（拒答判定的辅助信号） */
-    private int countTermHits(String question, String text) {
-        if (text == null) {
+    private int countTermHits(String question, String text) {        if (text == null) {
             return 0;
         }
         Set<String> terms = new LinkedHashSet<>(TextTokens.tokenize(question));

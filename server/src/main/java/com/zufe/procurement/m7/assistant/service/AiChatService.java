@@ -126,7 +126,7 @@ public class AiChatService {
                     vo.setAnswer("您的角色没有制度与教程问答权限（" + PERM_KB_QUERY + "），请联系管理员授权。");
                     vo.setResultCodeHint(ResultCode.NO_PERMISSION.getCode() + "：缺少制度问答权限");
                 } else {
-                    KnowledgeAnswer answer = knowledgePort.answer(question, route);
+                    KnowledgeAnswer answer = knowledgePort.answer(question, route, historyContext);
                     intentCode = route == 1 ? "kb_document_qa" : "kb_tutorial_qa";
                     code = answer.getResultCode() == null ? ResultCode.SUCCESS.getCode() : answer.getResultCode();
                     applyKnowledge(vo, answer, intentCode);
@@ -195,6 +195,7 @@ public class AiChatService {
         context.setIntentCode(intentCode);
         context.setEntities(vo.getCard() == null ? vo.getEntities() : vo.getCard().getEntities());
         context.setParams(effectiveParams);
+        context.setHistory(nextHistory(historyContext, question, vo.getAnswer(), intentCode));
         sessionService.updateContext(session.getId(), intentCode, context);
 
         auditService.record(session.getId(), question, intentCode, effectiveParams, vo.getCard() == null
@@ -274,6 +275,30 @@ public class AiChatService {
         if (answer.getRefusalReason() != null) {
             vo.setResultCodeHint(hintOf(ResultCode.NO_DATA.getCode()));
         }
+    }
+
+    /**
+     * 最近两轮问答原文：只留两条、各自截断。
+     *
+     * 不保存整段会话的理由有三：提示词会随轮次线性膨胀（p95 已经贴 3 秒预算）、
+     * 越早的话题越容易干扰指代（用户早就换话题了）、以及答案里可能夹带用户输入，
+     * 越长的原文越难约束「只作参考」。两条足够覆盖「它 / 上一家 / 第几条」这类追问。
+     */
+    private List<AiContext.Turn> nextHistory(AiContext previous, String question, String answer,
+                                             String intentCode) {
+        List<AiContext.Turn> history = new ArrayList<>();
+        if (previous != null && previous.getHistory() != null) {
+            for (AiContext.Turn turn : previous.getHistory()) {
+                if (turn != null && turn.getQuestion() != null && !turn.getQuestion().isBlank()) {
+                    history.add(turn);
+                }
+            }
+        }
+        history.add(new AiContext.Turn(truncate(question, 120), truncate(answer, 240), intentCode));
+        while (history.size() > 2) {
+            history.remove(0);
+        }
+        return history;
     }
 
     private Map<String, Object> currentParams(DataAnswer answer) {

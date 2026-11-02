@@ -18,4 +18,14 @@ public interface LlmGateway {
      * @param maxTokens 本次期望的最大输出长度，按场景给（判定类给小值，生成类给大值）
      */
     LlmResult chat(String systemPrompt, String userPrompt, int maxTokens);
+
+    /**
+     * 带截止预算的单轮对话：超时就当没有这个模型，调用方走规则通道。
+     *
+     * 与上一个方法的区别只在「愿意等多久」。默认实现忽略预算，
+     * 供测试替身与本地模型实现使用；HTTP 实现会把它落到请求级超时上。
+     */
+    default LlmResult chat(String systemPrompt, String userPrompt, int maxTokens, int timeoutMs) {
+        return chat(systemPrompt, userPrompt, maxTokens);
+    }
 }

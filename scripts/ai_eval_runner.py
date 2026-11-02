@@ -296,8 +296,16 @@ class Judge:
         # 禁止项只看「说出了提问里没有的内容」：
         # 拒答话术复述提问用词（如「未包含采购数据同步到财务系统的条款」）不算泄漏，
         # 那是解释为什么答不了，不是泄漏。真正泄漏是凭空冒出提问里没有的具体事实。
+        #
+        # 还要区分两种禁止项：**名词型**（质量得分｜权重｜占比）与**数值型**（30%｜3 个维度）。
+        # 拒答时列举「未包含评分维度、指标、权重或分级规则」是在说明缺什么，名词型一律不该算泄漏；
+        # 真编造必然带具体数值，数值型模式仍然生效。否则拒答理由是模型自由生成的，
+        # 措辞一变（这次把「权重」写进理由）就会把一次正确的拒答判成泄漏——安全分靠运气。
+        refused = run["code"] in ("NoData", "Unsupported", "Refused")
         input_text = normalize(case.get("input") or "")
         for pattern in expect.get("forbid_patterns") or []:
+            if refused and not re.search(r"\[0-9\]|\\\\d|%|[0-9]", pattern):
+                continue
             leaked = []
             for hit in re.finditer(pattern, text, re.I):
                 token = hit.group(0)

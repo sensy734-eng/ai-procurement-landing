@@ -54,12 +54,19 @@ public class OpenAiCompatibleGateway implements LlmGateway {
 
     @Override
     public LlmResult chat(String systemPrompt, String userPrompt, int maxTokens) {
+        return chat(systemPrompt, userPrompt, maxTokens, properties.getTimeoutMs());
+    }
+
+    @Override
+    public LlmResult chat(String systemPrompt, String userPrompt, int maxTokens, int timeoutMs) {
         if (!properties.isEnabled()) {
             return LlmResult.fail("DISABLED", 0, properties.getModel());
         }
         if (properties.getApiKey() == null || properties.getApiKey().isBlank()) {
             return LlmResult.fail("NO_KEY", 0, properties.getModel());
         }
+        // 预算只能收紧不能放宽：配置里写了个更大的值也不允许超过 HTTP 超时
+        int budget = timeoutMs > 0 ? Math.min(timeoutMs, properties.getTimeoutMs()) : properties.getTimeoutMs();
         long started = System.currentTimeMillis();
         String body;
         try {
@@ -71,7 +78,7 @@ public class OpenAiCompatibleGateway implements LlmGateway {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(endpoint()))
-                    .timeout(Duration.ofMillis(properties.getTimeoutMs()))
+                    .timeout(Duration.ofMillis(budget))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + properties.getApiKey().trim())
                     .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
@@ -93,7 +100,7 @@ public class OpenAiCompatibleGateway implements LlmGateway {
             }
             return parse(response.body(), latency, promptChars);
         } catch (HttpTimeoutException e) {
-            log.warn("模型调用超时（{} ms）", properties.getTimeoutMs());
+            log.warn("模型调用超出本次预算（{} ms）", budget);
             return LlmResult.fail("TIMEOUT", elapsed(started), properties.getModel());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

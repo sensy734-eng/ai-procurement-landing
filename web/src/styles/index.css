@@ -26,6 +26,11 @@
   --gap-lg: 24px;
   --radius-sm: 4px;
   --radius-md: 8px;
+
+  /* 页面卡片内边距：一个值管全站，页头/筛选/分页都靠它离边框 */
+  --page-pad-x: 20px;
+  --page-pad-y: 18px;
+
   --shadow-card: 0 1px 2px rgba(16, 32, 53, 0.04);
   --shadow-pop: 0 6px 20px rgba(16, 32, 53, 0.10);
 
@@ -77,8 +82,11 @@ a {
 
 /* ---------------------------------------------------------------- 版式骨架 */
 
-/* 内边距由各页面根类自己给（历史上已按页调过），这里只统一表面 */
+/* 页面卡片 = 这一页唯一的一张白纸。内容一律留出内边距，
+ * 否则标题顶格、分页贴底框、表格外框与卡片外框叠成双层线，
+ * 整页就会读成「几块东西拼在一起」。 */
 .page-card {
+  padding: var(--page-pad-y) var(--page-pad-x);
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -120,6 +128,30 @@ a {
 .num {
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+/* 页头：标题在左、主操作在右，同一行。
+ * 各页若自己写了 .toolbar 会覆盖这里（scoped 权重更高），这里给
+ * 没写过的页面兜底——否则标题和按钮会各占一行，看着像两块内容。 */
+.toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.toolbar .actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* gap 已经给了 8px，再叠 el-button 自带的 margin-left 会变成 20px */
+.toolbar .actions .el-button + .el-button {
+  margin-left: 0;
 }
 
 /* ---------------------------------------------------------------- 表格 */
@@ -176,6 +208,34 @@ a {
 
 .el-table--scrollable-x .el-table-fixed-column--left {
   box-shadow: 6px 0 12px -8px rgba(16, 32, 53, 0.28);
+}
+
+/* 表格通栏：卡片左右边缘就是表格的边缘。
+ * 页面留白只给页头、筛选和分页；表格如果再缩进一圈，视觉上就是
+ * 「卡里又贴了一张表」，而且白白吃掉 40px 可用宽度（列多时正好够让金额列被压住）。
+ * el-table 自带 width/max-width:100%，光给负边距不会变宽，必须一起改。 */
+.page-card > .el-table {
+  width: calc(100% + var(--page-pad-x) * 2);
+  max-width: none;
+  margin-left: calc(var(--page-pad-x) * -1);
+  margin-right: calc(var(--page-pad-x) * -1);
+}
+
+/* 表格首列文字补回同样的左内边距，才不会贴着卡片边框 */
+.page-card > .el-table th.el-table__cell:first-child .cell,
+.page-card > .el-table td.el-table__cell:first-child .cell {
+  padding-left: var(--page-pad-x);
+}
+
+/* 去掉表格的四个外框线（左右两条 + 上下两条伪元素）。
+ * 表格已经在页面卡片里，如果它再画自己的外框，就是「框里套框」，
+ * 看上去像是从别处切了一张表贴上来；只留表头带和行分隔线，
+ * 表格才是这一页的一部分。 */
+.el-table--border::before,
+.el-table--border::after,
+.el-table__inner-wrapper::before,
+.el-table__inner-wrapper::after {
+  display: none;
 }
 
 /* 去掉竖分隔线：表格靠行分隔已经够清楚，竖线只会让表变碎 */
@@ -271,11 +331,31 @@ a {
   font-size: 12.5px;
 }
 
-/* 行内筛选条：底部一条淡线区隔表格，而不是给整条加框 */
+/* 行内筛选条：不加框、不加横线，靠下方的表头带自然分段。
+ * 以前这里是一条通栏横线，等于把卡片从中间切成两半。 */
 .el-form--inline.filter-bar {
-  padding-bottom: 2px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+  margin-bottom: 6px;
+}
+
+/* 数据范围说明这类「告知」只压成一行备注字：信息级提示不值得占一个灰块，
+ * 每多一个色块，页面就多一道分割。warning 级仍保留色块（见 StockList）。 */
+.el-alert--info.is-light.scope-alert {
+  padding: 0 0 0 2px;
+  margin-bottom: 10px;
+  background: transparent;
+  align-items: center;
+}
+
+.el-alert--info.is-light.scope-alert .el-alert__icon {
+  margin-right: 6px;
+  font-size: 14px;
+  width: 14px;
+}
+
+.el-alert--info.is-light.scope-alert .el-alert__title {
+  color: var(--text-sub);
+  font-size: 12.5px;
 }
 
 .el-form--inline .el-form-item {

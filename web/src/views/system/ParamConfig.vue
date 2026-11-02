@@ -134,7 +134,8 @@ onMounted(load)
 
 <style scoped>
 .param-page {
-  padding: 20px 24px;
+  /* 与全站页面留白同一个值：表格通栏依赖它算负边距 */
+  padding: var(--page-pad-y) var(--page-pad-x);
 }
 
 .toolbar {

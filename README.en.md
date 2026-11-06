@@ -14,7 +14,7 @@ This is not a metaphor. The first rule of web security is "never trust client in
 
 What follows are four judgments. Each comes with a counterexample, a measurement, and one sentence you can take with you.
 
-Every example comes from a procurement management system. But that is only one carrier — a vehicle that happens to satisfy three conditions: there is a source of truth, there are known boundaries, and correctness is decidable. Swap the business and the method still holds. What cannot be swapped out is those three conditions, not the procurement domain.
+Every example comes from a procurement management system. But that is only one carrier — one that happens to satisfy three conditions: there is a source of truth, there are known boundaries, and correctness is decidable. Swap the business and the method still holds. What cannot be swapped out is those three conditions, not the procurement domain.
 
 ---
 
@@ -51,7 +51,7 @@ Three lessons from actual failures explain why this line cannot be relaxed.
 The question contains `M-1001`; the model returns `material_id: 1001`, while the real primary key is `1`. The query runs, returns an empty set, and reports `NoData` — **without raising any error**. The user concludes the material does not exist. In reality the model invented a primary key. So entity parameters never accept values from the model; they accept only business codes or names, and code resolves them against the master data.
 
 **2. Telling a command from a question requires tone, not keywords.**
-"Approve" and "confirm receipt" are both action names and state names. With keyword matching, "has this order been approved yet" gets rejected as a command. The test has to be which marker wins: command markers ("please," "go ahead and," "help me") versus information markers ("has it," "any," "which," "what's the status").
+"Approve" and "confirm receipt" are both action names and state names. With keyword matching, "has this order been approved yet" gets rejected as a command. The deciding factor has to be which marker wins: command markers ("please," "go ahead and," "help me") versus information markers ("has it," "any," "which," "what's the status").
 
 **3. A model saying "I shouldn't answer this" is advisory only.**
 Its refusals must fall back to rule-based re-checking. Otherwise a prompt edit can silently drop a whole category of questions.
@@ -66,7 +66,7 @@ intent allowlist → entity resolution → parameter extraction → operator_set
 
 ### Judgment 3: Treat "AI is not there" as a first-class citizen
 
-Most AI features have exactly one channel: what to do when the model responds. So when the model stalls, the whole feature becomes a long wait. Real failures are far more varied than "an error": timeouts, rate limits, HTTP 200 with an empty body, a response that is not JSON, a code outside the contract. Traditional monitoring counts every one of these as a success.
+Most AI features have exactly one channel: what to do when the model responds. So when the model stalls, the whole feature becomes a long wait. Real failures are far more varied than "an error": timeouts, rate limits, HTTP 200 with an empty body, a response that is not JSON, a code outside the output schema. Traditional monitoring counts every one of these as a success.
 
 So define **what counts as a failure** first:
 
@@ -75,7 +75,7 @@ So define **what counts as a failure** first:
 | Timeout / network error / 5xx / rate limit | Yes | Ordinary unavailability |
 | Authentication failure | Yes, and trips the breaker immediately | A wrong key will not become right after ten thousand retries |
 | Empty response / not JSON | Yes | HTTP 200 but unusable; an ordinary circuit breaker cannot see it |
-| Output violates the contract (code outside allowlist) | Yes | Same class as a parse failure |
+| Output violates the schema (code outside allowlist) | Yes | Same class as a parse failure |
 | **Low confidence** | **No** | A quality problem, not an availability problem. Counting it trips the breaker while the model is healthy, which loses points |
 
 The last row was written after being burned. If "I'm not sure" counts as a failure, a few consecutive cautious answers trip the breaker and push answerable questions onto the fallback path.
@@ -126,7 +126,7 @@ The four judgments are not four parallel activities. They are four checkpoints o
 | Stage | Output | Criterion |
 |---|---|---|
 | Entry | Session context, including the raw text of the last two turns | Follow-ups connect; standalone questions are not polluted |
-| Understanding | Intent + entity references + parameters + normalized time | Output must fall within the contract's enumerations |
+| Understanding | Intent + entity references + parameters + normalized time | Output must fall within the schema's enumerations |
 | Adjudication | Pass, or the reason for refusal | Allowlist, entity existence, parameter validity, data scope, read-only |
 | Execution | A result set or an explicit result code | Read-only; scope injected server-side |
 | Expression | Answer + clickable citations | Citations must exist and belong to the document cited |
@@ -136,7 +136,7 @@ The last step feeds the first. Failures are grouped by failure mode, added to th
 
 <p align="center"><img src="docs/diagrams/11-系统运行图.png" alt="System runtime: AI is a side channel; the model can be switched off" width="94%"></p>
 
-<sub>AI is wired in as a side channel: the main flow does not depend on it. A disabled model, a timeout, or output that violates the contract affects only this one conversation, never the business.</sub>
+<sub>AI is wired in as a side channel: the main flow does not depend on it. A disabled model, a timeout, or output that violates the schema affects only this one conversation, never the business.</sub>
 
 ---
 
@@ -160,7 +160,7 @@ Four judgments need at least one real end-to-end run to prove they are not just 
 | Where the answer comes from | Knowledge base → chunks → dual retrieval → clause text | Intent allowlist → parameters → parameterized SQL |
 | The model does | Decide whether the question is about policy or procedure, compose the answer, cite by clause | Produce intent + entity references + parameters + normalized time in a single call |
 | Code does | Retrieval, fusion, refusal decision, citation validity, numeric consistency guard | Allowlist, entity resolution, parameter validation, scope injection, read-only enforcement |
-| When it cannot answer | Refuse and state what is missing | One of seven result codes (no data / not found / ambiguous / no permission / unsupported / invalid parameter) |
+| When it cannot answer | Refuse and state what is missing | One of six failure result codes (no data / not found / ambiguous / no permission / unsupported / invalid parameter) |
 
 Both capabilities share one entry point; the front end has two pages (chat, audit). All the complexity lives on the server.
 
@@ -354,7 +354,7 @@ The loop is still missing one segment. Today, when something fails in production
 
 Two supporting changes:
 
-- **Grow the eval set past 240 cases.** The smallest category has only 4 cases, so one wrong answer is 25 percentage points and "did this category improve" cannot be seen at all. Rebalance by failure mode: at least 20 cases per category, injection and privilege escalation at 20+ each, and P1 from 30 to 80.
+- **Grow the eval set past 240 cases.** The smallest category has only 4 cases, so one wrong answer is 25 percentage points and "did this category improve" cannot be seen at all. Rebalance by failure mode: at least 20 cases per category, and P1 from 30 to 80.
 - **Switch the refusal threshold to idf weighting.** The current test is "top vector score < 0.35 and fewer than 2 token hits," and generic words like "procurement" or "policy" can supply those 2 hits on a question with no evidence behind it. With idf weighting, generic words approach zero weight and only informative terms count.
 
 ### 7.3 Medium term: latency and cost
@@ -386,7 +386,7 @@ The point is not the gimmick of "building an order by talking." It is **cutting 
 | Model tier total | 97.4 | ≥98 | Two of the three remaining failures close with a policy decision and a new intent; the third is under-specified, and the model was right |
 | Fallback tier safety | 84.4% | ≥95% | The fallback tier exists to avoid misleading, not to answer a lot |
 | Eval set size | 88 cases | ≥240 cases | 12 categories × 20 cases; P1 from 30 to 80 |
-| Impact of one case on a category score | 8–25 points | 5 points | With 4 cases in a category, one failure wipes the category out |
+| Impact of one case on a category score | 8–25 points | 5 points | In the smallest 4-case category, one failure moves the score 25 points |
 | Latency p95 | 1,925 ms | ≤1,200 ms | The perceptual threshold; cache plus earlier first token |
 | Time to first token | Full response only | ≤400 ms | Streaming; the user sees the opening immediately |
 | Semantic cache hit rate | 0 (not built) | ≥15% | Real questions repeat, but the key must carry scope |

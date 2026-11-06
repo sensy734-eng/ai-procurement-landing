@@ -14,7 +14,7 @@ This is not a metaphor. The first rule of web security is "never trust client in
 
 What follows are four judgments. Each comes with a counterexample, a measurement, and one sentence you can take with you.
 
-Every example comes from a procurement management system. But that is only one carrier that happens to satisfy three conditions: there is a source of truth, there are known boundaries, and correctness is decidable. Swap the business and the method still holds. What cannot be swapped out is those three conditions, not the procurement domain.
+Every example comes from a procurement management system. But that is only one carrier — a vehicle that happens to satisfy three conditions: there is a source of truth, there are known boundaries, and correctness is decidable. Swap the business and the method still holds. What cannot be swapped out is those three conditions, not the procurement domain.
 
 ---
 
@@ -76,7 +76,7 @@ So define **what counts as a failure** first:
 | Authentication failure | Yes, and trips the breaker immediately | A wrong key will not become right after ten thousand retries |
 | Empty response / not JSON | Yes | HTTP 200 but unusable; an ordinary circuit breaker cannot see it |
 | Output violates the contract (code outside allowlist) | Yes | Same class as a parse failure |
-| **Low confidence** | **No** | A quality problem, not an availability problem. Counting it makes the gate swing open while the model is healthy, which costs points |
+| **Low confidence** | **No** | A quality problem, not an availability problem. Counting it trips the breaker while the model is healthy, which loses points |
 
 The last row was written after being burned. If "I'm not sure" counts as a failure, a few consecutive cautious answers trip the breaker and push answerable questions onto the fallback path.
 
@@ -142,7 +142,7 @@ The last step feeds the first. Failures are grouped by failure mode, added to th
 
 ## 3. A complete run-through: the procurement system
 
-Four judgments need one real end-to-end run to prove they are not paper. The carrier is manufacturing procurement, chosen for a plain reason: it happens to satisfy all three conditions.
+Four judgments need at least one real end-to-end run to prove they are not just theory. The carrier is manufacturing procurement, chosen for a plain reason: it happens to satisfy all three conditions.
 
 | Condition | What the system provides |
 |---|---|
@@ -220,7 +220,7 @@ Writing them down is more useful than hiding them. None of the three exceptions 
 | "Show deliveries by material" → unsupported | A capability boundary; needs a new intent |
 | "What about compared to the previous supplier?" → judged ambiguous | Insufficient information: the previous answer had no comparison target, so the model's judgment is correct |
 
-Two pieces of engineering debt as well: refusal details are only written to the message table, while the reserved rejection-log table has no code referencing it; and semantic caching was not built — the eval set is all standalone questions, so the hit rate was zero. If it were built, the cache key would have to include `user + role + data scope`; otherwise you would be answering A's data to B.
+There are also two pieces of engineering debt: refusal details are only written to the message table, while the reserved rejection-log table has no code referencing it; and semantic caching was not built — the eval set is all standalone questions, so the hit rate was zero. If it were built, the cache key would have to include `user + role + data scope`; otherwise you would be answering A's data to B.
 
 ---
 

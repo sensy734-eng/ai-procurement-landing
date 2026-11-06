@@ -220,7 +220,7 @@ Writing them down is more useful than hiding them. None of the three exceptions 
 | "Show deliveries by material" → unsupported | A capability boundary; needs a new intent |
 | "What about compared to the previous supplier?" → judged ambiguous | Insufficient information: the previous answer had no comparison target, so the model's judgment is correct |
 
-There are also two pieces of engineering debt: refusal details are only written to the message table, while the reserved rejection-log table has no code referencing it; and semantic caching was not built — the eval set is all standalone questions, so the hit rate was zero. If it were built, the cache key would have to include `user + role + data scope`; otherwise you would be answering A's data to B.
+There are also two pieces of engineering debt: refusal details are only written to the message table, while the reserved rejection-log table has no code referencing it; and semantic caching was not built — the eval set is all standalone questions, so the hit rate was zero (if it does get built, see 7.3 for the preconditions).
 
 ---
 
@@ -327,11 +327,71 @@ All linked documents are written in Chinese.
 
 ---
 
-## 7. Relationship to the other repository
+## 7. What comes next
 
-| Repository | Perspective |
-|---|---|
-| `procurement-system` | Engineering: how the business is implemented, how the database is initialized, how 884 endpoint assertions run |
-| **This repository** | Method: how AI lands, and how you prove it got it right |
+Everything above is already done. This section is about what is not — four layers, ordered by distance, each with what to do and how we will know it worked.
 
-Same source code, different README. This repository keeps the full commit history; new commits only touch documentation.
+### 7.1 Near term: the fallback tier's goal is "never mislead," not "answer more"
+
+The rule fallback tier currently scores 84.4% on safety and 0 overall — safety is a veto item, so a shortfall there voids every other point.
+But it loses differently from the model tier: not by answering shallowly, but by **fabricating** — "how is an over-budget purchase approved" answered with the approval deadline, "sync data to finance" answered with inbound confirmation. Rules can catch keywords; they cannot catch what the sentence is asking.
+
+So the right goal for the fallback tier is not "get closer to the model," but **never mislead**:
+
+- Answer only questions the rules can structure (single entity, single condition, known intent)
+- Refuse everything else explicitly, saying "this question cannot be understood right now," instead of guessing something plausible
+- Trade functional score for safety: push safety past 95% even if P1 does not move
+
+Success criterion: fallback safety ≥95%, and no fabricated answer may pass. **This matters more than accuracy.** A user misled once by a fabricated answer never comes back; a refusal only means this one attempt did not help.
+
+### 7.2 Medium term: let the loop turn on its own
+
+The loop is still missing one segment. Today, when something fails in production, a human has to read the audit log and hand-write a case before it reaches the eval set. That segment should be automatic.
+
+- Sample three kinds of records from the audit table weekly: non-success result codes, parameters rejected by the gates, and repeated questions within one session (a sign the first answer missed)
+- Auto-draft the case (question plus the intent, parameters, and result code at the time); a human only fills in the expectation
+- Criterion: a newly discovered production failure reaches the eval set and reproduces within two weeks
+
+Two supporting changes:
+
+- **Grow the eval set past 240 cases.** The smallest category has only 4 cases, so one wrong answer is 25 percentage points and "did this category improve" cannot be seen at all. Rebalance by failure mode: at least 20 cases per category, injection and privilege escalation at 20+ each, and P1 from 30 to 80.
+- **Switch the refusal threshold to idf weighting.** The current test is "top vector score < 0.35 and fewer than 2 token hits," and generic words like "procurement" or "policy" can supply those 2 hits on a question with no evidence behind it. With idf weighting, generic words approach zero weight and only informative terms count.
+
+### 7.3 Medium term: latency and cost
+
+p95 is 1,925 ms — inside budget, but still slow for an interactive exchange. Three levers:
+
+| Lever | Approach | Risk |
+|---|---|---|
+| Semantic cache | Return on hit, skip both model calls | The cache key must include `user + role + data scope`, or you answer A's data to B; cache read-only results only, with a short TTL |
+| Streaming | Emit the first token, then the body | Citation and numeric guards need the full text, so during streaming the UI can only show an "unverified" state |
+| Smaller model for understanding | Swap only the planner; adjudication untouched | Bad understanding is stopped by the four gates; the cost is more refusals, not a safety incident |
+
+The third one is the dividend of this architecture: **you can move to a cheaper or even weaker model without lowering the safety floor**, because the floor is not in the model. In day-to-day operation this argues the case better than any evaluation score.
+
+### 7.4 Further out: from "look it up" to "get it done"
+
+Data access is read-only today, and every write is refused — deliberately. To open it up, three preconditions are non-negotiable:
+
+1. **Draft state**: the model may only produce a "pending confirmation" document draft, never a committed record, aligned with the existing draft state in the lifecycle
+2. **Second confirmation of parameters**: quantity, unit price, and delivery date must be laid out for the user to confirm before taking effect
+3. **Idempotency key**: a sentence can be resent or retried concurrently, so writes must carry one
+
+The point is not the gimmick of "building an order by talking." It is **cutting form-filling time for high-frequency writes from minutes to seconds**, on the precondition of **zero erroneous writes** — if that cannot be guaranteed, it does not ship.
+
+### 7.5 What we want to achieve
+
+| Dimension | Now | Target | Why this number |
+|---|---|---|---|
+| Model tier total | 97.4 | ≥98 | Two of the three remaining failures close with a policy decision and a new intent; the third is under-specified, and the model was right |
+| Fallback tier safety | 84.4% | ≥95% | The fallback tier exists to avoid misleading, not to answer a lot |
+| Eval set size | 88 cases | ≥240 cases | 12 categories × 20 cases; P1 from 30 to 80 |
+| Impact of one case on a category score | 8–25 points | 5 points | With 4 cases in a category, one failure wipes the category out |
+| Latency p95 | 1,925 ms | ≤1,200 ms | The perceptual threshold; cache plus earlier first token |
+| Time to first token | Full response only | ≤400 ms | Streaming; the user sees the opening immediately |
+| Semantic cache hit rate | 0 (not built) | ≥15% | Real questions repeat, but the key must carry scope |
+| Production failure → eval set | Manual, weeks | ≤2 weeks, automatic | The last segment of the loop |
+
+In one sentence: **make safety something the system cannot get wrong later, not something this version happened to get right.**
+
+The first comes from one review. The second only comes from a loop that turns by itself.

@@ -20,6 +20,7 @@ import java.util.Map;
 public class AiContext {
 
     private String intentCode;
+    private String accessFingerprint;
     private List<ChatVO.EntityRef> entities;
     private Map<String, Object> params;
     /** 上一轮结果的单据号，供「这张单」类指代 */

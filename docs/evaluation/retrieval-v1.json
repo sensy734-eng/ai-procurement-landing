@@ -1,0 +1,597 @@
+{
+  "version": "retrieval-v1-frozen",
+  "cases": [
+    {
+      "id": "R01-1",
+      "family": "F01",
+      "split": "dev",
+      "category": "金额权限",
+      "question": "三万元以上的采购申请还需要谁复核？",
+      "relevant_chunk_ids": [
+        10001
+      ]
+    },
+    {
+      "id": "R01-2",
+      "family": "F01",
+      "split": "dev",
+      "category": "金额权限",
+      "question": "大额请购除了主管还要财务看吗？",
+      "relevant_chunk_ids": [
+        10001
+      ]
+    },
+    {
+      "id": "R02-1",
+      "family": "F02",
+      "split": "dev",
+      "category": "期限",
+      "question": "供应商资质到期前多久提醒续期？",
+      "relevant_chunk_ids": [
+        10102
+      ]
+    },
+    {
+      "id": "R02-2",
+      "family": "F02",
+      "split": "dev",
+      "category": "期限",
+      "question": "供方证照即将过期，提前多少天提醒？",
+      "relevant_chunk_ids": [
+        10102
+      ]
+    },
+    {
+      "id": "R03-1",
+      "family": "F03",
+      "split": "dev",
+      "category": "状态",
+      "question": "登记交付进度就会增加库存吗？",
+      "relevant_chunk_ids": [
+        10204
+      ]
+    },
+    {
+      "id": "R03-2",
+      "family": "F03",
+      "split": "dev",
+      "category": "状态",
+      "question": "供应商反馈发货后账面库存会立刻变化吗？",
+      "relevant_chunk_ids": [
+        10204
+      ]
+    },
+    {
+      "id": "R04-1",
+      "family": "F04",
+      "split": "dev",
+      "category": "权限",
+      "question": "仓管员能自行批准让步接收吗？",
+      "relevant_chunk_ids": [
+        10304
+      ]
+    },
+    {
+      "id": "R04-2",
+      "family": "F04",
+      "split": "dev",
+      "category": "权限",
+      "question": "不合格品破例接收入库要谁确认？",
+      "relevant_chunk_ids": [
+        10304
+      ]
+    },
+    {
+      "id": "R05-1",
+      "family": "F05",
+      "split": "dev",
+      "category": "教程",
+      "question": "如何确认采购入库单？",
+      "relevant_chunk_ids": [
+        10401
+      ]
+    },
+    {
+      "id": "R05-2",
+      "family": "F05",
+      "split": "dev",
+      "category": "教程",
+      "question": "草稿入库单确认的操作顺序是什么？",
+      "relevant_chunk_ids": [
+        10401
+      ]
+    },
+    {
+      "id": "R06-1",
+      "family": "F06",
+      "split": "dev",
+      "category": "同义表达",
+      "question": "可用库存怎么计算？",
+      "relevant_chunk_ids": [
+        10501
+      ]
+    },
+    {
+      "id": "R06-2",
+      "family": "F06",
+      "split": "dev",
+      "category": "同义表达",
+      "question": "现在能领用的量要扣掉冻结和预留吗？",
+      "relevant_chunk_ids": [
+        10501
+      ]
+    },
+    {
+      "id": "R07-1",
+      "family": "F07",
+      "split": "dev",
+      "category": "计算",
+      "question": "历史采购均价如何计算？",
+      "relevant_chunk_ids": [
+        10604
+      ]
+    },
+    {
+      "id": "R07-2",
+      "family": "F07",
+      "split": "dev",
+      "category": "计算",
+      "question": "多笔不同数量的成交价应该直接平均吗？",
+      "relevant_chunk_ids": [
+        10604
+      ]
+    },
+    {
+      "id": "R08-1",
+      "family": "F08",
+      "split": "dev",
+      "category": "权限",
+      "question": "其他账号能查看我的历史会话吗？",
+      "relevant_chunk_ids": [
+        10702
+      ]
+    },
+    {
+      "id": "R08-2",
+      "family": "F08",
+      "split": "dev",
+      "category": "权限",
+      "question": "会话历史和重跑有哪些权限限制？",
+      "relevant_chunk_ids": [
+        10702
+      ]
+    },
+    {
+      "id": "R09-1",
+      "family": "F09",
+      "split": "dev",
+      "category": "状态",
+      "question": "生成订单后的采购申请能删除吗？",
+      "relevant_chunk_ids": [
+        10006
+      ]
+    },
+    {
+      "id": "R09-2",
+      "family": "F09",
+      "split": "dev",
+      "category": "状态",
+      "question": "请购单已经转单，还能直接删掉吗？",
+      "relevant_chunk_ids": [
+        10006
+      ]
+    },
+    {
+      "id": "R10-1",
+      "family": "F10",
+      "split": "dev",
+      "category": "流程",
+      "question": "供应商收款账户变更如何核验？",
+      "relevant_chunk_ids": [
+        10104
+      ]
+    },
+    {
+      "id": "R10-2",
+      "family": "F10",
+      "split": "dev",
+      "category": "流程",
+      "question": "供方在聊天里通知换银行卡可以直接接受吗？",
+      "relevant_chunk_ids": [
+        10104
+      ]
+    },
+    {
+      "id": "R11-1",
+      "family": "F11",
+      "split": "dev",
+      "category": "数量",
+      "question": "分批到货能超过订单数量吗？",
+      "relevant_chunk_ids": [
+        10203
+      ]
+    },
+    {
+      "id": "R11-2",
+      "family": "F11",
+      "split": "dev",
+      "category": "数量",
+      "question": "供应商多送的货能先收再改订单吗？",
+      "relevant_chunk_ids": [
+        10203
+      ]
+    },
+    {
+      "id": "R12-1",
+      "family": "F12",
+      "split": "dev",
+      "category": "数值",
+      "question": "验收抽样比例是多少？",
+      "relevant_chunk_ids": [
+        10305
+      ]
+    },
+    {
+      "id": "R12-2",
+      "family": "F12",
+      "split": "dev",
+      "category": "数值",
+      "question": "常规抽检后发现关键缺陷要怎么办？",
+      "relevant_chunk_ids": [
+        10305
+      ]
+    },
+    {
+      "id": "R13-1",
+      "family": "F13",
+      "split": "dev",
+      "category": "事务",
+      "question": "入库确认中途失败会留下部分库存吗？",
+      "relevant_chunk_ids": [
+        10408
+      ]
+    },
+    {
+      "id": "R13-2",
+      "family": "F13",
+      "split": "dev",
+      "category": "事务",
+      "question": "库存写入成功但订单回写异常该怎样处理？",
+      "relevant_chunk_ids": [
+        10408
+      ]
+    },
+    {
+      "id": "R14-1",
+      "family": "F14",
+      "split": "dev",
+      "category": "追溯",
+      "question": "库存批次能追溯到供应商吗？",
+      "relevant_chunk_ids": [
+        10506
+      ]
+    },
+    {
+      "id": "R14-2",
+      "family": "F14",
+      "split": "dev",
+      "category": "追溯",
+      "question": "如何从某批物料找到原来的入库单和订单？",
+      "relevant_chunk_ids": [
+        10506
+      ]
+    },
+    {
+      "id": "R15-1",
+      "family": "F15",
+      "split": "dev",
+      "category": "无答案",
+      "question": "公司员工出差住宿报销标准是多少？",
+      "relevant_chunk_ids": []
+    },
+    {
+      "id": "R15-2",
+      "family": "F15",
+      "split": "dev",
+      "category": "无答案",
+      "question": "差旅酒店每晚最高能报销多少钱？",
+      "relevant_chunk_ids": []
+    },
+    {
+      "id": "R16-1",
+      "family": "F16",
+      "split": "holdout",
+      "category": "期限",
+      "question": "普通采购申请应在几个工作日内审批完？",
+      "relevant_chunk_ids": [
+        10002
+      ]
+    },
+    {
+      "id": "R16-2",
+      "family": "F16",
+      "split": "holdout",
+      "category": "期限",
+      "question": "提交请购单后审批期限算自然日吗？",
+      "relevant_chunk_ids": [
+        10002
+      ]
+    },
+    {
+      "id": "R17-1",
+      "family": "F17",
+      "split": "holdout",
+      "category": "同义表达",
+      "question": "独家供应商采购需要什么说明？",
+      "relevant_chunk_ids": [
+        10103
+      ]
+    },
+    {
+      "id": "R17-2",
+      "family": "F17",
+      "split": "holdout",
+      "category": "同义表达",
+      "question": "物料只有一家能供货时要走什么批准？",
+      "relevant_chunk_ids": [
+        10103
+      ]
+    },
+    {
+      "id": "R18-1",
+      "family": "F18",
+      "split": "holdout",
+      "category": "状态",
+      "question": "已有入库记录的订单能直接反审吗？",
+      "relevant_chunk_ids": [
+        10206
+      ]
+    },
+    {
+      "id": "R18-2",
+      "family": "F18",
+      "split": "holdout",
+      "category": "状态",
+      "question": "订单已经收货入账，还能撤销审核吗？",
+      "relevant_chunk_ids": [
+        10206
+      ]
+    },
+    {
+      "id": "R19-1",
+      "family": "F19",
+      "split": "holdout",
+      "category": "质量",
+      "question": "不合格品可以直接普通入库吗？",
+      "relevant_chunk_ids": [
+        10303
+      ]
+    },
+    {
+      "id": "R19-2",
+      "family": "F19",
+      "split": "holdout",
+      "category": "质量",
+      "question": "检验未通过的材料应退货还是申请例外接收？",
+      "relevant_chunk_ids": [
+        10303
+      ]
+    },
+    {
+      "id": "R20-1",
+      "family": "F20",
+      "split": "holdout",
+      "category": "边界",
+      "question": "库存已占用还能作废入库单吗？",
+      "relevant_chunk_ids": [
+        10404
+      ]
+    },
+    {
+      "id": "R20-2",
+      "family": "F20",
+      "split": "holdout",
+      "category": "边界",
+      "question": "冲减库存会变负数时系统应怎么处理？",
+      "relevant_chunk_ids": [
+        10404
+      ]
+    },
+    {
+      "id": "R21-1",
+      "family": "F21",
+      "split": "holdout",
+      "category": "同义表达",
+      "question": "库存短缺清单的缺口怎么算？",
+      "relevant_chunk_ids": [
+        10503
+      ]
+    },
+    {
+      "id": "R21-2",
+      "family": "F21",
+      "split": "holdout",
+      "category": "同义表达",
+      "question": "余量不足预警线时需要补多少货？",
+      "relevant_chunk_ids": [
+        10503
+      ]
+    },
+    {
+      "id": "R22-1",
+      "family": "F22",
+      "split": "holdout",
+      "category": "数值",
+      "question": "价格偏离达到多少需要关注？",
+      "relevant_chunk_ids": [
+        10602
+      ]
+    },
+    {
+      "id": "R22-2",
+      "family": "F22",
+      "split": "holdout",
+      "category": "数值",
+      "question": "采购单价超出参考价多少算显著偏离？",
+      "relevant_chunk_ids": [
+        10602
+      ]
+    },
+    {
+      "id": "R23-1",
+      "family": "F23",
+      "split": "holdout",
+      "category": "故障",
+      "question": "模型超时后制度问答会怎样？",
+      "relevant_chunk_ids": [
+        10704
+      ]
+    },
+    {
+      "id": "R23-2",
+      "family": "F23",
+      "split": "holdout",
+      "category": "故障",
+      "question": "生成服务挂了还能得到可靠制度结论吗？",
+      "relevant_chunk_ids": [
+        10704
+      ]
+    },
+    {
+      "id": "R24-1",
+      "family": "F24",
+      "split": "holdout",
+      "category": "预算",
+      "question": "预算不足时可以拆单审批吗？",
+      "relevant_chunk_ids": [
+        10007
+      ]
+    },
+    {
+      "id": "R24-2",
+      "family": "F24",
+      "split": "holdout",
+      "category": "预算",
+      "question": "经费不够能分几张小额单绕过审批门槛吗？",
+      "relevant_chunk_ids": [
+        10007
+      ]
+    },
+    {
+      "id": "R25-1",
+      "family": "F25",
+      "split": "holdout",
+      "category": "状态",
+      "question": "供应商停用会删除历史订单吗？",
+      "relevant_chunk_ids": [
+        10105
+      ]
+    },
+    {
+      "id": "R25-2",
+      "family": "F25",
+      "split": "holdout",
+      "category": "状态",
+      "question": "不再合作的供方历史验收单还能保留吗？",
+      "relevant_chunk_ids": [
+        10105
+      ]
+    },
+    {
+      "id": "R26-1",
+      "family": "F26",
+      "split": "holdout",
+      "category": "期限",
+      "question": "订单货期变更要提前多久通知？",
+      "relevant_chunk_ids": [
+        10208
+      ]
+    },
+    {
+      "id": "R26-2",
+      "family": "F26",
+      "split": "holdout",
+      "category": "期限",
+      "question": "供应商突然停产和普通延期如何上报？",
+      "relevant_chunk_ids": [
+        10208
+      ]
+    },
+    {
+      "id": "R27-1",
+      "family": "F27",
+      "split": "holdout",
+      "category": "期限",
+      "question": "验收结果应在多久内登记？",
+      "relevant_chunk_ids": [
+        10307
+      ]
+    },
+    {
+      "id": "R27-2",
+      "family": "F27",
+      "split": "holdout",
+      "category": "期限",
+      "question": "易腐物料也能等一天再检验吗？",
+      "relevant_chunk_ids": [
+        10307
+      ]
+    },
+    {
+      "id": "R28-1",
+      "family": "F28",
+      "split": "holdout",
+      "category": "教程",
+      "question": "验收后怎样生成入库草稿？",
+      "relevant_chunk_ids": [
+        10406
+      ]
+    },
+    {
+      "id": "R28-2",
+      "family": "F28",
+      "split": "holdout",
+      "category": "教程",
+      "question": "从到货验收生成入库单要按什么顺序操作？",
+      "relevant_chunk_ids": [
+        10406
+      ]
+    },
+    {
+      "id": "R29-1",
+      "family": "F29",
+      "split": "holdout",
+      "category": "版本",
+      "question": "参考价改版会覆盖订单的历史价格依据吗？",
+      "relevant_chunk_ids": [
+        10603
+      ]
+    },
+    {
+      "id": "R29-2",
+      "family": "F29",
+      "split": "holdout",
+      "category": "版本",
+      "question": "采购订单保存的是当前参考价还是下单快照？",
+      "relevant_chunk_ids": [
+        10603
+      ]
+    },
+    {
+      "id": "R30-1",
+      "family": "F30",
+      "split": "holdout",
+      "category": "无答案",
+      "question": "年度销售提成比例是多少？",
+      "relevant_chunk_ids": []
+    },
+    {
+      "id": "R30-2",
+      "family": "F30",
+      "split": "holdout",
+      "category": "无答案",
+      "question": "销售团队的佣金怎样核算？",
+      "relevant_chunk_ids": []
+    }
+  ]
+}

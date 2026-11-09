@@ -15,9 +15,12 @@
 前置：后端已在 http://localhost:8080 启动；数据库可连（守卫用例需要）。
 退出码：0 全部达标；1 有失败；2 数据集或环境错误。
 
-判分口径见 docs/AI_EVAL_PLAN.md 第五节。
+历史判分口径见 docs/archive/AI_EVAL_PLAN.md 第五节；本版本模式见 docs/testing.md。
 """
 import argparse
+from evaluation_provenance import source_provenance
+import hashlib
+from pathlib import Path
 import json
 import os
 import re
@@ -96,10 +99,13 @@ def call(method, path, token=None, body=None, timeout=180):
 
 def mysql_query(sql):
     """执行只读 SQL，返回 [[列值...], ...]；失败抛 RuntimeError。"""
+    command = [MYSQL_BIN, "--default-character-set=utf8mb4", "-N", "-B", "-uroot", DB_NAME, "-e", sql]
+    if os.getenv("EVAL_USE_COMPOSE_DB") == "true":
+        command = ["docker", "compose", "exec", "-T", "db", "sh", "-c",
+                   'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql --default-character-set=utf8mb4 -N -B -uroot "$MYSQL_DATABASE" -e "$1"',
+                   "eval-readonly", sql]
     try:
-        out = subprocess.run([MYSQL_BIN, "--default-character-set=utf8mb4", "-N", "-B",
-                              "-uroot", DB_NAME, "-e", sql],
-                             capture_output=True, timeout=30)
+        out = subprocess.run(command, cwd=ROOT, capture_output=True, timeout=30)
     except FileNotFoundError:
         raise RuntimeError("找不到 mysql 客户端：" + MYSQL_BIN)
     if out.returncode != 0:
@@ -144,6 +150,17 @@ class Judge:
         """返回 (passed, score, reasons, warnings)"""
         expect = case["expect"]
         kind = case["judge"]
+        if expect.get("answer_mode"):
+            actual = (run.get("payload") or {}).get("answerMode")
+            if actual != expect["answer_mode"]:
+                return False, 0.0, [f"answerMode {actual} != {expect['answer_mode']}"], []
+        if kind == "conservative":
+            payload = run.get("payload") or {}
+            valid_refs = payload.get("refs") or []
+            cited, reason = check_citations(expect.get("citations", []), valid_refs)
+            verified = bool(valid_refs) and all(r.get("valid") is True and r.get("snippet") for r in valid_refs)
+            ok = run.get("code") == "NoData" and verified and cited and bool(payload.get("degradedReason"))
+            return ok, float(ok), [] if ok else [reason or "降级结果不符合参考原文契约"], []
         if kind == "exact":
             return self.judge_exact(case, run)
         if kind == "facts":
@@ -241,7 +258,8 @@ class Judge:
                 items = re.findall(
                     r"(?m)^\s*(?:[0-9]{1,2}[.、)）]|[（(][0-9]{1,2}[)）])\s*(.+)$", raw)
                 if len(items) < len(steps):
-                    warnings.append("答案未分步编号，只判步骤覆盖不判顺序")
+                    reasons.append("答案缺少可验证的有序步骤结构")
+                    step_score = 0.0
                 else:
                     order = []
                     for step in steps:
@@ -249,8 +267,9 @@ class Judge:
                                     if tokens_hit(item, step["groups"])), -1)
                         if idx >= 0:
                             order.append(idx)
-                    if order != sorted(order):
+                    if len(order) != len(steps) or len(set(order)) != len(order) or order != sorted(order):
                         reasons.append("步骤顺序颠倒：%s" % (order,))
+                        step_score = 0.0
 
         # 引用锚点
         cite_ok, cite_reason = check_citations(expect.get("citations") or [], payload.get("refs") or [])
@@ -326,8 +345,7 @@ class Judge:
             sql, op = guard["sql"], guard["op"]
             before, after = run["db_before"].get(sql), run["db_after"].get(sql)
             if before is None or after is None:
-                if self.db_error:
-                    warnings.append("数据库守卫跳过（%s）" % self.db_error)
+                reasons.append("数据库守卫未验证（%s）" % (self.db_error or "未启用"))
                 continue
             if op == "unchanged" and before != after:
                 reasons.append("数据库被改动：%s 由 %s 变 %s" % (sql, before, after))
@@ -335,8 +353,8 @@ class Judge:
                 try:
                     if int(after[0][0]) < int(before[0][0]):
                         reasons.append("数据被删除：%s 由 %s 变 %s" % (sql, before, after))
-                except (IndexError, ValueError):
-                    pass
+                except (IndexError, ValueError, TypeError):
+                    reasons.append("数据库守卫结果不是可验证的计数：%s" % sql)
             elif op == "absent":
                 values = [row[0] for row in after if row and row[0]]
                 body = normalize(json.dumps(run["payload"], ensure_ascii=False))
@@ -430,8 +448,7 @@ def ask(token, question, session_id=None, timeout=180):
 def preload_db(judge, case):
     before = {}
     for guard in case["expect"].get("db_guard") or []:
-        if guard["op"] in ("unchanged", "ge"):
-            before[guard["sql"]] = judge.db_rows(guard["sql"])
+        before[guard["sql"]] = judge.db_rows(guard["sql"])
     return before
 
 
@@ -542,6 +559,15 @@ def scorecard(results):
     llm_used = sum(1 for r in results.values() if r.get("generator") == "llm")
     return {
         "parts": parts,
+        "case_count": len(results),
+        "case_pass_rate": sum(r["passed"] for r in results.values()) / len(results) if results else 0,
+        "incorrect_generated_answers": sum(r["judge"] == "facts" and not r["passed"] and r.get("answer_mode") == "generated" for r in results.values()),
+        "false_refusals": sum(r["judge"] == "facts" and r.get("answer_mode") == "refused" for r in results.values()),
+        "unexpected_generated_answers": sum(r["judge"] == "refuse" and r.get("answer_mode") == "generated" for r in results.values()),
+        "reference_only_count": sum(r.get("answer_mode") == "references_only" for r in results.values()),
+        "answer_tokens_known": sum(r.get("answer_tokens") or 0 for r in results.values()),
+        "answer_usage_missing": sum(r.get("answer_tokens") is None for r in results.values()),
+        "embedding_tokens_known": sum(r.get("embedding_tokens") or 0 for r in results.values()),
         "total": round(total, 1),
         "hard_rate": hard,
         "structure_rate": structure,
@@ -573,7 +599,13 @@ def render_report(meta, results, card):
     lines.append("")
     lines.append("> 数据集版本 %s ｜ 执行时间 %s ｜ 标签：%s"
                  % (meta["dataset_version"], meta["run_at"], meta["tag"] or "—"))
-    lines.append("> 被测服务 %s ｜ 数据库守卫：%s" % (meta["base"], "开启" if meta["with_db"] else "关闭"))
+    lines.append("> 被测服务 %s ｜ 数据库守卫：%s ｜ 模式：%s" % (meta["base"], meta["db_guard_status"], meta["mode"]))
+    lines.append("逐条通过率 %.1f%%；错误生成 %d；误拒答 %d；无答案却生成 %d；参考降级 %d。" %
+                 (card["case_pass_rate"] * 100, card["incorrect_generated_answers"], card["false_refusals"],
+                  card["unexpected_generated_answers"], card["reference_only_count"]))
+    lines.append("已知成文 tokens %d（缺失用量 %d 条）；检索嵌入 tokens %d。未含路由/查询规划/失败请求用量，不作为全链路费用。" %
+                 (card["answer_tokens_known"], card["answer_usage_missing"], card["embedding_tokens_known"]))
+    lines.extend(["", "复现元数据：", "```json", json.dumps(meta, ensure_ascii=False, indent=2), "```", ""])
     lines.append("")
     lines.append("## 一、评分卡（满分 100）")
     lines.append("")
@@ -683,7 +715,7 @@ def render_report(meta, results, card):
 
 # ---------------------------------------------------------------- 校验
 
-def validate_dataset(data):
+def validate_dataset(data, check_legacy_theory=True):
     errors, warnings = [], []
     cases = data["cases"]
     ids = [c["case_id"] for c in cases]
@@ -726,7 +758,7 @@ def validate_dataset(data):
         from ai_eval_theory import THEORY
     except Exception:
         THEORY = None
-    if THEORY is not None:
+    if check_legacy_theory and THEORY is not None:
         orphan = [cid for cid in ids if cid not in THEORY]
         stale = [cid for cid in THEORY if cid not in set(ids)]
         if orphan:
@@ -739,7 +771,12 @@ def validate_dataset(data):
 # ---------------------------------------------------------------- 主流程
 
 def main():
+    global DATASET, RESULT_JSON, REPORT_MD
     parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset", default=DATASET)
+    parser.add_argument("--mode", choices=["generated", "conservative", "fault"], default="generated")
+    parser.add_argument("--output-dir", default=None)
+    parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--check", action="store_true", help="只校验数据集")
     parser.add_argument("--layer", default="ALL", choices=["ALL", "P0", "P1"])
     parser.add_argument("--case", default=None, help="只跑指定用例")
@@ -751,8 +788,30 @@ def main():
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
 
+    DATASET = os.path.abspath(args.dataset)
+    if not 1 <= args.repeats <= 20: parser.error("repeats must be 1..20")
+    output = Path(args.output_dir or (Path(ROOT)/"artifacts"/"ai-eval"/time.strftime("%Y%m%d-%H%M%S")))
+    if not args.check:
+        output.mkdir(parents=True, exist_ok=True)
+        RESULT_JSON, REPORT_MD = str(output/"results.json"), str(output/"report.md")
+    if args.repeats > 1 and not args.check:
+        forwarded = []
+        skip = False
+        for arg in sys.argv[1:]:
+            if skip: skip = False; continue
+            if arg in ("--repeats", "--output-dir"): skip = True; continue
+            if arg.startswith(("--repeats=", "--output-dir=")): continue
+            forwarded.append(arg)
+        codes = [subprocess.call([sys.executable, __file__, *forwarded, "--repeats", "1", "--output-dir", str(output/f"run-{n+1:02}")])
+                 for n in range(args.repeats)]
+        return max(codes)
+    if args.mode == "fault" and not args.check:
+        from fault_eval_runner import run
+        return run(output)
+
     data = json.load(open(DATASET, encoding="utf-8"))
-    errors, warnings, layers = validate_dataset(data)
+    errors, warnings, layers = validate_dataset(data,
+        check_legacy_theory=Path(DATASET).resolve() == (Path(ROOT) / "scripts/ai_eval_dataset.json").resolve())
     if args.check:
         print("数据集版本 %s，%d 条用例，分层 %s" % (data["version"], len(data["cases"]), layers))
         for warning in warnings:
@@ -765,6 +824,15 @@ def main():
         for error in errors:
             print("ERROR " + error)
         return 2
+
+    # Explicit modes keep a correct fallback separate from generated-answer success.
+    for case in data["cases"]:
+        if case["judge"] == "facts":
+            case["expect"]["answer_mode"] = "generated"
+            if args.mode != "generated":
+                case["expect"] = {"answer_mode": "references_only", "result_code": ["NoData"],
+                                  "citations": case["expect"].get("citations", [])}
+                case["judge"] = "conservative"
 
     cases = data["cases"]
     baseline = None
@@ -794,6 +862,15 @@ def main():
             print("账号 %s 未取到 token（停用或不存在）" % user)
 
     judge = Judge(with_db=not args.no_db)
+    manifest_token = tokens.get("admin") or login("admin")
+    manifest_before = None
+    manifest_after = None
+    try:
+        status, response = call("GET", "/m10/retrieval-tests/manifest", token=manifest_token)
+        if status == 200 and response.get("code") == "Success":
+            manifest_before = response["data"]
+    except Exception:
+        pass
     results = {}
     started = time.time()
     for case in cases:
@@ -815,6 +892,9 @@ def main():
             "intent": payload.get("intentCode"),
             "code": run["code"],
             "generator": payload.get("generator"),
+            "answer_mode": payload.get("answerMode"),
+            "answer_tokens": payload.get("answerTokens"),
+            "embedding_tokens": payload.get("embeddingTokens"),
             "citation_ok": bool(payload.get("refs")),
             "gap": case.get("gap"),
             "payload": payload,
@@ -823,6 +903,17 @@ def main():
 
     apply_relations(results)
     card = scorecard(results)
+    try:
+        status, response = call("GET", "/m10/retrieval-tests/manifest", token=manifest_token)
+        if status == 200 and response.get("code") == "Success":
+            manifest_after = response["data"]
+    except Exception:
+        pass
+    kb_verified = manifest_before is not None and manifest_before == manifest_after
+    if not kb_verified:
+        card["verdict"] = "UNVERIFIED（知识库或模型配置快照未验证）"
+    if args.no_db or judge.db_error:
+        card["verdict"] = "UNVERIFIED（数据库守卫未通过）"
 
     delta = None
     if baseline and baseline.get("results"):
@@ -838,6 +929,19 @@ def main():
         }
 
     meta = {
+        **source_provenance(),
+        "commit_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+        "working_tree_dirty": bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT)),
+        "dataset_sha256": hashlib.sha256(Path(DATASET).read_bytes()).hexdigest(),
+        "prompt_version": "knowledge-v3-conservative",
+        "prompt_source_sha256": hashlib.sha256((Path(ROOT)/"server/src/main/java/com/zufe/procurement/m8/qa/service/LlmAnswerComposer.java").read_bytes()).hexdigest(),
+        "model_config": (manifest_before or {}).get("chatModel", {"model": "unknown"}),
+        "knowledge_base_version": manifest_before,
+        "knowledge_base_after": manifest_after,
+        "knowledge_base_guard": "snapshot_verified" if kb_verified else "not_verified",
+        "simulated_faults": False,
+        "db_guard_status": "disabled" if args.no_db else ("failed" if judge.db_error else "enabled"),
+        "mode": args.mode,
         "dataset_version": data["version"],
         "run_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "run_tag": args.tag,
@@ -857,6 +961,11 @@ def main():
             "filters": (payload.get("card") or {}).get("filters"),
             "rejected": (payload.get("card") or {}).get("rejected"),
             "generator": payload.get("generator"),
+            "answerMode": payload.get("answerMode"),
+            "degradedReason": payload.get("degradedReason"),
+            "retrievalConfigId": payload.get("retrievalConfigId"),
+            "answerTokens": payload.get("answerTokens"),
+            "embeddingTokens": payload.get("embeddingTokens"),
         }
 
     json.dump({"meta": meta, "card": card,

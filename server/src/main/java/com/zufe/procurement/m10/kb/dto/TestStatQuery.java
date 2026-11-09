@@ -9,6 +9,7 @@ import java.time.LocalDate;
 public class TestStatQuery {
 
     private String testBatch;
+    private String strategy;
     private LocalDate from;
     private LocalDate to;
 }

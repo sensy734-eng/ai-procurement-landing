@@ -17,6 +17,12 @@ public class RetrievalTestVO {
     private Integer topK;
     private List<RetrievalHitVO> bm25;
     private List<RetrievalHitVO> vector;
+    private List<RetrievalHitVO> ranked;
+    private String requestedStrategy;
+    private String actualStrategy;
+    private String configId;
+    private String degradedReason;
+    private Long embeddingTokens;
     /** 是否命中：0 未命中、1 命中 */
     private Integer hitFlag;
     /** 命中位置（两路中更靠前的排名） */

@@ -743,8 +743,10 @@ public class PurchaseRequestService {
 
     /** 归属对象下拉数据源。owner_object 无独立维护功能点，此处只读暴露。 */
     public OwnerOptionVO ownerOptions() {
+        var scope = AuthContext.getOrThrow().getScope();
         List<OwnerObject> owners = ownerObjectMapper.selectList(new LambdaQueryWrapper<OwnerObject>()
                 .eq(OwnerObject::getStatus, 1)
+                .in(!scope.isAll() && scope.hasOwner(), OwnerObject::getOwnerNo, scope.getOwnerNos())
                 .orderByAsc(OwnerObject::getOwnerType)
                 .orderByAsc(OwnerObject::getId));
         OwnerOptionVO vo = new OwnerOptionVO();
@@ -919,6 +921,12 @@ public class PurchaseRequestService {
             }
             ownerId = owner.getId();
             ownerNo = owner.getOwnerNo();
+        }
+
+        var ownerScope = AuthContext.getOrThrow().getScope();
+        if (!ownerScope.isAll() && ownerScope.hasOwner()
+                && !ownerScope.getOwnerNos().contains(ownerType == OWNER_PUBLIC ? "PUBLIC" : ownerNo)) {
+            throw new BizException(ResultCode.NO_PERMISSION, "归属对象不在当前授权范围内");
         }
 
         PurchaseRequestItem item = new PurchaseRequestItem();

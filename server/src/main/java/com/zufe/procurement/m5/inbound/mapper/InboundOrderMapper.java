@@ -14,6 +14,8 @@ import java.util.List;
  * 轮次 6 补续号与按验收单查生成的入库单草稿（M4-3-3 多批次）。
  */
 public interface InboundOrderMapper extends BaseMapper<InboundOrder> {
+    @org.apache.ibatis.annotations.Update("UPDATE inbound_order SET is_deleted = 1 WHERE id = #{id} AND status = 1 AND is_deleted = 0")
+    int deleteDraft(@Param("id") Long id);
 
     @Select("""
             SELECT COUNT(*) FROM inbound_order
@@ -35,4 +37,11 @@ public interface InboundOrderMapper extends BaseMapper<InboundOrder> {
             ORDER BY id DESC
             """)
     List<InboundOrder> selectByInspectionId(@Param("inspectionId") Long inspectionId);
+
+    @Select("""
+            SELECT * FROM inbound_order
+            WHERE id = #{id} AND is_deleted = 0
+            FOR UPDATE
+            """)
+    InboundOrder selectByIdForUpdate(@Param("id") Long id);
 }

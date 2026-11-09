@@ -9,6 +9,8 @@ import com.zufe.procurement.m10.kb.mapper.KbDocumentMapper;
 import com.zufe.procurement.m10.kb.mapper.KbSparseIndexMapper;
 import com.zufe.procurement.m10.kb.support.HashingVectorizer;
 import com.zufe.procurement.m10.kb.support.TextTokens;
+import com.zufe.procurement.m10.kb.semantic.EmbeddingProperties;
+import com.zufe.procurement.m10.kb.semantic.SemanticIndexService;
 import lombok.Data;
 import org.springframework.stereotype.Service;
 
@@ -42,24 +44,43 @@ public class KbRetrievalService {
     private final KbSparseIndexMapper sparseIndexMapper;
     private final KbDocumentMapper documentMapper;
     private final HashingVectorizer vectorizer;
+    private final EmbeddingProperties embeddingProperties;
+    private final SemanticIndexService semanticIndex;
 
     public KbRetrievalService(KbChunkMapper chunkMapper,
                               KbSparseIndexMapper sparseIndexMapper,
                               KbDocumentMapper documentMapper,
-                              HashingVectorizer vectorizer) {
+                              HashingVectorizer vectorizer, EmbeddingProperties embeddingProperties,
+                              SemanticIndexService semanticIndex) {
         this.chunkMapper = chunkMapper;
         this.sparseIndexMapper = sparseIndexMapper;
         this.documentMapper = documentMapper;
         this.vectorizer = vectorizer;
+        this.embeddingProperties = embeddingProperties;
+        this.semanticIndex = semanticIndex;
     }
 
     /** 一次问句并行两路召回，各路按得分降序取 Top-K */
     public RetrievalResult search(String question, int topK) {
+        return search(question, topK, embeddingProperties.getStrategy(), false);
+    }
+
+    public RetrievalResult search(String question, int topK, String strategy, boolean strict) {
+        String requested = strategy == null ? "bm25_hash" : strategy;
+        if (!Set.of("bm25", "bm25_hash", "semantic", "bm25_semantic").contains(requested)) {
+            throw new com.zufe.procurement.common.BizException(com.zufe.procurement.common.ResultCode.INVALID_PARAMETER,
+                    "检索策略无效");
+        }
         List<Long> enabledIds = chunkMapper.selectEnabledChunkIds();
         RetrievalResult result = new RetrievalResult();
+        result.setRequestedStrategy(requested);
+        result.setActualStrategy(requested);
+        result.setConfigId(requested.contains("semantic") ? requested + ":" + embeddingProperties.fingerprint() : requested);
+        result.setEmbeddingTokens(0L);
         if (enabledIds.isEmpty()) {
             result.setBm25(List.of());
             result.setVector(List.of());
+            result.setRanked(List.of());
             return result;
         }
         Set<Long> enabledSet = new HashSet<>(enabledIds);
@@ -68,7 +89,7 @@ public class KbRetrievalService {
         double avgdl = avg == null || avg <= 0 ? 1.0 : avg;
 
         // 稀疏路：汇总候选块，再批量取块元数据算 dl（打分需要每块真实长度）
-        List<String> tokens = TextTokens.tokenize(question);
+        List<String> tokens = "semantic".equals(requested) ? List.of() : TextTokens.tokenize(question);
         Map<Long, List<double[]>> termScores = new HashMap<>(); // chunkId -> [idf, tf] 列表
         for (String token : tokens) {
             List<KbSparseIndex> postings = sparseIndexMapper.selectList(new LambdaQueryWrapper<KbSparseIndex>()
@@ -106,20 +127,56 @@ public class KbRetrievalService {
 
         // 向量路：全量候选余弦（不做稀疏预滤，保证对照条件一致）
         Map<Long, Double> vectorScores = new HashMap<>();
-        byte[] queryVector = vectorizer.vectorize(question);
-        List<KbChunk> vectorCandidates = chunkMapper.selectEnabledWithEmbedding();
-        for (KbChunk chunk : vectorCandidates) {
-            double score = HashingVectorizer.cosine(queryVector, chunk.getEmbedding());
-            if (score > 0) {
-                vectorScores.put(chunk.getId(), score);
+        if ("bm25_hash".equals(requested)) vectorScores = hashScores(question);
+
+        if (requested.contains("semantic")) {
+            try {
+                SemanticIndexService.ScoredResult semantic = semanticIndex.scoresWithUsage(question, enabledIds);
+                vectorScores = semantic.scores();
+                result.setEmbeddingTokens(semantic.totalTokens());
+            } catch (RuntimeException error) {
+                if (strict) {
+                    throw new com.zufe.procurement.common.BizException(com.zufe.procurement.common.ResultCode.UNSUPPORTED,
+                            "语义检索不可用或索引不完整，严格实验已终止");
+                }
+                result.setActualStrategy("bm25_hash");
+                result.setConfigId("bm25_hash");
+                result.setDegradedReason("semantic_unavailable_or_stale");
+                // Start the whole baseline path again; semantic-only requests have not run BM25.
+                RetrievalResult fallback = search(question, topK, "bm25_hash", false);
+                fallback.setRequestedStrategy(requested);
+                fallback.setDegradedReason(result.getDegradedReason());
+                fallback.setEmbeddingTokens(null); // failed provider calls may still be billable
+                return fallback;
             }
         }
-
+        if ("bm25".equals(result.getActualStrategy())) vectorScores.clear();
+        if ("semantic".equals(result.getActualStrategy())) bm25Scores.clear();
         chunkById.putAll(loadChunks(vectorScores.keySet()));
         Map<Long, String> docNames = loadDocNames(chunkById.values());
         result.setBm25(toHits(bm25Scores, topK, chunkById, docNames));
         result.setVector(toHits(vectorScores, topK, chunkById, docNames));
+        Map<Long, Double> fused = new HashMap<>();
+        if (result.getBm25().isEmpty()) {
+            result.setRanked(result.getVector());
+        } else if (result.getVector().isEmpty()) {
+            result.setRanked(result.getBm25());
+        } else {
+            for (Hit hit : result.getBm25()) fused.merge(hit.getChunkId(), 1.0 / (60 + hit.getRank()), Double::sum);
+            for (Hit hit : result.getVector()) fused.merge(hit.getChunkId(), 1.0 / (60 + hit.getRank()), Double::sum);
+            result.setRanked(toHits(fused, topK, chunkById, docNames));
+        }
         return result;
+    }
+
+    private Map<Long, Double> hashScores(String question) {
+        Map<Long, Double> scores = new HashMap<>();
+        byte[] query = vectorizer.vectorize(question);
+        for (KbChunk chunk : chunkMapper.selectEnabledWithEmbedding()) {
+            double score = HashingVectorizer.cosine(query, chunk.getEmbedding());
+            if (score > 0) scores.put(chunk.getId(), score);
+        }
+        return scores;
     }
 
     private Map<Long, KbChunk> loadChunks(Set<Long> ids) {
@@ -151,7 +208,8 @@ public class KbRetrievalService {
     private List<Hit> toHits(Map<Long, Double> scores, int topK,
                              Map<Long, KbChunk> chunkById, Map<Long, String> docNames) {
         List<Map.Entry<Long, Double>> sorted = new ArrayList<>(scores.entrySet());
-        sorted.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));
+        sorted.sort(Map.Entry.<Long, Double>comparingByValue(Comparator.reverseOrder())
+                .thenComparing(Map.Entry.comparingByKey()));
         List<Hit> hits = new ArrayList<>();
         int rank = 1;
         for (Map.Entry<Long, Double> entry : sorted) {
@@ -188,6 +246,12 @@ public class KbRetrievalService {
     public static class RetrievalResult {
         private List<Hit> bm25;
         private List<Hit> vector;
+        private List<Hit> ranked;
+        private String requestedStrategy;
+        private String actualStrategy;
+        private String configId;
+        private String degradedReason;
+        private Long embeddingTokens;
     }
 
     @Data

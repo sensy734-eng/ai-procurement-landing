@@ -2,7 +2,7 @@ import request from './request'
 
 /**
  * M10 知识库管理接口封装。
- * 每个函数标注对应功能点编号，便于论文第 5 章按编号引用。
+ * 功能点编号用于关联接口清单、权限定义与回归场景。
  * 页面编号对应功能模块清单 P18 文档管理、P19 切块查看、P20 检索测试。
  */
 
@@ -84,6 +84,12 @@ export interface RetrievalTestResult {
   topK: number
   bm25: RetrievalHit[]
   vector: RetrievalHit[]
+  ranked: RetrievalHit[]
+  requestedStrategy: string
+  actualStrategy: string
+  configId: string
+  degradedReason?: string
+  embeddingTokens?: number
   hitFlag: number
   hitRank: number | null
   hitRoute: number | null
@@ -178,13 +184,13 @@ export function mergeChunks(docId: number, chunkIds: number[]) {
 }
 
 /** M10-3-3 单文档索引重建 */
-export function rebuildDocIndex(docId: number) {
-  return request.post<never, IndexBuildStat>(`/m10/documents/${docId}/index/rebuild`)
+export function rebuildDocIndex(docId: number, target: 'hash' | 'semantic' = 'hash') {
+  return request.post<never, IndexBuildStat>(`/m10/documents/${docId}/index/rebuild`, null, { params: { target }, timeout: 300000 })
 }
 
 /** M10-3-4 全量索引一键重建 */
-export function rebuildAllIndex() {
-  return request.post<never, IndexBuildStat>('/m10/index/rebuild')
+export function rebuildAllIndex(target: 'hash' | 'semantic' = 'hash') {
+  return request.post<never, IndexBuildStat>('/m10/index/rebuild', null, { params: { target }, timeout: 300000 })
 }
 
 /** M10-5-1 跑一次检索测试（双路 Top-K 对照） */
@@ -194,11 +200,13 @@ export function runRetrievalTest(body: {
   expectChunkId?: number
   topK?: number
   testBatch?: string
+  strategy?: string
+  strict?: boolean
 }) {
   return request.post<never, RetrievalTestResult>('/m10/retrieval-tests', body)
 }
 
 /** M10-5-2 命中率统计 */
-export function getTestStat(params: { testBatch?: string; from?: string; to?: string }) {
+export function getTestStat(params: { testBatch?: string; from?: string; to?: string; strategy?: string }) {
   return request.get<never, TestStat>('/m10/retrieval-tests/stats', { params })
 }

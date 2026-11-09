@@ -8,3 +8,6 @@ server/src/main/resources/application-local.yml
 server/uploads/
 web/scripts/screenshots/
 scripts/ai_eval_results.json
+.env
+artifacts/
+__pycache__/

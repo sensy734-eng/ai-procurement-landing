@@ -60,6 +60,13 @@ public class ChatVO {
      * 评测脚本据它统计「模型接管率」——分数高但全走模板，说明模型根本没生效。
      */
     private String generator;
+    /** Knowledge answer mode; absent on historical messages and data queries. */
+    private String answerMode;
+    private Integer answerTokens;
+    private Long embeddingTokens;
+    private String degradedReason;
+    private String retrievalConfigId;
+    private List<Long> evidenceChunkIds;
     /** 调用模型时使用的模型名，便于在报告里注明版本 */
     private String llmModel;
 

@@ -1,0 +1,13 @@
+{
+  "code": "Success",
+  "enabled": true,
+  "available": true,
+  "model": "deepseek-flash",
+  "probe": {
+    "ok": true,
+    "errorKind": null,
+    "latencyMs": 1195,
+    "reply": "正常",
+    "totalTokens": 17
+  }
+}

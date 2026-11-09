@@ -190,7 +190,7 @@
 
 <script setup lang="ts">
 import { nextTick, onMounted, reactive, ref } from 'vue'
-import { ElMessage, ElTable, type FormInstance, type FormRules } from 'element-plus'
+import { ElMessage, type TableInstance, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Refresh, Search } from '@element-plus/icons-vue'
 import {
   createWarehouse,
@@ -374,7 +374,7 @@ async function toggleLocation(row: LocationRow) {
 
 const userVisible = ref(false)
 const userLoading = ref(false)
-const userTableRef = ref<InstanceType<typeof ElTable>>()
+const userTableRef = ref<TableInstance>()
 const selectedUserIds = ref<number[]>([])
 const defaultUserId = ref<number | null>(null)
 
@@ -382,7 +382,7 @@ function isSelected(id: number) {
   return selectedUserIds.value.includes(id)
 }
 
-function onSelectionChange(selection: WarehouseUserRow[] | UserRow[]) {
+function onSelectionChange(selection: UserRow[]) {
   selectedUserIds.value = selection.map((item) => item.id)
   if (defaultUserId.value && !selectedUserIds.value.includes(defaultUserId.value)) {
     defaultUserId.value = null

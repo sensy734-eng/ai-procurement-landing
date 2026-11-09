@@ -6,6 +6,7 @@
         <p class="text-sub">草稿、明细行、审批流转与转订单</p>
       </div>
       <div class="actions">
+        <el-button v-if="canDraft" type="primary" plain @click="openAiCreate">AI 起草申请</el-button>
         <el-button v-if="store.hasPerm('m2:request:create')" type="primary" :icon="Plus" @click="openCreate">
           新建申请
         </el-button>
@@ -150,7 +151,7 @@
                 <el-dropdown-item
                   v-if="store.hasPerm('m2:request:export')"
                   divided
-                  @click="downloadRequestCsv(row.id)"
+                  @click="m2Api.downloadRequestCsv(row.id)"
                 >
                   导出明细
                 </el-dropdown-item>
@@ -263,6 +264,8 @@
 
     <!-- 新建申请：主表 + 明细行编辑器 -->
     <el-dialog v-model="createVisible" title="新建采购申请" width="980px" @close="resetCreateForm">
+      <el-button v-if="canDraft && !showDraft" style="margin-bottom: 12px" @click="showDraft = true">使用 AI 起草助手</el-button>
+      <RequestDraftPanel v-if="createVisible && showDraft && canDraft" @apply="applyAiDraft" />
       <el-alert
         type="info"
         :closable="false"
@@ -302,7 +305,7 @@
         </el-table-column>
         <el-table-column label="数量" width="110">
           <template #default="{ row }">
-            <el-input-number v-model="row.quantity" :min="0.01" :precision="2" size="small" controls-position="right" style="width: 100%" />
+            <el-input-number v-model="row.quantity" :min="0.0001" :precision="4" size="small" controls-position="right" style="width: 100%" />
           </template>
         </el-table-column>
         <el-table-column label="预估单价" width="110">
@@ -317,7 +320,7 @@
         </el-table-column>
         <el-table-column label="归属对象" min-width="170">
           <template #default="{ row }">
-            <el-select v-model="row.ownerId" placeholder="部门领用（可不选）" clearable filterable size="small" style="width: 100%">
+            <el-select v-model="row.ownerId" placeholder="部门领用（可不选）" clearable filterable size="small" style="width: 100%" @change="row.ownerType = ownerSelectOptions.find(o => o.id === row.ownerId)?.ownerType || 1">
               <el-option
                 v-for="o in ownerSelectOptions"
                 :key="o.id"
@@ -534,6 +537,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import RequestDraftPanel from './ai/RequestDraftPanel.vue'
+import type { ValidatedDraft } from '@/api/aiTasks'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, MoreFilled, Plus, Refresh, Search, Switch } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
@@ -565,7 +571,7 @@ interface OwnerOption {
 interface DraftItem {
   materialId?: number
   quantity: number
-  estPrice: number
+  estPrice?: number
   requireDate: string
   ownerType: number
   ownerId?: number
@@ -583,6 +589,10 @@ interface TransferSource {
 }
 
 const store = useUserStore()
+const route = useRoute()
+const canDraft = computed(() => ['m7:chat:query', 'm2:request:create', 'm2:request_item:create', 'm1:material:list'].every(p => store.hasPerm(p)))
+const showDraft = ref(false)
+const appliedDrafts = new Set<string>()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -740,13 +750,33 @@ const createTotal = computed(() =>
 )
 
 function openCreate() {
+  showDraft.value = false
+  appliedDrafts.clear()
   createForm.remark = ''
   createForm.items = []
   addDraftRow()
   createVisible.value = true
 }
 
+function openAiCreate() { openCreate(); showDraft.value = true }
+
+function applyAiDraft(draft: ValidatedDraft) {
+  if (appliedDrafts.has(draft.runId) || !createVisible.value) return
+  // Only remove the untouched placeholder. Keep all user edits and append verified rows.
+  if (createForm.items.length === 1) {
+    const row = createForm.items[0]
+    if (!row.materialId && row.quantity === 1 && row.estPrice == null && !row.requireDate && !row.ownerId && !row.suggestSupplierId)
+      createForm.items = []
+  }
+  createForm.items.push(...draft.items.map(item => ({ materialId: item.materialId, quantity: item.quantity,
+    estPrice: undefined, requireDate: item.requireDate, ownerType: item.ownerType, ownerId: item.ownerId ?? undefined })))
+  appliedDrafts.add(draft.runId)
+  ElMessage.success(`已追加 ${draft.items.length} 行到未保存表单，请继续核对并手动保存`)
+}
+
 function resetCreateForm() {
+  showDraft.value = false
+  appliedDrafts.clear()
   createForm.remark = ''
   createForm.items = []
 }
@@ -754,7 +784,7 @@ function resetCreateForm() {
 function addDraftRow() {
   createForm.items.push({
     quantity: 1,
-    estPrice: 0,
+    estPrice: undefined,
     requireDate: '',
     ownerType: 1
   })
@@ -781,8 +811,8 @@ async function saveCreate() {
         quantity: item.quantity,
         estPrice: item.estPrice,
         requireDate: item.requireDate || undefined,
-        ownerType: owner ? owner.ownerType : 1,
-        ownerId: owner ? owner.id : undefined,
+        ownerType: owner ? owner.ownerType : item.ownerType,
+        ownerId: owner ? owner.id : item.ownerId,
         suggestSupplierId: item.suggestSupplierId || undefined,
         remark: ''
       })
@@ -970,6 +1000,7 @@ async function confirmTransfer() {
 }
 
 onMounted(() => {
+  if (route.query.task === 'draft' && canDraft.value) openAiCreate()
   loadOptions()
   load()
 })

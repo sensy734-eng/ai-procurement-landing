@@ -31,6 +31,10 @@ public class StepExtractor {
 
     private static final String[] CONNECTIVES = {"然后", "接着", "之后", "再", "最后"};
 
+    public boolean hasOrderedStructure(String text) {
+        return text != null && extractNumbered(text).size() >= 2;
+    }
+
     public List<String> extract(String text) {
         List<String> steps = new ArrayList<>();
         if (text == null || text.isBlank()) {

@@ -192,6 +192,7 @@ public class AiChatService {
         vo.setAnswerMessageId(assistantMessage.getId());
 
         AiContext context = new AiContext();
+        context.setAccessFingerprint(AccessSnapshot.fingerprint(user));
         context.setIntentCode(intentCode);
         context.setEntities(vo.getCard() == null ? vo.getEntities() : vo.getCard().getEntities());
         context.setParams(effectiveParams);
@@ -262,6 +263,12 @@ public class AiChatService {
         vo.setDualPath(answer.getDualPath());
         vo.setRefusalReason(answer.getRefusalReason());
         vo.setVersionConflict(answer.getVersionConflict());
+        vo.setAnswerMode(answer.getAnswerMode());
+        vo.setAnswerTokens(answer.getAnswerTokens());
+        vo.setEmbeddingTokens(answer.getEmbeddingTokens());
+        vo.setDegradedReason(answer.getDegradedReason());
+        vo.setRetrievalConfigId(answer.getRetrievalConfigId());
+        vo.setEvidenceChunkIds(answer.getEvidenceChunkIds());
         vo.setConfidence(answer.getTopScore());
         if (answer.getGenerator() != null) {
             vo.setGenerator(answer.getGenerator());
@@ -317,6 +324,7 @@ public class AiChatService {
     private String resultJson(ChatVO vo, int rowCount) {
         Map<String, Object> snapshot = new LinkedHashMap<>();
         snapshot.put("rowCount", rowCount);
+        snapshot.put("accessFingerprint", AccessSnapshot.fingerprint(AuthContext.getOrThrow()));
         snapshot.put("table", vo.getTable());
         snapshot.put("refs", vo.getRefs());
         snapshot.put("dualPath", vo.getDualPath());
@@ -324,6 +332,14 @@ public class AiChatService {
         snapshot.put("clarify", vo.getClarify());
         snapshot.put("refusalReason", vo.getRefusalReason());
         snapshot.put("versionConflict", vo.getVersionConflict());
+        snapshot.put("answerMode", vo.getAnswerMode());
+        snapshot.put("answerTokens", vo.getAnswerTokens());
+        snapshot.put("embeddingTokens", vo.getEmbeddingTokens());
+        snapshot.put("degradedReason", vo.getDegradedReason());
+        snapshot.put("retrievalConfigId", vo.getRetrievalConfigId());
+        snapshot.put("evidenceChunkIds", vo.getEvidenceChunkIds());
+        snapshot.put("generator", vo.getGenerator());
+        snapshot.put("notices", vo.getNotices());
         return jsonOrNull(snapshot);
     }
 

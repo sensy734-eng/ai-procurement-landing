@@ -3,7 +3,7 @@
 > 本文件由 `scripts/gen_api_list.py` 从后端 Controller 源码生成，请勿手工修改。
 > 重新生成：`python scripts/gen_api_list.py`；校验文档与代码是否一致：`--check`。
 
-全部接口共 **183** 个，按模块分组。`权限点` 列为空表示只要求登录态（如登录、验证码、首页概览），其余接口都过 `@RequirePermission` 动作级校验。
+全部接口共 **189** 个，按模块分组。`权限点` 列为空表示只要求登录态（如登录、验证码、首页概览），其余接口都过 `@RequirePermission` 动作级校验。
 
 | 模块 | 接口数 |
 |---|---|
@@ -12,11 +12,11 @@
 | M2 采购申请与审批 | 18 |
 | M3 采购订单管理 | 24 |
 | M4 到货验收管理 | 10 |
-| M5 采购入库与库存 | 18 |
+| M5 采购入库与库存 | 19 |
 | M6 价格参考与审批辅助 | 11 |
-| M7 智能助手统一入口 | 6 |
+| M7 智能助手统一入口 | 10 |
 | M8 制度与操作教程问答 | 2 |
-| M10 知识库管理 | 16 |
+| M10 知识库管理 | 17 |
 | M11 平台与权限管理 | 25 |
 | M12 管理后台与数据可视化 | 8 |
 
@@ -144,7 +144,7 @@
 | POST | `/api/m4/inspections/{id}/inbound` | m4:inbound:generate | M4-3-1 至 M4-3-4 由已验收单生成入库单草稿，可多次生成（部分入库/多批次） |
 | POST | `/api/m4/inspections/{id}/submit` | m4:inspection:submit | M4-2-5 验收单提交：守恒校验后进入已验收态 |
 
-## M5 采购入库与库存（18 个）
+## M5 采购入库与库存（19 个）
 
 | 方法 | 路径 | 权限点 | 说明 |
 |---|---|---|---|
@@ -154,6 +154,7 @@
 | POST | `/api/m5/inbounds` | m5:inbound:create | M5-1-1 手工新建入库单（草稿）：全部带订单行=关联单，全部不带=手工单 |
 | GET | `/api/m5/inbounds/next-batch-no` | m5:inbound:update | M5-2-1 批次号规则生成：B + yyyyMMdd + 3 位当日流水 |
 | GET | `/api/m5/inbounds/page` | m5:inbound:list | 采购入库单接口 |
+| DELETE | `/api/m5/inbounds/{id}` | m5:inbound:update | 删除入库草稿：复用草稿维护权限，事务内锁定状态 |
 | GET | `/api/m5/inbounds/{id}` | m5:inbound:view | M5-1-2 详情：主表 + 明细 + 来源链 + 库存流水摘要 |
 | PUT | `/api/m5/inbounds/{id}` | m5:inbound:update | M5-1-1 编辑入库单：仅草稿可编辑，明细整体替换，批次/库位在此登记 |
 | POST | `/api/m5/inbounds/{id}/confirm` | m5:inbound:confirm | M5-1-3 确认入库：库存唯一写入点 |
@@ -183,16 +184,20 @@
 | GET | `/api/m6/stats` | m6:stat:view | 成交价统计接口（M6-1-2、M6-1-3） |
 | POST | `/api/m6/stats/refresh` | m6:param:config | 刷新统计快照：按 sys_param 窗口口径重算并覆盖快照（无样本物料跳过） |
 
-## M7 智能助手统一入口（6 个）
+## M7 智能助手统一入口（10 个）
 
 | 方法 | 路径 | 权限点 | 说明 |
 |---|---|---|---|
 | GET | `/api/assistant/audits/stats` | m9:audit:list | — |
 | POST | `/api/assistant/chat` | m7:chat:query | 智能助手统一入口（M7-1、M7-2、M7-3） |
 | POST | `/api/assistant/feedback` | m7:chat:query | M7-3-3 解析错误反馈：记录为测试集候选 |
+| GET | `/api/assistant/llm/health` | m9:audit:list | — |
 | GET | `/api/assistant/profile` | m7:chat:query | M7-1-4 入口提示：本角色能问什么、数据范围到哪 |
 | GET | `/api/assistant/sessions` | m7:session:list | M7-1-2 对话历史 |
 | GET | `/api/assistant/sessions/{id}/messages` | m7:session:list | M7-1-2 单个会话的消息列表 |
+| POST | `/api/assistant/tasks/orders/{id}/review` | m7:chat:query + m9:data:query + m3:order:view | Explicit read-only AI tasks. No endpoint creates, saves, submits or approves a business document. */ public class AiTaskController { private final OrderReviewService reviews; private final RequestDraftService drafts; public AiTaskController(OrderReviewService reviews, RequestDraftService drafts) { this.reviews=reviews;this.drafts=drafts; } /** 单张订单审查：受控证据、规则检查和可降级的 AI 解读 |
+| POST | `/api/assistant/tasks/request-draft` | m7:chat:query + m2:request:create + m2:request_item:create + m1:material:list | 采购需求起草：只提取候选字段，不创建业务单据 |
+| POST | `/api/assistant/tasks/request-draft/validate` | m7:chat:query + m2:request:create + m2:request_item:create + m1:material:list | 人工确认候选字段后重新核对权限与档案，不保存采购申请 |
 
 ## M8 制度与操作教程问答（2 个）
 
@@ -201,7 +206,7 @@
 | GET | `/api/assistant/citations/coverage` | m9:audit:list | — |
 | POST | `/api/assistant/citations/verify` | m8:kb:cite | — |
 
-## M10 知识库管理（16 个）
+## M10 知识库管理（17 个）
 
 | 方法 | 路径 | 权限点 | 说明 |
 |---|---|---|---|
@@ -219,7 +224,8 @@
 | POST | `/api/m10/documents/{id}/toggle` | m10:document:toggle | M10-4-3 启用/停用（停用后不参与默认召回） |
 | POST | `/api/m10/documents/{id}/versions` | m10:document:upload | M10-4-2 新版本：同文档名新建一行，带文件则解析新文件，否则复制来源版本切块 |
 | POST | `/api/m10/index/rebuild` | m10:index:rebuild | 索引一键重建（全量，记录耗时） |
-| POST | `/api/m10/retrieval-tests` | m10:test:run | 检索测试接口（M10-5-1 检索测试台、M10-5-2 命中率统计） |
+| POST | `/api/m10/retrieval-tests` | m10:test:run | M10-5-1 跑一次测试问句：稀疏与向量两路 Top-K 并列展示并做命中判定 |
+| GET | `/api/m10/retrieval-tests/manifest` | m10:test:run | 检索测试接口（M10-5-1 检索测试台、M10-5-2 命中率统计） |
 | GET | `/api/m10/retrieval-tests/stats` | m10:test:stat | M10-5-2 命中率统计：按测试批次或时间范围汇总两路命中率 |
 
 ## M11 平台与权限管理（25 个）

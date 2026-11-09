@@ -76,6 +76,7 @@ public class KbIndexService {
     }
 
     /** 全量重建（M10-3-4）：遍历全部未删除文档，返回耗时与规模 */
+    @Transactional
     public IndexBuildResult rebuildAll() {
         long start = System.currentTimeMillis();
         List<KbDocument> docs = documentMapper.selectList(new LambdaQueryWrapper<KbDocument>()

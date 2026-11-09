@@ -21,15 +21,25 @@ import org.springframework.web.bind.annotation.RestController;
 public class KbRetrievalTestController {
 
     private final KbRetrievalTestService testService;
+    private final com.zufe.procurement.m10.kb.service.RetrievalManifestService manifestService;
 
-    public KbRetrievalTestController(KbRetrievalTestService testService) {
+    public KbRetrievalTestController(KbRetrievalTestService testService,
+            com.zufe.procurement.m10.kb.service.RetrievalManifestService manifestService) {
         this.testService = testService;
+        this.manifestService = manifestService;
+    }
+
+    /** 完整在线语料与非敏感配置快照，用于实验前后守卫。 */
+    @GetMapping("/manifest")
+    @RequirePermission("m10:test:run")
+    public Result<java.util.Map<String, Object>> manifest() {
+        return Result.ok(manifestService.manifest());
     }
 
     /** M10-5-1 跑一次测试问句：稀疏与向量两路 Top-K 并列展示并做命中判定 */
     @PostMapping
     @RequirePermission("m10:test:run")
-    public Result<RetrievalTestVO> run(@RequestBody RetrievalTestRequest request) {
+    public Result<RetrievalTestVO> run(@jakarta.validation.Valid @RequestBody RetrievalTestRequest request) {
         return Result.ok(testService.run(request));
     }
 

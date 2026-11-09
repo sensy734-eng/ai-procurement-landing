@@ -103,6 +103,11 @@ public class KnowledgeQaService implements AiKnowledgePort {
 
         KbRetrievalService.RetrievalResult retrieval = retrievalService.search(retrievalQuestion, topK);
         answer.setDualPath(buildDualPath(retrieval));
+        answer.setRetrievalConfigId(retrieval.getConfigId());
+        answer.setEmbeddingTokens(retrieval.getEmbeddingTokens());
+        if (retrieval.getDegradedReason() != null) {
+            answer.getNotices().add("语义检索不可用或索引失效，本次完整回到 BM25 + 哈希向量检索。");
+        }
 
         Set<Long> chunkIds = new LinkedHashSet<>();
         for (KbRetrievalService.Hit hit : retrieval.getBm25()) {
@@ -156,7 +161,6 @@ public class KnowledgeQaService implements AiKnowledgePort {
         // ---------- 引用 M8-3-1 / M8-3-3 ----------
         List<ChatVO.Citation> refs = new ArrayList<>();
         List<LlmAnswerComposer.Passage> passages = new ArrayList<>();
-        StringBuilder corpus = new StringBuilder();
         for (Candidate candidate : candidates) {
             if (refs.size() >= 3) {
                 break;
@@ -176,16 +180,15 @@ public class KnowledgeQaService implements AiKnowledgePort {
             citation.setSectionNo(candidate.chunk.getSectionNo());
             citation.setSectionTitle(candidate.chunk.getSectionTitle());
             citation.setChunkId(candidate.chunk.getId());
-            citation.setSnippet(snippet(bestTextOf(candidate), 120));
+            citation.setSnippet(bestTextOf(candidate));
             citation.setScore(BigDecimal.valueOf(candidate.bestScore).setScale(4, RoundingMode.HALF_UP));
             citation.setPath(candidate.pathLabel());
             citation.setValid(Boolean.TRUE);
             refs.add(citation);
-            String passageText = limit(bestTextOf(candidate), 400);
+            String passageText = bestTextOf(candidate);
             passages.add(new LlmAnswerComposer.Passage(refs.size(),
                     citation.getDocName() == null ? "知识库文档" : citation.getDocName(),
                     citation.getSectionNo(), citation.getSectionTitle(), passageText));
-            corpus.append(passageText).append('\n');
         }
         if (refs.isEmpty()) {
             return refuse(answer, "检索到的片段均未通过引用有效性校验。", "请检查文档是否已被删除或停用。");
@@ -196,43 +199,67 @@ public class KnowledgeQaService implements AiKnowledgePort {
         List<String> steps = route == 2 ? stepExtractor.extract(bestText) : List.of();
         if (route == 2) {
             answer.setStepCount(steps.size());
+            if (!stepExtractor.hasOrderedStructure(bestText)) {
+                return referencesOnly(answer, "tutorial_steps_unverified",
+                        "检索到相关内容，但没有可核对的有序步骤；以下仅供参考。");
+            }
         }
-        answer.setGenerator("template");
+        answer.setGenerator("references-only");
         LlmAnswerComposer.Draft draft = composer.enabled()
                 ? composer.compose(question, route, passages, context) : null;
+        answer.setAnswerTokens(draft == null ? Integer.valueOf(0) : draft.totalTokens());
 
+        // Revalidate the exact supplied text after the model call, including failure paths.
+        for (int i = 0; i < refs.size(); i++) {
+            ChatVO.Citation ref = refs.get(i);
+            KbChunk latest = chunkMapper.selectById(ref.getChunkId());
+            if (latest == null || !java.util.Objects.equals(text(latest), passages.get(i).text())
+                    || !Boolean.TRUE.equals(citationValidator.verify(ref.getDocId(), ref.getChunkId()).getValid())) {
+                return refuse(answer, "生成期间引用内容或状态发生变化。", "请重新查询。");
+            }
+        }
+
+        if (draft != null && !draft.valid()) {
+            return referencesOnly(answer, draft.validationError(), "暂时无法生成可靠答案，以下检索片段仅供参考。");
+        }
         if (draft != null && !draft.answerable()) {
             // 模型有依据却判定「答不了」：只允许把结论往保守方向调，不允许反过来
-            String reason = draft.reason() == null || draft.reason().isBlank()
-                    ? "检索片段不足以支撑该问题" : draft.reason();
-            KnowledgeAnswer refused = refuse(answer, "大模型判定检索片段不足以支撑回答：" + reason,
+            KnowledgeAnswer refused = refuse(answer, "模型未确认检索片段足以支撑该问题，已保守拒答。",
                     "建议先补充相关制度条款或操作说明。");
             refused.setGenerator("refuse-llm");
             return refused;
         }
-        if (draft != null && draft.answer() != null && !draft.answer().isBlank()) {
-            List<String> violations = llmProperties.isNumberGuard()
-                    ? AnswerFidelityGuard.check(draft.answer(), corpus.toString()) : List.of();
-            if (violations.isEmpty() && !draft.citations().isEmpty()) {
-                answer.setAnswer(draft.answer());
-                answer.setGenerator("llm");
-                answer.getNotices().add("答案由大模型基于 " + draft.citations().size()
-                        + " 条片段组织（" + draft.model() + "，" + draft.latencyMs() + " ms）");
-                reorderRefs(refs, draft.citations());
-            } else {
-                answer.setGenerator("template-guard");
-                answer.getNotices().add(violations.isEmpty()
-                        ? "大模型未标注引用编号，已回退模板摘录"
-                        : "大模型答案被生成后校验拦下（" + String.join("；", violations) + "），已回退模板摘录");
-            }
+        if (draft == null) {
+            String reason = !llmProperties.isEnabled() || !llmProperties.isAnswerEnabled()
+                    ? "model_disabled" : "model_unavailable";
+            return referencesOnly(answer, reason,
+                    "暂时无法生成可靠答案，以下检索片段仅供参考。");
         }
-        if ("template".equals(answer.getGenerator()) || "template-guard".equals(answer.getGenerator())) {
-            if (route == 2) {
-                answer.setAnswer(composeTutorial(best, steps));
-            } else {
-                answer.setAnswer(composeKnowledge(retrievalQuestion, best, bestText));
+        StringBuilder citedCorpus = new StringBuilder();
+        for (Integer citation : draft.citations()) {
+            ChatVO.Citation ref = refs.get(citation - 1);
+            if (!Boolean.TRUE.equals(citationValidator.verify(ref.getDocId(), ref.getChunkId()).getValid())) {
+                return refuse(answer, "生成期间引用已失效。", "请重新查询。");
             }
+            citedCorpus.append(passages.get(citation - 1).sectionNo()).append(' ')
+                    .append(passages.get(citation - 1).text()).append('\n');
         }
+        List<String> violations = AnswerFidelityGuard.check(draft.answer(), citedCorpus.toString());
+        if (route == 2 && !stepExtractor.hasOrderedStructure(draft.answer())) {
+            violations.add("生成的教程没有可核对的有序步骤");
+        }
+        if (!violations.isEmpty()) {
+            return referencesOnly(answer, "answer_guard_rejected",
+                    "模型答案未通过数值或内容校验（" + String.join("；", violations) + "），以下检索片段仅供参考。");
+        }
+        answer.setAnswer(draft.answer());
+        answer.setGenerator("llm");
+        answer.setAnswerMode("generated");
+        answer.setEvidenceChunkIds(draft.citations().stream()
+                .map(index -> refs.get(index - 1).getChunkId()).toList());
+        answer.getNotices().add("答案由大模型基于 " + draft.citations().size()
+                + " 条引用片段生成（" + draft.model() + "，" + draft.latencyMs() + " ms）");
+        reorderRefs(refs, draft.citations());
         answer.getNotices().add("稀疏路首位与向量路首位"
                 + (sameTop(retrieval) ? "一致" : "不一致") + "，两路结果见对照区");
         answer.setResultCode("Success");
@@ -299,12 +326,25 @@ public class KnowledgeQaService implements AiKnowledgePort {
 
     private KnowledgeAnswer refuse(KnowledgeAnswer answer, String reason, String suggestion) {
         answer.setResultCode("NoData");
+        answer.setAnswerMode("refused");
+        answer.setDegradedReason("insufficient_evidence");
         answer.setRefusalReason(reason + " " + suggestion);
         answer.setAnswer("抱歉，这个问题我暂时无法给出有依据的回答。" + reason + suggestion);
         answer.setRefs(new ArrayList<>());
         if (answer.getNotices() == null) {
             answer.setNotices(new ArrayList<>());
         }
+        return answer;
+    }
+
+    private KnowledgeAnswer referencesOnly(KnowledgeAnswer answer, String reason, String message) {
+        answer.setResultCode("NoData");
+        answer.setAnswerMode("references_only");
+        answer.setDegradedReason(reason);
+        answer.setGenerator("references-only");
+        answer.setAnswer(message);
+        answer.setRefusalReason(message);
+        answer.getNotices().add("当前结果未生成结论，引用内容仅供人工核对。");
         return answer;
     }
 

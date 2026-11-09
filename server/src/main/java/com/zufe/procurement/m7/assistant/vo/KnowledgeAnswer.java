@@ -25,6 +25,13 @@ public class KnowledgeAnswer {
     /** 教程类答案的步骤数，用于断言后端确实做了步骤规整（M8-2-3） */
     private Integer stepCount;
     private List<String> notices;
+    /** generated / references_only / refused */
+    private String answerMode;
+    private String degradedReason;
+    private String retrievalConfigId;
+    private Integer answerTokens;
+    private Long embeddingTokens;
+    private List<Long> evidenceChunkIds;
     /**
      * 答案由谁产出：llm 大模型按片段组织、template 模板摘录、
      * template-guard 生成后被数字/引用校验拦下回退模板、refuse 直接拒答。

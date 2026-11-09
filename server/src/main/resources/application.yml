@@ -40,6 +40,14 @@ mybatis-plus:
 
 # 本系统自有配置
 app:
+  embedding:
+    base-url: ${EMBEDDING_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+    api-key: ${EMBEDDING_API_KEY:}
+    model: ${EMBEDDING_MODEL:text-embedding-v4}
+    dimensions: ${EMBEDDING_DIMENSIONS:1024}
+    query-timeout-ms: ${EMBEDDING_QUERY_TIMEOUT_MS:1500}
+    build-timeout-ms: ${EMBEDDING_BUILD_TIMEOUT_MS:30000}
+    strategy: ${KB_RETRIEVAL_STRATEGY:bm25_hash}
   session:
     # 会话超时分钟数，M11-1-2
     timeout-minutes: 480
@@ -49,7 +57,7 @@ app:
   cors:
     allowed-origins: http://localhost:5173
   # 大模型接入（M7/M8/M9 的模型侧实现）
-  # 默认关闭：不填 key 时全部走规则式链路，行为与接入前一致。
+  # 默认关闭：数据查询保留受控规则路径；制度问答只返回参考条款或拒答。
   # 密钥请写进 application-local.yml 或环境变量 LLM_API_KEY，不要提交到仓库。
   llm:
     enabled: ${LLM_ENABLED:false}
@@ -66,7 +74,7 @@ app:
     route-enabled: true
     intent-enabled: true
     answer-enabled: true
-    # 生成后数字一致性校验：编造数字则回退模板
+    # 兼容旧配置；制度问答始终执行数值校验，失败仅返回参考条款。
     number-guard: true
     # 通道闸门：连续失败达到阈值即熔断，冷却期内零等待走规则通道
     # （超时、5xx、429、空响应、输出非 JSON、编码不在白名单都计失败）

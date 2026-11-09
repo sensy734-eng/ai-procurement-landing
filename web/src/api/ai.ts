@@ -2,7 +2,7 @@ import request from './request'
 
 /**
  * M7 / M8 / M9 智能助手接口封装。
- * 每个函数标注功能点编号，便于论文第 5 章按编号引用。
+ * 功能点编号用于关联接口清单、权限定义与回归场景。
  * 页面编号对应功能模块清单 P16 助手对话、P17 查询审计。
  *
  * 注意：chat 接口的七类结果码是业务语义而非错误，统一用 skipCodeCheck 拿完整返回体，
@@ -142,6 +142,10 @@ export interface AiChatResult {
   refs?: AiCitation[]
   clarify?: AiClarify | null
   refusalReason?: string | null
+  answerMode?: 'generated' | 'references_only' | 'refused' | null
+  degradedReason?: string | null
+  retrievalConfigId?: string | null
+  evidenceChunkIds?: number[]
   versionConflict?: AiVersionConflict | null
   dualPath?: AiDualPathItem[]
   resultCodeHint?: string | null

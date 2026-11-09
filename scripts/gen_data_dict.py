@@ -3,7 +3,7 @@
 数据字典生成器
 
 从 information_schema 读取真实表结构，生成：
-  DATA_DICTIONARY.md      —— 按八域组织的完整数据字典（论文用）
+  DATA_DICTIONARY.md      —— 按八域组织的完整数据字典
   docs/data_dictionary.csv —— 同一份内容的表格版（Excel 可直接打开筛选）
 
 为什么用脚本而不是手写：表结构会随开发变化，手写的数据字典必然失真。

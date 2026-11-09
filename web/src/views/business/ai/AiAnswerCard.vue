@@ -5,10 +5,17 @@
       <el-tag v-if="result.intentName" size="small" type="info" effect="plain">
         {{ result.intentName }}
       </el-tag>
-      <span v-if="result.confidence" class="muted">
-        置信度 {{ percent(result.confidence) }}
+      <span v-if="result.confidence && !result.answerMode" class="muted">
+        意图置信度 {{ percent(result.confidence) }}
       </span>
-      <el-tag size="small" :type="tagTypeOf(code)">{{ resultCodeText[code] || code }}</el-tag>
+      <el-tag v-if="result.table" size="small" effect="plain">数据查询结果</el-tag>
+      <el-tag size="small" :type="tagTypeOf(code)">{{ result.answerMode === 'references_only' ? '未生成可靠答案' : result.answerMode === 'refused' ? '依据不足' : resultCodeText[code] || code }}</el-tag>
+      <el-tag v-if="result.answerMode" size="small" :type="answerModeType">
+        {{ answerModeText }}
+      </el-tag>
+      <el-tag v-if="result.retrievalConfigId" size="small" effect="plain">
+        {{ retrievalLabel }}
+      </el-tag>
       <span class="muted">{{ result.elapsedMs || 0 }} ms</span>
     </div>
 
@@ -63,7 +70,10 @@
     <div v-if="result.answer" class="text">{{ result.answer }}</div>
 
     <!-- 拒答原因 -->
-    <el-alert v-if="result.refusalReason" class="block" type="warning" :closable="false" show-icon
+    <el-alert v-if="result.answerMode === 'references_only'" class="block" type="warning" :closable="false" show-icon
+              title="暂时无法生成可靠答案，以下内容仅供参考"
+              :description="degradedReasonText" />
+    <el-alert v-else-if="result.refusalReason" class="block" type="warning" :closable="false" show-icon
               title="检索依据不足，已拒答" :description="result.refusalReason" />
 
     <!-- 澄清选项 -->
@@ -91,13 +101,19 @@
 
     <!-- 来源引用 -->
     <div v-if="(result.refs || []).length" class="block">
-      <div class="section-title">来源引用（{{ result.refs!.length }}）</div>
+      <div class="section-title">
+        {{ result.answerMode === 'generated' ? '回答依据与相关参考' : '相关参考' }}（{{ result.refs!.length }}）
+      </div>
       <el-collapse>
         <el-collapse-item v-for="(ref, index) in result.refs" :key="index"
                           :name="'ref-' + index">
           <template #title>
             <span class="ref-title">
               《{{ ref.docName }}》{{ ref.sectionNo || '' }}
+              <el-tag v-if="citationLabel(ref)" size="small" effect="plain"
+                      :type="citationLabel(ref) === '回答依据' ? 'success' : 'info'">
+                {{ citationLabel(ref) }}
+              </el-tag>
               <el-tag v-if="ref.path === 'both'" size="small" type="success" effect="plain">两路同源</el-tag>
               <el-tag v-else-if="ref.path" size="small" effect="plain">{{ pathText(ref.path) }}</el-tag>
               <el-tag v-if="ref.valid === false" size="small" type="danger" effect="plain">
@@ -138,7 +154,7 @@
               </div>
             </div>
             <div class="dual-col">
-              <div class="dual-title">向量路（二元组哈希向量）</div>
+              <div class="dual-title">{{ result.retrievalConfigId?.includes('semantic') ? '向量路（云端语义嵌入）' : '向量路（二元组哈希向量）' }}</div>
               <div v-for="item in vectorItems" :key="'v' + item.chunkId" class="dual-item">
                 <span class="muted">#{{ item.rank }}</span>
                 《{{ item.docName }}》{{ item.sectionNo }} · {{ item.score }}
@@ -171,7 +187,7 @@
 
     <!-- 结果码提示 -->
     <div v-if="result.resultCodeHint && code !== 'Success'" class="block hint">
-      {{ result.resultCodeHint }}
+      {{ result.answerMode === 'references_only' ? 'NoData：本次未生成可靠结论，请人工核对参考原文。' : result.resultCodeHint }}
     </div>
 
     <div v-if="(result.notices || []).length" class="notices">
@@ -179,6 +195,7 @@
     </div>
 
     <div class="foot">
+      <el-button v-for="link in businessLinks" :key="link.path" type="primary" plain size="small" @click="router.push(link.path)">{{ link.title }}</el-button>
       <el-button link size="small" @click="emit('feedback', { question })">解析有误？反馈</el-button>
     </div>
   </div>
@@ -186,8 +203,10 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 import { resultCodeTag, resultCodeText, verifyCitation } from '@/api/ai'
-import type { AiChatResult, AiCitation, AiIntentCard, AiOption } from '@/api/ai'
+import type { AiChatResult, AiCitation, AiIntentCard, AiOption, AiParam } from '@/api/ai'
 
 const props = defineProps<{
   result: AiChatResult
@@ -203,6 +222,20 @@ const emit = defineEmits<{
 }>()
 
 const checking = ref<number | null>(null)
+const router = useRouter()
+const user = useUserStore()
+const businessLinks = computed(() => {
+  if (!props.result.table) return []
+  const routes: Record<string, { path: string; title: string; perm: string }> = {
+    order_status: { path: '/order', title: '进入采购订单', perm: 'm3:order:list' },
+    delivery_progress: { path: '/order', title: '处理订单交付', perm: 'm3:order:list' },
+    supplier_delivery: { path: '/order', title: '查看相关订单', perm: 'm3:order:list' },
+    stock_available: { path: '/stock', title: '进入库存台账', perm: 'm5:stock:list' },
+    purchase_price_history: { path: '/price', title: '查看价格参考', perm: 'm6:price:list' }
+  }
+  const link = routes[props.result.intentCode || '']
+  return link && user.hasPerm(link.perm) ? [link] : []
+})
 const checkResults = ref<Record<number, string>>({})
 
 const card = computed(() => props.result.card || null)
@@ -215,6 +248,36 @@ const sparseItems = computed(() => (props.result.dualPath || []).filter((item) =
 const vectorItems = computed(() => (props.result.dualPath || []).filter((item) => item.path === 'vector'))
 const sparseCount = computed(() => sparseItems.value.length)
 const vectorCount = computed(() => vectorItems.value.length)
+const answerModeText = computed(() => ({
+  generated: '生成回答',
+  references_only: '仅供参考',
+  refused: '无法回答'
+}[props.result.answerMode || 'refused'] || ''))
+const answerModeType = computed(() => props.result.answerMode === 'generated' ? 'success' : 'warning')
+const retrievalLabel = computed(() => {
+  const strategy = props.result.retrievalConfigId?.split(':')[0]
+  const labels: Record<string, string> = { bm25: 'BM25', bm25_hash: 'BM25 + 哈希向量',
+    semantic: '语义向量', bm25_semantic: 'BM25 + 语义向量' }
+  return labels[strategy || ''] || strategy || '检索配置未知'
+})
+const degradedReasonText = computed(() => ({
+  model_disabled: '未启用生成模型。',
+  model_timeout: '生成模型响应超时。',
+  model_rate_limit: '生成模型服务限流，请稍后重试。',
+  model_server: '生成模型服务异常。',
+  model_bad_json: '生成模型返回了无法解析的内容。',
+  model_circuit_open: '生成模型连续失败，当前暂停调用。',
+  model_unavailable: '生成模型当前不可用。',
+  model_output_invalid: '模型输出未通过格式或引用校验。',
+  citations_not_array: '模型返回的引用格式无效。',
+  citation_not_integer: '模型引用编号不是整数。',
+  citation_out_of_range: '模型引用编号不属于本轮检索结果。',
+  duplicate_citation: '模型返回了重复引用。',
+  missing_citation: '模型回答缺少有效引用。',
+  empty_answer: '模型未返回回答内容。',
+  answer_guard_rejected: '模型回答中的数值或内容未通过校验。',
+  tutorial_steps_unverified: '检索内容没有可核对的有序步骤。'
+}[props.result.degradedReason || ''] || '系统无法验证模型回答。'))
 
 /** 变更参数里的字段编码换成中文名，方便核对（后端 diff 输出固定为「编码：旧 → 新」） */
 const changedParamsText = computed(() =>
@@ -275,6 +338,12 @@ function filterText(filter: AiParam) {
 
 function pathText(path: string) {
   return path === 'sparse' ? '稀疏路' : path === 'vector' ? '向量路' : path
+}
+
+function citationLabel(ref: AiCitation) {
+  const evidence = props.result.evidenceChunkIds
+  if (!evidence) return ''
+  return evidence.includes(ref.chunkId) ? '回答依据' : '相关参考'
 }
 
 async function checkCitation(ref: AiCitation) {

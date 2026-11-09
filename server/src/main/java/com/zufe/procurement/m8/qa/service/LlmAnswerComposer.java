@@ -12,7 +12,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 答案组织的大模型侧实现（M8-1-4、M8-2-2 的模型版）。
@@ -25,11 +27,12 @@ import java.util.List;
  * 输出要求是 JSON 而不是自由文本，原因有三：
  * 1. 需要 answerable 这个显式字段，让「无法回答」可判分，而不是靠语气猜；
  * 2. 需要 citations，把模型引用的片段编号对回 refs，引用有效性仍可校验；
- * 3. 解析失败能干净地回退模板，不会把半句话当成答案返回给用户。
+ * 3. 解析失败返回明确失败原因，由问答服务展示参考原文或拒答。
  */
 @Slf4j
 @Service
 public class LlmAnswerComposer {
+    public static final String PROMPT_VERSION = "knowledge-v3-conservative";
 
     private static final String SYSTEM_PROMPT = """
             你是制造企业采购管理系统的制度问答助手。你只能依据给定的知识库片段回答，不得使用片段之外的知识。
@@ -70,7 +73,7 @@ public class LlmAnswerComposer {
     }
 
     /**
-     * @return null 表示模型不可用或输出不可解析，调用方退回模板转述
+     * @return null 表示模型不可用或输出不可解析；格式正确但引用非法时返回校验失败草稿
      */
     public Draft compose(String question, int route, List<Passage> passages) {
         return compose(question, route, passages, null);
@@ -78,45 +81,67 @@ public class LlmAnswerComposer {
 
     public Draft compose(String question, int route, List<Passage> passages, AiContext context) {
         if (!enabled() || passages == null || passages.isEmpty()) {
-            return null;
+            return failed("model_disabled_or_no_key");
         }
         if (!guard.allow(AiChannelGuard.Channel.ANSWER)) {
-            log.debug("成文通道已熔断，本次直接用模板转述");
-            return null;
+            log.debug("成文通道已熔断，本次仅展示参考条款");
+            return failed("model_circuit_open");
         }
         LlmResult result = gateway.chat(SYSTEM_PROMPT, userPrompt(question, route, passages, context),
                 Math.max(600, properties.getMaxTokens()), guard.budgetMs(AiChannelGuard.Channel.ANSWER));
         if (!result.isOk()) {
             guard.recordFailure(AiChannelGuard.Channel.ANSWER, result.getErrorKind());
             log.info("答案模型未接管：{}", result.getErrorKind());
-            return null;
+            return failed("model_" + result.getErrorKind().toLowerCase(java.util.Locale.ROOT));
         }
         String json = LlmJson.extractObject(result.getText());
         if (json == null) {
             guard.recordFailure(AiChannelGuard.Channel.ANSWER, "BAD_JSON");
-            return null;
+            return failed("model_bad_json");
         }
         try {
             JsonNode node = objectMapper.readTree(json);
+            if (!node.path("answerable").isBoolean() || !node.path("answer").isTextual()) {
+                return failed("model_schema_invalid");
+            }
             boolean answerable = node.path("answerable").asBoolean(false);
             String answer = node.path("answer").asText("").trim();
             List<Integer> citations = new ArrayList<>();
             JsonNode array = node.path("citations");
-            if (array.isArray()) {
+            String validationError = null;
+            if (!array.isArray()) {
+                validationError = "citations_not_array";
+            } else {
+                Set<Integer> seen = new HashSet<>();
                 for (JsonNode item : array) {
-                    if (item.isNumber()) {
-                        citations.add(item.asInt());
+                    if (!item.isIntegralNumber() || !item.canConvertToInt()) {
+                        validationError = "citation_not_integer";
+                        break;
                     }
+                    int index = item.intValue();
+                    if (index < 1 || index > passages.size()) {
+                        validationError = "citation_out_of_range";
+                        break;
+                    }
+                    if (!seen.add(index)) {
+                        validationError = "duplicate_citation";
+                        break;
+                    }
+                    citations.add(index);
                 }
             }
-            guard.recordSuccess(AiChannelGuard.Channel.ANSWER);
+            if (answerable && (answer.isBlank() || citations.isEmpty()) && validationError == null) {
+                validationError = answer.isBlank() ? "empty_answer" : "missing_citation";
+            }
+            if (validationError == null) guard.recordSuccess(AiChannelGuard.Channel.ANSWER);
+            else guard.recordFailure(AiChannelGuard.Channel.ANSWER, "BAD_JSON");
             return new Draft(answerable, answer, citations,
-                    node.path("unsupported_reason").asText(""), result.getModel(), result.getLatencyMs());
+                    node.path("unsupported_reason").asText(""), result.getModel(), result.getLatencyMs(),
+                    validationError == null, validationError, result.getTotalTokens());
         } catch (Exception e) {
             guard.recordFailure(AiChannelGuard.Channel.ANSWER, "BAD_JSON");
-            log.warn("答案模型输出无法解析为 JSON：{}", result.getText().length() > 120
-                    ? result.getText().substring(0, 120) + "…" : result.getText());
-            return null;
+            log.warn("答案模型输出无法解析为 JSON");
+            return failed("model_bad_json");
         }
     }
 
@@ -163,6 +188,10 @@ public class LlmAnswerComposer {
     }
 
     public record Draft(boolean answerable, String answer, List<Integer> citations, String reason,
-                        String model, int latencyMs) {
+                        String model, int latencyMs, boolean valid, String validationError, Integer totalTokens) {
+    }
+
+    private Draft failed(String reason) {
+        return new Draft(false, "", List.of(), "", properties.getModel(), 0, false, reason, null);
     }
 }

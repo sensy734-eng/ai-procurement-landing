@@ -59,7 +59,7 @@ const routes: RouteRecordRaw[] = [
         path: 'home',
         name: 'home',
         component: () => import('@/views/Home.vue'),
-        meta: { title: '工作台' }
+        meta: { title: 'AI 工作台' }
       },
       {
         path: 'master/material',
@@ -179,7 +179,7 @@ const routes: RouteRecordRaw[] = [
         path: 'system/kb',
         name: 'system-kb',
         component: () => import('@/views/system/KbManage.vue'),
-        meta: { title: '知识库', perm: 'm10:document:list' }
+        meta: { title: '知识库与检索实验', perm: 'm10:document:list' }
       },
       {
         path: 'system/logs',
@@ -197,7 +197,7 @@ const routes: RouteRecordRaw[] = [
         path: 'assistant',
         name: 'assistant',
         component: () => import('@/views/business/ai/AssistantChat.vue'),
-        meta: { title: '助手对话', perm: 'm7:chat:query' }
+        meta: { title: 'AI 对话', perm: 'm7:chat:query' }
       },
       {
         path: 'assistant/audit',
@@ -223,7 +223,7 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
-  document.title = to.meta.title ? `${to.meta.title} - 采购管理系统` : '采购管理系统'
+  document.title = to.meta.title ? `${to.meta.title} - 采购 AI 工作台` : '采购 AI 工作台'
   if (to.meta.public) {
     return true
   }

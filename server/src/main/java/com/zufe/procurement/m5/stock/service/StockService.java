@@ -58,9 +58,8 @@ import java.util.stream.Collectors;
  *
  * 业务口径集中在本层：
  * - **可用量不落库（R3）**：可用量 = 数量 − 冻结 − 预留，查询时现算；
- * - 数据范围与入库单列表同口径：按仓库维度注入，只对拥有仓库范围的
- *   用户生效（仓管员口径）；部门维度的采购员/主管与 admin 不过滤
- *   （清单 M5-3-1 明确授权采购员查库存，失败关闭会让功能点不可用）；
+ * - 数据范围按仓库维度注入：仅全量管理员免过滤；其他用户须显式拥有仓库范围。
+ *   部门权限不隐式授予全仓库访问，未配置仓库范围时失败关闭；
  * - 预警判定基准是物料 safety_stock（M5-5-1）：可用量 < 下限即不足，
  *   下限为 0 的物料不参与预警（没有下限就没有不足）；
  * - 批次追溯（M5-2-3）返回该批次全部入库明细，作废单也返回并标注
@@ -765,8 +764,11 @@ public class StockService {
 
     private Set<Long> warehouseScopeIds() {
         ScopeCondition scope = currentScope();
-        if (scope.isAll() || !scope.hasWarehouse()) {
+        if (scope.isAll()) {
             return Set.of();
+        }
+        if (!scope.hasWarehouse()) {
+            throw new BizException(ResultCode.NO_PERMISSION, "未配置仓库数据范围，不能查询库存");
         }
         return scope.getWarehouseIds();
     }

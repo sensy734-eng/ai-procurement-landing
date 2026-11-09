@@ -11,7 +11,16 @@ export interface MenuNode {
 }
 
 export const menuTree: MenuNode[] = [
-  { title: '工作台', path: '/home', icon: 'HomeFilled' },
+  { title: 'AI 工作台', path: '/home', icon: 'HomeFilled' },
+  {
+    title: 'AI 能力',
+    icon: 'ChatDotRound',
+    children: [
+      { title: 'AI 对话', path: '/assistant', perm: 'm7:chat:query' },
+      { title: '知识库与检索实验', path: '/system/kb', perm: 'm10:document:list' },
+      { title: '查询审计', path: '/assistant/audit', perm: 'm9:audit:list' }
+    ]
+  },
   {
     title: '基础数据',
     icon: 'Files',
@@ -39,14 +48,6 @@ export const menuTree: MenuNode[] = [
     ]
   },
   {
-    title: '智能助手',
-    icon: 'ChatDotRound',
-    children: [
-      { title: '助手对话', path: '/assistant', perm: 'm7:chat:query' },
-      { title: '查询审计', path: '/assistant/audit', perm: 'm9:audit:list' }
-    ]
-  },
-  {
     title: '系统管理',
     icon: 'Setting',
     children: [
@@ -54,7 +55,6 @@ export const menuTree: MenuNode[] = [
       { title: '角色权限', path: '/system/roles', perm: 'm11:role:list' },
       { title: '审批配置', path: '/system/approval', perm: 'm11:approval_node:list' },
       { title: '参数配置', path: '/system/params', perm: 'm11:param:list' },
-      { title: '知识库', path: '/system/kb', perm: 'm10:document:list' },
       { title: '日志审计', path: '/system/logs', perm: 'm11:log:list' },
       { title: '运营看板', path: '/system/dashboard', perm: 'm12:summary:purchase' }
     ]

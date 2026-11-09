@@ -1,0 +1,75 @@
+[
+  {
+    "name": "draft-exact-validation",
+    "passed": true,
+    "response": {
+      "code": "Success",
+      "message": "操作成功",
+      "data": {
+        "runId": "523ddf5a-03d2-47aa-bbd2-720ecb5dff73",
+        "items": [
+          {
+            "materialId": 81001,
+            "materialName": "AI演示螺栓",
+            "unit": "件",
+            "quantity": 200,
+            "requireDate": "2026-11-10",
+            "ownerType": 1,
+            "ownerId": null
+          }
+        ],
+        "accessFingerprint": "416b4cc4c10ba3bb90638a1ec415d3168efe5db87e2cf748c70b719b74f6049d"
+      }
+    }
+  },
+  {
+    "name": "draft-multiline-validation",
+    "passed": true,
+    "response": {
+      "code": "Success",
+      "message": "操作成功",
+      "data": {
+        "runId": "85a62776-1fd3-4285-9cc7-1b4bcd1862c0",
+        "items": [
+          {
+            "materialId": 81001,
+            "materialName": "AI演示螺栓",
+            "unit": "件",
+            "quantity": 200,
+            "requireDate": "2026-11-10",
+            "ownerType": 1,
+            "ownerId": null
+          },
+          {
+            "materialId": 81004,
+            "materialName": "AI演示电缆",
+            "unit": "米",
+            "quantity": 30,
+            "requireDate": "2026-11-20",
+            "ownerType": 1,
+            "ownerId": null
+          }
+        ],
+        "accessFingerprint": "416b4cc4c10ba3bb90638a1ec415d3168efe5db87e2cf748c70b719b74f6049d"
+      }
+    }
+  },
+  {
+    "name": "unit-confirmation-required",
+    "passed": true,
+    "response": {
+      "code": "InvalidParameter",
+      "message": "请确认每行数量及档案单位，不支持自动换算",
+      "data": null
+    }
+  },
+  {
+    "name": "foreign-owner-rejected",
+    "passed": true,
+    "response": {
+      "code": "NoPermission",
+      "message": "归属对象不在当前授权范围内或已停用",
+      "data": null
+    }
+  }
+]

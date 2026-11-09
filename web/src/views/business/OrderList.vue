@@ -166,7 +166,7 @@
             v-if="
               store.hasPerm('m3:delivery:register') &&
               (row.lifecycleStatus === 3 || row.lifecycleStatus === 4) &&
-              row.items.some((i) => i.remainingQty > 0 && i.itemFulfillStatus !== 4)
+              row.items.some((i: OrderItemRow) => i.remainingQty > 0 && i.itemFulfillStatus !== 4)
             "
             link
             type="primary"
@@ -209,7 +209,7 @@
                   v-if="
                     store.hasPerm('m3:order_item:close') &&
                     row.lifecycleStatus === 3 &&
-                    row.items.some((i) => i.itemFulfillStatus !== 4)
+                    row.items.some((i: OrderItemRow) => i.itemFulfillStatus !== 4)
                   "
                   @click="openCloseItems(row)"
                 >
@@ -218,7 +218,7 @@
                 <el-dropdown-item
                   v-if="store.hasPerm('m3:order:export')"
                   divided
-                  @click="downloadOrderCsv(row.id)"
+                  @click="m3Api.downloadOrderCsv(row.id)"
                 >
                   导出明细
                 </el-dropdown-item>
@@ -322,6 +322,9 @@
         </div>
 
         <el-tabs v-model="detailTab">
+          <el-tab-pane v-if="canReview" label="AI 订单审查" name="ai">
+            <OrderReviewPanel v-if="detailVisible && detailTab === 'ai'" :key="detail.id" :order-id="detail.id" />
+          </el-tab-pane>
           <el-tab-pane label="订单明细" name="items">
             <el-table :data="detail.items" border size="small">
               <el-table-column prop="itemNo" label="#" width="44" />
@@ -1079,7 +1082,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import OrderReviewPanel from './ai/OrderReviewPanel.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Connection, DataLine, Delete, MoreFilled, Plus, Refresh, Right, Search, Switch } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
@@ -1274,10 +1279,30 @@ function historyNodeType(taskStatus: number) {
 const detailVisible = ref(false)
 const detail = ref<OrderRow | null>(null)
 const detailTab = ref('items')
+const route = useRoute()
+const canReview = computed(() => ['m7:chat:query', 'm9:data:query', 'm3:order:view'].every(p => store.hasPerm(p)))
+let detailRequest = 0
+
+async function openRouteOrder() {
+  const id = Number(route.query.orderId)
+  if (!Number.isSafeInteger(id) || id <= 0) return
+  const request = ++detailRequest
+  try {
+    const order = await m3Api.getOrder(id)
+    if (request !== detailRequest) return
+    detail.value = order
+    detailTab.value = route.query.task === 'review' && canReview.value ? 'ai' : 'items'
+    detailVisible.value = true
+  } catch { /* Existing API error feedback. */ }
+}
+watch(() => route.query.orderId, openRouteOrder)
 
 async function openDetail(row: OrderRow) {
-  detail.value = await m3Api.getOrder(row.id)
-  detailTab.value = 'items'
+  const request = ++detailRequest
+  const order = await m3Api.getOrder(row.id)
+  if (request !== detailRequest) return
+  detail.value = order
+  detailTab.value = route.query.task === 'review' && canReview.value ? 'ai' : 'items'
   detailVisible.value = true
 }
 
@@ -1805,6 +1830,7 @@ function deviationTagType(flag: number) {
 
 onMounted(() => {  loadOptions()
   load()
+  openRouteOrder()
 })
 </script>
 

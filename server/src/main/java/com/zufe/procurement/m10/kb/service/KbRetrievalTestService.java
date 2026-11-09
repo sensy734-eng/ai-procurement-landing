@@ -67,7 +67,6 @@ public class KbRetrievalTestService {
         this.objectMapper = objectMapper;
     }
 
-    @Transactional
     public RetrievalTestVO run(RetrievalTestRequest request) {
         int topK = request.getTopK() == null
                 ? sysParamService.getInt("kb_recall_topk", 5)
@@ -79,7 +78,7 @@ public class KbRetrievalTestService {
                 ? LocalDate.now().format(BATCH_FORMAT)
                 : request.getTestBatch();
 
-        RetrievalResult result = retrievalService.search(request.getQuestion(), topK);
+        RetrievalResult result = retrievalService.search(request.getQuestion(), topK, request.getStrategy(), request.isStrict());
 
         KbRetrievalTest entity = new KbRetrievalTest();
         entity.setQuestion(request.getQuestion());
@@ -88,6 +87,9 @@ public class KbRetrievalTestService {
         entity.setBm25Topk(toJson(result.getBm25()));
         entity.setVectorTopk(toJson(result.getVector()));
         entity.setTestBatch(batch);
+        entity.setActualStrategy(result.getActualStrategy());
+        entity.setConfigId(result.getConfigId());
+        entity.setRetrievalMetadata(toJson(result));
         entity.setOperatorId(currentUserId());
         entity.setIsDeleted(0);
 
@@ -108,6 +110,11 @@ public class KbRetrievalTestService {
             entity.setHitFlag(0);
         }
         entity.setHitRank(hitRank);
+        if (request.getExpectChunkId() != null || request.getExpectDocId() != null) {
+            int finalRank = rankOf(result.getRanked(), request.getExpectChunkId(), request.getExpectDocId());
+            entity.setHitFlag(finalRank > 0 ? 1 : 0);
+            entity.setHitRank(finalRank > 0 ? finalRank : null);
+        }
         entity.setHitRoute(hitRoute);
         testMapper.insert(entity);
 
@@ -120,6 +127,8 @@ public class KbRetrievalTestService {
     public TestStatVO stats(TestStatQuery query) {
         LambdaQueryWrapper<KbRetrievalTest> wrapper = new LambdaQueryWrapper<KbRetrievalTest>()
                 .eq(KbRetrievalTest::getIsDeleted, 0)
+                .eq(KbRetrievalTest::getActualStrategy,
+                        query.getStrategy() == null ? "bm25_hash" : query.getStrategy())
                 .eq(query.getTestBatch() != null && !query.getTestBatch().isBlank(),
                         KbRetrievalTest::getTestBatch, query.getTestBatch())
                 .ge(query.getFrom() != null, KbRetrievalTest::getCreatedAt,
@@ -136,6 +145,7 @@ public class KbRetrievalTestService {
         long rankSum = 0;
         long rankCount = 0;
         for (KbRetrievalTest row : rows) {
+            if (row.getExpectDocId() == null && row.getExpectChunkId() == null) continue;
             vo.setTotal(vo.getTotal() + 1);
             if (row.getHitFlag() != null && row.getHitFlag() == 1) {
                 vo.setHitCount(vo.getHitCount() + 1);
@@ -187,6 +197,12 @@ public class KbRetrievalTestService {
         vo.setExpectDocName(expectDocName(entity.getExpectDocId()));
         vo.setBm25(toHitVOs(result.getBm25()));
         vo.setVector(toHitVOs(result.getVector()));
+        vo.setRanked(toHitVOs(result.getRanked()));
+        vo.setRequestedStrategy(result.getRequestedStrategy());
+        vo.setActualStrategy(result.getActualStrategy());
+        vo.setConfigId(result.getConfigId());
+        vo.setEmbeddingTokens(result.getEmbeddingTokens());
+        vo.setDegradedReason(result.getDegradedReason());
         vo.setTopK(Math.max(result.getBm25().size(), result.getVector().size()));
         vo.setHitFlag(entity.getHitFlag());
         vo.setHitRank(entity.getHitRank());
@@ -222,11 +238,11 @@ public class KbRetrievalTestService {
         return list;
     }
 
-    private String toJson(List<Hit> hits) {
+    private String toJson(Object value) {
         try {
-            return objectMapper.writeValueAsString(toHitVOs(hits));
+            return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException e) {
-            return "[]";
+            throw new IllegalStateException("检索证据序列化失败", e);
         }
     }
 

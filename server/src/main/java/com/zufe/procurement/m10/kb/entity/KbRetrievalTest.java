@@ -32,6 +32,9 @@ public class KbRetrievalTest {
     /** 命中的检索路：1 稀疏、2 向量、3 两路均命中 */
     private Integer hitRoute;
     private String testBatch;
+    private String actualStrategy;
+    private String configId;
+    private String retrievalMetadata;
     private Long operatorId;
     private Integer isDeleted;
     private LocalDateTime createdAt;

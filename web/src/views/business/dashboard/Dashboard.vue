@@ -90,7 +90,7 @@
             <el-option v-for="n in [5, 10, 20]" :key="n" :label="'Top ' + n" :value="n" />
           </el-select>
         </div>
-        <BarChart v-if="canSupplier && supplier" :items="supplierItems" label-width="150" />
+        <BarChart v-if="canSupplier && supplier" :items="supplierItems" :label-width="150" />
         <div v-else class="no-perm">当前角色没有 m12:chart:supplier 权限</div>
         <div v-if="supplier && supplier.supplierCount > supplier.rows.length" class="chart-foot">
           区间共 {{ supplier.supplierCount }} 家供应商，仅展示前 {{ supplier.rows.length }} 家
@@ -108,7 +108,7 @@
             <span class="metric-label">个物料 / 缺口合计 {{ fmtQty(alertData.totalGap) }}</span>
           </div>
         </div>
-        <BarChart v-if="canAlert && alertData" :items="alertItems" label-width="118" />
+        <BarChart v-if="canAlert && alertData" :items="alertItems" :label-width="118" />
         <div v-else class="no-perm">当前角色没有 m12:chart:stockalert 权限</div>
         <div v-if="warehouseId || categoryId" class="chart-foot">
           已按{{ warehouseId ? '所选仓库单独' : '' }}{{ warehouseId && categoryId ? '、' : '' }}{{

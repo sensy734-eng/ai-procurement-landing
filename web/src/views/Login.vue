@@ -3,45 +3,44 @@
     <section class="brand-panel">
       <div class="brand-inner">
         <div class="logo-row">
-          <div class="logo-mark">采</div>
-          <span class="logo-text">Procurement Platform</span>
+          <div class="logo-mark">AI</div>
+          <span class="logo-text">Procurement AI Workbench</span>
         </div>
-        <h1>融合 AI 助手的<br />制造企业采购管理系统</h1>
+        <h1>采购 AI 工作台</h1>
         <p class="sub">
-          以采购申请、订单、验收、入库为主链，三级状态独立管控，
-          AI 助手承担制度问答与受控数据查询。
+          存量业务系统的 AI 改造实践。以采购场景展示自然语言查询、知识问答与可验证的落地边界。
         </p>
         <ul class="features">
           <li>
             <el-icon><DocumentChecked /></el-icon>
             <div>
-              <strong>采购全流程</strong>
-              <span>五张单据加一本库存账，单据链可追溯</span>
+              <strong>自然语言查询</strong>
+              <span>识别意图与实体，沿用业务权限获取数据</span>
             </div>
           </li>
           <li>
             <el-icon><DataLine /></el-icon>
             <div>
-              <strong>三级状态</strong>
-              <span>生命周期、审批结果、履约状态各管一段</span>
+              <strong>有依据的知识问答</strong>
+              <span>检索制度原文，核对引用、数值与单位</span>
             </div>
           </li>
           <li>
             <el-icon><ChatDotRound /></el-icon>
             <div>
-              <strong>受控智能</strong>
-              <span>模型不接触业务库，查询走白名单与数据范围</span>
+              <strong>可验证的 AI 边界</strong>
+              <span>模型失败时保守降级，用检索实验与审计验证行为</span>
             </div>
           </li>
         </ul>
       </div>
-      <div class="panel-foot">演示环境，数据均为自造演示数据</div>
+      <div class="panel-foot">独立 AI 应用工程示例 · 采购业务为演示载体 · 数据与制度均为虚构</div>
     </section>
 
     <section class="form-panel">
       <div class="form-card">
         <h2>账号登录</h2>
-        <p class="tip">登录后菜单与按钮按角色权限渲染</p>
+        <p class="tip">选择角色，体验 AI 在不同数据权限下的查询边界</p>
 
         <el-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="submit">
           <el-form-item prop="username">
@@ -94,6 +93,7 @@ const rules: FormRules = {
 }
 
 const demoAccounts = [
+  { role: 'AI 任务演示', username: 'ai_buyer' },
   { role: '系统管理员', username: 'admin' },
   { role: '采购员', username: 'caigou01' },
   { role: '采购主管', username: 'zhuguan01' },
@@ -288,6 +288,12 @@ h1 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.form-card :deep(.el-divider__text) {
+  white-space: nowrap;
+  font-size: 12px;
+  background: #f5f7fa;
 }
 
 .demo-item {

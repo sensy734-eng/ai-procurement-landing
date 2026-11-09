@@ -179,7 +179,7 @@
             </el-table-column>
           </el-table>
           <div class="dialog-footer">
-            <el-button link type="primary" :icon="Plus" @click="contacts.push({ contactName: '', position: '', phone: '', email: '', isDefault: 0, status: 1, remark: '' })">
+            <el-button link type="primary" :icon="Plus" @click="contacts.push({ contactName: '', position: '', phone: '', email: '', isDefault: 0, status: 1, remark: '', __index: contacts.length })">
               添加联系人
             </el-button>
             <el-button type="primary" :loading="saving" :disabled="!form.id" @click="submitContacts">保存联系人</el-button>

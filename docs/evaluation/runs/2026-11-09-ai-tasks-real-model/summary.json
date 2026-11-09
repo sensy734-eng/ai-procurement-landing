@@ -1,0 +1,12 @@
+{
+  "attempts": 36,
+  "generated": 32,
+  "mechanical_passed": 32,
+  "modes": {
+    "generated": 32,
+    "facts_only": 4
+  },
+  "total_tokens": 23039,
+  "mean_ms": 1479.76,
+  "p95_ms": 2620.22
+}

@@ -2,7 +2,7 @@ import request from './request'
 
 /**
  * M6 价格参考与审批辅助 + M3-6 价格偏离关注接口封装。
- * 每个函数标注对应功能点编号，便于论文第 5 章按编号引用。
+ * 功能点编号用于关联接口清单、权限定义与回归场景。
  * 页面编号对应功能模块清单 P15 价格参考、P16 偏离关注。
  */
 
@@ -149,12 +149,12 @@ export function listReferences(params: {
   pageNo?: number
   pageSize?: number
 }) {
-  return request.get('/m6/references', { params })
+  return request.get<never, PageResult<PriceReferenceRow>>('/m6/references', { params })
 }
 
 /** M6-1-1 参考价详情（含版本历史） */
 export function getReference(id: number) {
-  return request.get(`/m6/references/${id}`)
+  return request.get<never, PriceReferenceDetail>(`/m6/references/${id}`)
 }
 
 /** M6-1-1 物料版本历史 */
@@ -174,7 +174,7 @@ export function updateReference(payload: PriceReferenceSavePayload) {
 
 /** M6-1-2/1-3 成交统计查询（只读快照） */
 export function listStats(params: { materialId?: number; supplierId?: number }) {
-  return request.get('/m6/stats', { params })
+  return request.get<never, PriceStatRow[]>('/m6/stats', { params })
 }
 
 /** M6-1-2/1-3 刷新统计快照（挂 m6:param:config） */
@@ -192,12 +192,12 @@ export function listDeviations(params: {
   pageNo?: number
   pageSize?: number
 }) {
-  return request.get('/m6/deviations', { params })
+  return request.get<never, PageResult<DeviationOrderRow>>('/m6/deviations', { params })
 }
 
 /** M3-6 偏离汇总 */
 export function getDeviationSummary() {
-  return request.get('/m6/deviations/summary')
+  return request.get<never, DeviationSummary>('/m6/deviations/summary')
 }
 
 /** M3-6 偏离重算（参考价变更后同步，挂 m6:price:update） */
@@ -207,5 +207,5 @@ export function recalcDeviations(payload: { materialId?: number; orderId?: numbe
 
 /** M6-4-1 订单价格证据面板 */
 export function getOrderEvidence(orderId: number) {
-  return request.get(`/m6/evidence/order/${orderId}`)
+  return request.get<never, EvidenceOrder>(`/m6/evidence/order/${orderId}`)
 }

@@ -58,7 +58,7 @@ public class AiQueryAuditService {
     }
 
     /**
-     * M11-4-6 审计导出，CSV 格式，含原始问句与解析参数，便于论文举证。
+     * M11-4-6 审计导出，CSV 格式，含原始问句与解析参数，便于复盘与核对。
      */
     public byte[] exportCsv(String username, String intentCode, String resultCode,
                             LocalDateTime startTime, LocalDateTime endTime) {

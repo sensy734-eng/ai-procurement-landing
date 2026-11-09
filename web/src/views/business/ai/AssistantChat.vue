@@ -2,9 +2,9 @@
   <div class="page-card assistant-page">
     <header class="toolbar">
       <div>
-        <h2 class="page-title">助手对话</h2>
+        <h2 class="page-title">AI 对话</h2>
         <p class="text-sub">
-          制度与教程问答、受控数据查询都在这里；只读，不改动任何业务单据
+          自然语言查询业务、检索制度依据；结果受账号权限约束，证据不足时澄清或拒答
         </p>
       </div>
       <div class="toolbar-actions">
@@ -47,8 +47,8 @@
               </el-button>
             </div>
             <p class="muted">
-              三类问题：制度类给条款原文与来源引用、教程类给有序步骤与功能入口、数据类给表格与转述。
-              问句超出这三类、或要求修改数据时，助手会明确拒绝而不是猜测。
+              数据查询返回权限范围内的结果；制度与教程问答核对引用依据。
+              模型不可用或回答校验失败时仅展示参考原文，依据不足则拒答。AI 只读，不修改业务单据。
             </p>
           </div>
 
@@ -106,6 +106,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import { useRoute } from 'vue-router'
 import AiAnswerCard from './AiAnswerCard.vue'
 import { chatAi, getAiProfile, listAiMessages, listAiSessions, sendAiFeedback } from '@/api/ai'
 import type { AiChatResult, AiIntentCard, AiMessage, AiOption, AiProfile, AiSession } from '@/api/ai'
@@ -128,6 +129,7 @@ interface RetryParam {
 }
 
 const profile = ref<AiProfile | null>(null)
+const route = useRoute()
 const sessions = ref<AiSession[]>([])
 const currentSession = ref<number | null>(null)
 const items = ref<ChatItem[]>([])
@@ -229,7 +231,13 @@ function toItems(messages: AiMessage[]): ChatItem[] {
         card: snapshot.card,
         clarify: snapshot.clarify,
         refusalReason: snapshot.refusalReason,
-        versionConflict: snapshot.versionConflict
+        versionConflict: snapshot.versionConflict,
+        answerMode: snapshot.answerMode,
+        degradedReason: snapshot.degradedReason,
+        retrievalConfigId: snapshot.retrievalConfigId,
+        evidenceChunkIds: snapshot.evidenceChunkIds,
+        notices: snapshot.notices,
+        generator: snapshot.generator
       } as AiChatResult
     })
   }
@@ -249,7 +257,6 @@ function parseSnapshot(resultJson?: string | null): Record<string, never> {
 
 async function askSample(question: string) {
   input.value = question
-  await send()
 }
 
 function onKeydown(event: Event | KeyboardEvent) {
@@ -359,6 +366,13 @@ async function feedback(payload: { question: string }) {
 onMounted(async () => {
   await loadProfile()
   await loadSessions()
+  const sessionId = Number(route.query.session)
+  if (Number.isSafeInteger(sessionId) && sessionId > 0) {
+    await openSession(sessionId)
+  }
+  if (typeof route.query.draft === 'string') {
+    input.value = route.query.draft
+  }
 })
 </script>
 

@@ -291,7 +291,7 @@ ON DUPLICATE KEY UPDATE remark = VALUES(remark);
 -- 六、审批节点配置（M11-5-1、M11-5-2）
 -- 采购申请：单节点或签，任一采购主管通过即推进
 -- 采购订单：单节点会签，两名采购主管全部通过才通过，任一驳回即整单驳回
--- 两种签方式各配一单，便于答辩现场对照演示
+-- 两种签方式各配一单，便于验证审批流程差异
 -- --------------------------------------------------------------
 INSERT INTO approval_flow_node (bill_type, node_seq, node_name, approver_type, role_id, user_id, sign_type, status, remark) VALUES
   (1, 1, '采购主管审批', 1, 2, NULL, 1, 1, '采购申请：或签'),

@@ -2,8 +2,8 @@
   <el-container class="layout">
     <el-aside :width="collapsed ? '64px' : '220px'" class="aside">
       <div class="brand" :class="{ compact: collapsed }">
-        <div class="brand-mark">采</div>
-        <span v-show="!collapsed" class="brand-name">采购管理系统</span>
+        <div class="brand-mark">AI</div>
+        <span v-show="!collapsed" class="brand-name">采购 AI 工作台</span>
       </div>
 
       <el-scrollbar class="menu-scroll">

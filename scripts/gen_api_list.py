@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-从后端 Controller 源码生成接口清单（论文附录用）。
+从后端 Controller 源码生成接口清单，用于接口核对与文档一致性检查。
 
 为什么用脚本生成而不是手工维护：
     手工表格一定会和代码脱节。这里直接扫 @RequestMapping / @GetMapping / @PostMapping …
@@ -41,7 +41,7 @@ MODULE_ORDER = ["auth", "common", "m1", "m2", "m3", "m4", "m5", "m6",
 
 MAPPING_RE = re.compile(r'@(Get|Post|Put|Delete)Mapping(?:\((.*?)\))?', re.S)
 CLASS_MAPPING_RE = re.compile(r'@RequestMapping\((.*?)\)', re.S)
-PERM_RE = re.compile(r'@RequirePermission\("([^"]+)"\)')
+PERM_RE = re.compile(r'@RequirePermission\(([^)]*)\)', re.S)
 STRING_RE = re.compile(r'"([^"]*)"')
 # 一个方法 = 可选 JavaDoc + 若干注解 + public 声明
 # 注解参数允许一层括号嵌套（@RequirePermission("x")、@RequestParam(defaultValue = "1")）
@@ -108,7 +108,7 @@ def parse(path):
         rows.append({
             "verb": verb,
             "path": "/api" + base + sub_path,
-            "perm": perm.group(1) if perm else "",
+            "perm": " + ".join(STRING_RE.findall(perm.group(1))) if perm else "",
             "desc": first_sentence(doc_body) if doc_body else "",
         })
     return rows

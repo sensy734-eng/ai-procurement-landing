@@ -8,8 +8,8 @@
   scripts/ai_eval_theory.py      人工裁定的理论回答（判分标尺的语义锚点）
 
 产物：
-  docs/AI_EVAL_CASE_TABLE.md     四列表，按能力域分节，可直接贴进论文附录
-  docs/AI_EVAL_CASE_TABLE.html   同数据的可筛查看版（本机打开，无外部依赖）
+  docs/archive/AI_EVAL_CASE_TABLE.md     历史评测四列表，按能力域分节
+  docs/archive/AI_EVAL_CASE_TABLE.html   同数据的可筛查看版（本机打开，无外部依赖）
 
 用法：
   python scripts/gen_eval_table.py
@@ -171,8 +171,7 @@ def render_markdown(rows, stats):
     L.append("")
     L.append("- **理论回答**不是标准话术，是「必须包含哪些事实、必须给出什么判定」的规格。换个说法能过，"
              "少一个数字不能过。")
-    L.append("- **真实回答**取自系统最近一次真实调用（DeepSeek `deepseek-flash`，`temperature=0`），"
-             "原文未修饰。")
+    L.append("- **记录回答**取自指定输入报告；是否真实模型调用、模型配置和模拟故障标识以该报告元数据为准。")
     L.append("- **评分**由执行器自动判分，`通过 · 1.00` 为满分，`未通过 · 0.10` 表示事实点部分命中。"
              "每列判定维度见用例编号下方的小字。")
     L.append("- 三类判分方式：结构化（`exact`）看结果码/意图/参数/行数；"
@@ -418,8 +417,7 @@ def render_html(rows, stats):
             '<tbody>%s</tbody></table></section>'
             % (code, html.escape(title), p, len(group), html.escape(desc), "".join(trs)))
 
-    sub = ("共 %d 条用例 ｜ 通过 %d、未通过 %d（%.1f%%）｜ 真实回答取自系统最近一次调用"
-           "（DeepSeek deepseek-flash，temperature=0），原文未修饰 ｜ 生成于 %s"
+    sub = ("共 %d 条用例 ｜ 通过 %d、未通过 %d（%.1f%%）｜ 回答取自指定报告；模型与故障模式见原始元数据 ｜ 生成于 %s"
            % (stats["total"], stats["passed"], stats["failed"], stats["rate"] * 100,
               stats.get("generated_at", "")))
     return (HTML_TMPL
@@ -432,8 +430,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset", default=os.path.join(ROOT, "scripts", "ai_eval_dataset.json"))
     ap.add_argument("--results", default=os.path.join(ROOT, "scripts", "ai_eval_results.json"))
-    ap.add_argument("--md", default=os.path.join(ROOT, "docs", "AI_EVAL_CASE_TABLE.md"))
-    ap.add_argument("--html", default=os.path.join(ROOT, "docs", "AI_EVAL_CASE_TABLE.html"))
+    ap.add_argument("--md", default=os.path.join(ROOT, "artifacts", "eval-tables", "AI_EVAL_CASE_TABLE.md"))
+    ap.add_argument("--html", default=os.path.join(ROOT, "artifacts", "eval-tables", "AI_EVAL_CASE_TABLE.html"))
     args = ap.parse_args()
 
     dataset = load_json(args.dataset)
@@ -444,6 +442,8 @@ def main():
     stats["generated_at"] = payload.get("meta", {}).get("run_at") or ""
 
     md = render_markdown(rows, stats)
+    os.makedirs(os.path.dirname(args.md), exist_ok=True)
+    os.makedirs(os.path.dirname(args.html), exist_ok=True)
     with open(args.md, "w", encoding="utf-8") as f:
         f.write(md)
     with open(args.html, "w", encoding="utf-8") as f:

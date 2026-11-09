@@ -21,7 +21,10 @@
       </div>
       <div class="actions">
         <el-button v-if="store.hasPerm('m10:index:rebuild')" :icon="RefreshRight" @click="rebuildAll">
-          全量重建索引
+          重建 BM25 / 哈希索引
+        </el-button>
+        <el-button v-if="store.hasPerm('m10:index:rebuild')" :loading="semanticBuilding" @click="buildSemantic">
+          构建云端语义索引
         </el-button>
         <el-button v-if="store.hasPerm('m10:document:upload')" type="primary" :icon="Upload" @click="uploadVisible = true">
           上传文档
@@ -234,6 +237,17 @@ import { downloadCsv } from '@/api/request'
 import { useUserStore } from '@/stores/user'
 
 const store = useUserStore()
+const semanticBuilding = ref(false)
+async function buildSemantic() {
+  try {
+    await ElMessageBox.confirm('将调用已配置的嵌入服务，为知识库构建独立语义向量，可能产生费用。不会自动更改在线检索策略。', '构建语义索引', { type: 'warning' })
+  } catch { return }
+  semanticBuilding.value = true
+  try {
+    const stat = await rebuildAllIndex('semantic')
+    ElMessage.success(`已构建 ${stat.chunkCount} 个切块的语义向量，耗时 ${stat.elapsedMs} ms`)
+  } finally { semanticBuilding.value = false }
+}
 
 const docTypeOptions = [
   { value: 1, label: '制度' },

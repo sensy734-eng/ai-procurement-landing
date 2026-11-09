@@ -1497,7 +1497,7 @@ public class PurchaseOrderService {
         }
         PurchaseOrderItem item = orderItemMapper.selectById(orderItemId);
         if (item == null) {
-            return;
+            throw new BizException(ResultCode.NOT_FOUND, "关联订单行不存在，入库回写已取消");
         }
         BigDecimal delivered = item.getDeliveredQty() == null ? BigDecimal.ZERO : item.getDeliveredQty();
         BigDecimal after = delivered.add(delta).setScale(4, RoundingMode.HALF_UP);
@@ -1551,7 +1551,9 @@ public class PurchaseOrderService {
         PurchaseOrder update = new PurchaseOrder();
         update.setId(orderId);
         update.setFulfillStatus(fulfill);
-        orderMapper.updateById(update);
+        if (orderMapper.updateById(update) != 1) {
+            throw new BizException(ResultCode.UNSUPPORTED, "订单履约回写失败，操作已回滚");
+        }
     }
 
     /**

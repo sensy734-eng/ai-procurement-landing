@@ -49,7 +49,10 @@ public class CitationValidator {
             check.setReason("文档不存在或已删除");
             return check;
         }
-        if (doc.getStatus() == null || doc.getStatus() != 1) {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        if (doc.getStatus() == null || doc.getStatus() != 1
+                || (doc.getEffectiveDate() != null && doc.getEffectiveDate().isAfter(today))
+                || (doc.getExpireDate() != null && doc.getExpireDate().isBefore(today))) {
             check.setValid(false);
             check.setReason("文档已停用或失效，不参与默认召回");
             return check;

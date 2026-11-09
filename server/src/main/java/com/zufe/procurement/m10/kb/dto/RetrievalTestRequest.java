@@ -23,4 +23,8 @@ public class RetrievalTestRequest {
 
     @Size(max = 50, message = "测试批次标识超过 50 字")
     private String testBatch;
+    /** bm25 / bm25_hash / semantic / bm25_semantic */
+    private String strategy;
+    /** Evaluation requests never silently fall back. */
+    private boolean strict = true;
 }

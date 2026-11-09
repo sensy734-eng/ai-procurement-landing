@@ -8,6 +8,7 @@ import com.zufe.procurement.m5.inbound.service.InboundOrderService;
 import com.zufe.procurement.m5.inbound.vo.InboundVO;
 import com.zufe.procurement.security.RequirePermission;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -68,6 +69,14 @@ public class InboundOrderController {
     @RequirePermission("m5:inbound:confirm")
     public Result<Void> confirm(@PathVariable Long id) {
         inboundOrderService.confirm(id);
+        return Result.ok();
+    }
+
+    /** 删除入库草稿：复用草稿维护权限，事务内锁定状态。 */
+    @DeleteMapping("/{id}")
+    @RequirePermission("m5:inbound:update")
+    public Result<Void> delete(@PathVariable Long id) {
+        inboundOrderService.deleteDraft(id);
         return Result.ok();
     }
 

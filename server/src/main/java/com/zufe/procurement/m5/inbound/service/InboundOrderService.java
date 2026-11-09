@@ -87,9 +87,8 @@ import java.util.stream.Collectors;
  *   批次号可空串（无批次管理），但一经确认即进入库存唯一键；
  * - 带订单行的明细受入库配额约束（订单量 − 累计已生成，与 M4 同口径），
  *   纯手工单（无订单行）不校验配额——公共入库/补录场景；
- * - 数据范围：列表按仓库维度注入，但只对「拥有仓库范围」的用户生效
- *   （仓管员口径）；部门维度的采购员/主管与 admin 不过滤——
- *   入库单不是部门维度实体，清单 M5-1-2 明确授权这些角色查询；
+ * - 数据范围：列表、详情与写操作均校验仓库范围，仅全量管理员免过滤。
+ *   部门授权不能替代仓库授权；仓库范围为空时失败关闭；
  * - 作废的「未发生后续出库」：本系统无出库模块，闸门落在冲减后
  *   余额非负（该批次库存未被后续业务占用）；作废后入库配额自动释放
  *   （累计已生成只统计草稿+已确认）。
@@ -237,10 +236,11 @@ public class InboundOrderService {
      */
     @Transactional
     public void update(Long id, InboundSaveRequest request) {
-        InboundOrder bill = requireEditableBill(id);
+        InboundOrder bill = requireEditableBillForUpdate(id);
         fillBillFromRequest(bill, request, bill.getId());
         LambdaUpdateWrapper<InboundOrder> wrapper = new LambdaUpdateWrapper<InboundOrder>()
                 .eq(InboundOrder::getId, id)
+                .eq(InboundOrder::getStatus, 1)
                 .set(InboundOrder::getWarehouseId, bill.getWarehouseId())
                 .set(InboundOrder::getInboundDate, bill.getInboundDate())
                 .set(InboundOrder::getRemark, bill.getRemark())
@@ -249,13 +249,23 @@ public class InboundOrderService {
                 .set(InboundOrder::getSupplierId, bill.getSupplierId())
                 .set(InboundOrder::getInspectionId, bill.getInspectionId())
                 .set(InboundOrder::getInspectionNo, bill.getInspectionNo());
-        inboundOrderMapper.update(null, wrapper);
+        requireSingleRow(inboundOrderMapper.update(null, wrapper), "入库单状态已变化，请刷新后重试");
         saveItems(bill, request.getItems(), id);
         operationLogService.record("M5", "update", "inbound_order", id,
                 bill.getInboundNo(), "编辑入库单草稿，" + request.getItems().size() + " 行明细");
     }
 
     // ================= M5-1-3 确认入库（库存唯一写入点） =================
+
+    /** 删除草稿也与编辑/确认串行化；复用草稿维护权限，不新增权限编码。 */
+    @Transactional
+    public void deleteDraft(Long id) {
+        InboundOrder bill = requireEditableBillForUpdate(id);
+        requireSingleRow(inboundOrderMapper.deleteDraft(id), "入库单状态已变化，删除已取消");
+        inboundItemMapper.update(null, new LambdaUpdateWrapper<InboundItem>()
+                .eq(InboundItem::getInboundId, id).set(InboundItem::getIsDeleted, 1));
+        operationLogService.record("M5", "delete", "inbound_order", id, bill.getInboundNo(), "删除入库草稿");
+    }
 
     /**
      * 确认入库。同事务内完成：状态机 1 → 2（M5-5-3 重复确认防护）、
@@ -265,7 +275,7 @@ public class InboundOrderService {
      */
     @Transactional
     public void confirm(Long id) {
-        InboundOrder bill = requireBill(id);
+        InboundOrder bill = requireBillForUpdate(id);
         if (!Objects.equals(bill.getStatus(), 1)) {
             throw new BizException(ResultCode.UNSUPPORTED, bill.getStatus() != null && bill.getStatus() == 2
                     ? "该入库单已确认，不能重复确认（重复入库防护）"
@@ -290,10 +300,11 @@ public class InboundOrderService {
         }
         LambdaUpdateWrapper<InboundOrder> wrapper = new LambdaUpdateWrapper<InboundOrder>()
                 .eq(InboundOrder::getId, id)
+                .eq(InboundOrder::getStatus, 1)
                 .set(InboundOrder::getStatus, 2)
                 .set(InboundOrder::getConfirmTime, LocalDateTime.now())
                 .set(InboundOrder::getConfirmBy, currentUserId());
-        inboundOrderMapper.update(null, wrapper);
+        requireSingleRow(inboundOrderMapper.update(null, wrapper), "入库单状态已变化，入库操作已回滚");
         operationLogService.record("M5", "confirm", "inbound_order", id, bill.getInboundNo(),
                 "入库确认，" + items.size() + " 行明细写入库存并登记流水");
     }
@@ -312,7 +323,7 @@ public class InboundOrderService {
         if (!StringUtils.hasText(request.getReason())) {
             throw new BizException(ResultCode.INVALID_PARAMETER, "作废原因必填");
         }
-        InboundOrder bill = requireBill(id);
+        InboundOrder bill = requireBillForUpdate(id);
         if (!Objects.equals(bill.getStatus(), 2)) {
             throw new BizException(ResultCode.UNSUPPORTED, "只有已确认的入库单可以作废");
         }
@@ -323,10 +334,11 @@ public class InboundOrderService {
         }
         LambdaUpdateWrapper<InboundOrder> wrapper = new LambdaUpdateWrapper<InboundOrder>()
                 .eq(InboundOrder::getId, id)
+                .eq(InboundOrder::getStatus, 2)
                 .set(InboundOrder::getStatus, 3)
                 .set(InboundOrder::getVoidTime, LocalDateTime.now())
                 .set(InboundOrder::getVoidReason, request.getReason().trim());
-        inboundOrderMapper.update(null, wrapper);
+        requireSingleRow(inboundOrderMapper.update(null, wrapper), "入库单状态已变化，作废操作已回滚");
         operationLogService.record("M5", "void", "inbound_order", id, bill.getInboundNo(),
                 "作废入库单并冲减库存：" + request.getReason().trim());
     }
@@ -427,6 +439,7 @@ public class InboundOrderService {
         if (warehouse == null || !Objects.equals(warehouse.getStatus(), 1)) {
             throw new BizException(ResultCode.INVALID_PARAMETER, "入库仓库不存在或已停用");
         }
+        requireWarehouseAccess(request.getWarehouseId());
         if (!StringUtils.hasText(request.getInboundDate())) {
             throw new BizException(ResultCode.INVALID_PARAMETER, "请选择入库日期");
         }
@@ -670,8 +683,9 @@ public class InboundOrderService {
                             "库存记录不存在，无法冲减（物料 " + item.getMaterialId() + "）");
                 }
                 try {
-                    stockBalanceMapper.insertInitial(item.getMaterialId(), warehouseId, batchNo,
+                    int inserted = stockBalanceMapper.insertInitial(item.getMaterialId(), warehouseId, batchNo,
                             ownerType, ownerId, ownerNo, delta);
+                    if (inserted != 1) throw new BizException(ResultCode.UNSUPPORTED, "库存写入失败，事务已回滚");
                 } catch (DuplicateKeyException e) {
                     if (attempt >= MAX_RETRY) {
                         throw new BizException(ResultCode.UNSUPPORTED, "并发入库冲突，请重试");
@@ -718,7 +732,9 @@ public class InboundOrderService {
         flow.setSourceNo(bill.getInboundNo());
         flow.setOperatorId(currentUserId());
         flow.setFlowTime(LocalDateTime.now());
-        stockFlowMapper.insert(flow);
+        if (stockFlowMapper.insert(flow) != 1) {
+            throw new BizException(ResultCode.UNSUPPORTED, "库存流水写入失败，事务已回滚");
+        }
     }
 
     // ================= 私有：装配 =================
@@ -858,7 +874,27 @@ public class InboundOrderService {
         if (bill == null) {
             throw new BizException(ResultCode.NOT_FOUND, "采购入库单不存在");
         }
+        requireWarehouseAccess(bill.getWarehouseId());
         return bill;
+    }
+
+    private InboundOrder requireBillForUpdate(Long id) {
+        if (id == null) {
+            throw new BizException(ResultCode.INVALID_PARAMETER, "缺少入库单id");
+        }
+        InboundOrder bill = inboundOrderMapper.selectByIdForUpdate(id);
+        if (bill == null) {
+            throw new BizException(ResultCode.NOT_FOUND, "采购入库单不存在");
+        }
+        requireWarehouseAccess(bill.getWarehouseId());
+        return bill;
+    }
+
+    private void requireWarehouseAccess(Long warehouseId) {
+        ScopeCondition scope = currentScope();
+        if (!scope.isAll() && !scope.getWarehouseIds().contains(warehouseId)) {
+            throw new BizException(ResultCode.NO_PERMISSION, "该入库仓库不在当前数据范围内");
+        }
     }
 
     private InboundOrder requireEditableBill(Long id) {
@@ -869,11 +905,27 @@ public class InboundOrderService {
         return bill;
     }
 
-    /** 列表的仓库范围注入：只对拥有仓库范围的用户生效（仓管员口径，见类注释）。 */
+    private InboundOrder requireEditableBillForUpdate(Long id) {
+        InboundOrder bill = requireBillForUpdate(id);
+        if (!Objects.equals(bill.getStatus(), 1)) {
+            throw new BizException(ResultCode.UNSUPPORTED, "只有草稿状态的入库单可以编辑");
+        }
+        return bill;
+    }
+
+    private void requireSingleRow(int affectedRows, String message) {
+        if (affectedRows != 1) {
+            throw new BizException(ResultCode.UNSUPPORTED, message);
+        }
+    }
+
+    /** 列表仓库过滤与详情/写入一致；空范围失败关闭。 */
     private void applyWarehouseScope(LambdaQueryWrapper<InboundOrder> wrapper) {
         ScopeCondition scope = currentScope();
         if (!scope.isAll() && scope.hasWarehouse()) {
             wrapper.in(InboundOrder::getWarehouseId, scope.getWarehouseIds());
+        } else if (!scope.isAll()) {
+            wrapper.apply("1=0");
         }
     }
 

@@ -4,7 +4,7 @@ export { downloadCsv }
 
 /**
  * M11 平台与权限管理接口封装。
- * 每个函数标注对应功能点编号，便于论文第 5 章按编号引用。
+ * 功能点编号用于关联接口清单、权限定义与回归场景。
  */
 
 export interface PageResult<T> {

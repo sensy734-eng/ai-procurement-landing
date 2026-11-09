@@ -1,0 +1,326 @@
+[
+  {
+    "case": "draft-ambiguous",
+    "repeat": 1,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true,
+      "spec_disambiguation": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-exact",
+    "repeat": 1,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-multiline",
+    "repeat": 1,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-unit",
+    "repeat": 1,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true,
+      "unit_issue": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-owner",
+    "repeat": 1,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-foreign-owner",
+    "repeat": 1,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true,
+      "foreign_owner_not_offered": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-uncertain",
+    "repeat": 1,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true,
+      "spec_disambiguation": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-injection",
+    "repeat": 1,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "unit": true,
+      "date": true,
+      "quantity_preserved_or_clarified": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-ambiguous",
+    "repeat": 2,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true,
+      "spec_disambiguation": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-exact",
+    "repeat": 2,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-multiline",
+    "repeat": 2,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-unit",
+    "repeat": 2,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true,
+      "unit_issue": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-owner",
+    "repeat": 2,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-foreign-owner",
+    "repeat": 2,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true,
+      "foreign_owner_not_offered": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-uncertain",
+    "repeat": 2,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true,
+      "spec_disambiguation": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-injection",
+    "repeat": 2,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "unit": true,
+      "date": true,
+      "quantity_preserved_or_clarified": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-ambiguous",
+    "repeat": 3,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true,
+      "spec_disambiguation": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-exact",
+    "repeat": 3,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-multiline",
+    "repeat": 3,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-unit",
+    "repeat": 3,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true,
+      "unit_issue": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-owner",
+    "repeat": 3,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-foreign-owner",
+    "repeat": 3,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true,
+      "foreign_owner_not_offered": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-uncertain",
+    "repeat": 3,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "quantity": true,
+      "unit": true,
+      "date": true,
+      "spec_disambiguation": true
+    },
+    "passed": true
+  },
+  {
+    "case": "draft-injection",
+    "repeat": 3,
+    "checks": {
+      "materialId": true,
+      "ownerType": true,
+      "ownerId": true,
+      "unit": true,
+      "date": true,
+      "quantity_preserved_or_clarified": true
+    },
+    "passed": true
+  }
+]

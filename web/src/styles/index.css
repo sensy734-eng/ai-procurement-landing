@@ -109,7 +109,7 @@ a {
   line-height: 1.5;
 }
 
-/* 模块编号徽章：留作答辩时指认功能点，视觉上退到标题后面 */
+/* 模块编号徽章：辅助定位功能点，视觉上退到标题后面 */
 .page-code {
   display: inline-block;
   margin-left: 8px;

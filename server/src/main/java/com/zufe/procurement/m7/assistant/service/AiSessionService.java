@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zufe.procurement.common.BizException;
 import com.zufe.procurement.common.ResultCode;
+import com.zufe.procurement.auth.AuthContext;
 import com.zufe.procurement.m7.assistant.entity.AiMessage;
 import com.zufe.procurement.m7.assistant.entity.AiSession;
 import com.zufe.procurement.m7.assistant.mapper.AiMessageMapper;
@@ -119,7 +120,9 @@ public class AiSessionService {
             return null;
         }
         try {
-            return objectMapper.readValue(session.getContextJson(), AiContext.class);
+            AiContext context = objectMapper.readValue(session.getContextJson(), AiContext.class);
+            return AccessSnapshot.fingerprint(AuthContext.getOrThrow()).equals(context.getAccessFingerprint())
+                    ? context : null;
         } catch (Exception e) {
             return null;
         }
@@ -169,6 +172,13 @@ public class AiSessionService {
             vo.setResultCode(message.getResultCode());
             vo.setElapsedMs(message.getElapsedMs());
             vo.setCreatedAt(message.getCreatedAt());
+            if (Integer.valueOf(2).equals(message.getRole()) && !mayReadSnapshot(message)) {
+                vo.setContent("当前权限或数据范围已变化，该历史结果不再展示。请重新提问以获取当前权限范围内的结果。");
+                vo.setResultJson(null);
+                vo.setParamsJson(null);
+                vo.setRefDocIds(null);
+                vo.setResultCode(ResultCode.NO_PERMISSION.getCode());
+            }
             result.add(vo);
         }
         return result;
@@ -184,6 +194,10 @@ public class AiSessionService {
             log.warn("反馈未关联会话，已忽略：{}", content);
             return;
         }
+        AiSession session = sessionMapper.selectById(sessionId);
+        if (session == null || !AuthContext.getOrThrow().getUserId().equals(session.getUserId())) {
+            throw new BizException(ResultCode.NO_PERMISSION, "只能反馈自己的会话");
+        }
         String paramsJson = null;
         try {
             paramsJson = objectMapper.writeValueAsString(payload);
@@ -194,11 +208,25 @@ public class AiSessionService {
     }
 
     /** 上一条助手回答，用于重跑对比（M7-3-4） */    public AiMessage lastAssistantMessage(Long sessionId) {
-        return messageMapper.selectOne(new LambdaQueryWrapper<AiMessage>()
+        AiMessage message = messageMapper.selectOne(new LambdaQueryWrapper<AiMessage>()
                 .eq(AiMessage::getSessionId, sessionId)
                 .eq(AiMessage::getRole, 2)
                 .orderByDesc(AiMessage::getId)
                 .last("LIMIT 1"));
+        return message != null && mayReadSnapshot(message) ? message : null;
+    }
+
+    private boolean mayReadSnapshot(AiMessage message) {
+        var user = AuthContext.getOrThrow();
+        boolean knowledge = message.getIntentCode() != null && message.getIntentCode().startsWith("kb_");
+        if (!user.hasPermission(knowledge ? "m8:kb:query" : "m9:data:query")) return false;
+        try {
+            var json = objectMapper.readTree(message.getResultJson() == null ? "{}" : message.getResultJson());
+            String saved = json.path("accessFingerprint").asText("");
+            if (!saved.isBlank()) return saved.equals(AccessSnapshot.fingerprint(user));
+            // Legacy public knowledge remains readable; legacy data requires unrestricted scope.
+            return knowledge || user.getScope().isAll();
+        } catch (Exception ignored) { return false; }
     }
 
     /** 解析重跑前后参数差异，供前端展示「改了哪一项」 */
